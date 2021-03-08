@@ -53,12 +53,12 @@ size = 1
 # BCE with Logits loss, may change to soft dice
 criterion = nn.BCEWithLogitsLoss()
 
-n_epochs = 5
+n_epochs = 4
 input_dim = 4
 label_dim = 1
-hidden_dim = 32
+hidden_dim = 16
 
-display_step = 10
+display_step = 1
 batch_size = 16
 lr = 0.0002
 initial_shape = int(240 * size)
@@ -82,6 +82,7 @@ def Validate(model: nn.Module, criterion, Val_data):
     model.eval()
     losses = []
     running_loss = 0.0
+    cur_step = 0
     for real, labels in tqdm(Val_data):
         real = real.to(device)
         real = real.float() 
@@ -96,29 +97,27 @@ def Validate(model: nn.Module, criterion, Val_data):
         loss = criterion(pred, labels)
         running_loss =+ loss.item() * real.size(0)
         losses.append(running_loss / len(Val_data))
-        
-        plt.plot(range(len(losses)),losses)
-        plt.show()
-        
-        show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
-        show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
+        if cur_step % display_step == 0:
+            plt.plot(range(len(losses)),losses)
+            plt.show()
 
-        plt.show()
+            show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
+            show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
 
-        pred_output = pred.cpu().detach().numpy()
-        truth_output = label_input.cpu().detach().numpy()
-        DS = []
-        for i in range(cur_batch_size):
-            DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-        print("Dice Score: ", DS)
+            plt.show()
 
+            pred_output = pred.cpu().detach().numpy()
+            truth_output = label_input.cpu().detach().numpy()
+            DS = []
+            for i in range(cur_batch_size):
+                DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+            print("Dice Score: ", DS)
+        cur_step += 1
     metrics = losses
     return metrics
 
 def Test(Test_data, unet, unet_opt):
-    
     unet.eval()
-    
     for truth_input, label_input in tqdm(Test_data):
 
             cur_batch_size = len(truth_input)
@@ -137,6 +136,7 @@ def Test(Test_data, unet, unet_opt):
             pred = unet(truth_input)
             pred = pred.squeeze()
             
+            show_tensor_images(truth_input[:,0,:,:], size=(label_dim, target_shape, target_shape),title="Real inputs")
             show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
             show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
 
@@ -148,7 +148,7 @@ def Test(Test_data, unet, unet_opt):
             for i in range(cur_batch_size):
                 DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
             print("Dice Score: ", DS)
-            
+
 #               Define validation end                    #
 #--------------------------------------------------------#
 #                Define model start                      #
@@ -273,7 +273,8 @@ def train(Train_data,Val_data):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018 data",path_ext = ["/HGG_2","/LGG_2"],size=size)
+#dataset = BraTs_Dataset("Brats_2018 data",path_ext = ["/HGG_2","/LGG_2"],size=size,Transfrom=True)
+dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single"],size=size,apply_transform=True)
 
 n_val = int(len(dataset) * val_percent)
 n_test = int(len(dataset) * test_percent)
@@ -302,13 +303,13 @@ Test_data = DataLoader(
 
 Train_loss,validation_loss = train(Train_data,Val_data)
 
-unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
-unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
+#unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+#unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints/checkpoint_1.pth")
+#checkpoint = torch.load("Checkpoints/Checkpoints model_1/checkpoint_1.pth")
 
-unet.load_state_dict(checkpoint['state_dict'])
-unet_opt.load_state_dict(checkpoint['optimizer'])
+#unet.load_state_dict(checkpoint['state_dict'])
+#unet_opt.load_state_dict(checkpoint['optimizer'])
 
-Validate(Val_data
-Test(Test_data, unet, unet_opt)
+#Test(Test_data_data, unet, unet_opt)
+#Test(Val_data, unet, unet_opt)
