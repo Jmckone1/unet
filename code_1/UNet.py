@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, random_split
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
-from code_1.Brats_dataloader_3 import BraTs_Dataset
+from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
 import Net.Unet_components as net
 
 torch.manual_seed(0)
@@ -53,19 +53,19 @@ size = 1
 # BCE with Logits loss, may change to soft dice
 criterion = nn.BCEWithLogitsLoss()
 
-n_epochs = 4
+n_epochs = 3
 input_dim = 4
 label_dim = 1
 hidden_dim = 16
 
-display_step = 1
+display_step = 100
 batch_size = 16
 lr = 0.0002
 initial_shape = int(240 * size)
 target_shape = int(240 * size)
 device = 'cuda'
 
-val_percent = 0.2
+val_percent = 0.1
 test_percent = 0.2
 train_percent = 1 - (val_percent + test_percent)
 
@@ -202,7 +202,7 @@ def train(Train_data,Val_data):
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
-            print('Training loss: {:.5f}'.format(running_loss/ len(Train_data)))
+            #print('Training loss: {:.5f}'.format(running_loss/ len(Train_data)))
             
             if cur_step > 0:
                 if cur_step % 100 == 0:
@@ -273,8 +273,8 @@ def train(Train_data,Val_data):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-#dataset = BraTs_Dataset("Brats_2018 data",path_ext = ["/HGG_2","/LGG_2"],size=size,Transfrom=True)
-dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single"],size=size,apply_transform=True)
+dataset = BraTs_Dataset("Brats_2018 data",path_ext = ["/HGG_2","/LGG_2"],size=size,apply_transform=True)
+#dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single"],size=size,apply_transform=True)
 
 n_val = int(len(dataset) * val_percent)
 n_test = int(len(dataset) * test_percent)

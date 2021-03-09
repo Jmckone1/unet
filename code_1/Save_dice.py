@@ -10,6 +10,7 @@ from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
 import Net.Unet_components as net
 import nibabel as nib
 import os
+from os import walk
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -60,7 +61,30 @@ def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
     plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
     plt.show()
 
-def Test_save(Test_data, unet, unet_opt, save=False):
+def Test_save(Test_data, unet, unet_opt, path_ext, save=False):
+    f = []
+    d = []
+
+    path = "Brats_2018 data"
+
+    # each extension - HGG or LGG
+    for input_ in range(len(path_ext)):
+        counter = 0
+        # each folder in extension
+        for (dir_path, dir_names, file_names) in walk(path + path_ext[input_]):
+                            
+            # gets rid of any pesky leftover .ipynb_checkpoints files
+            if not dir_names == []:
+                if not dir_names[0].startswith("."):
+                    
+                    f.extend(file_names)
+                    d.extend(dir_names)
+                    counter = counter + 1
+
+        # value for extension swapping
+        if input_ == 0:
+            HGG_len = (counter-1) * 155
+            
     unet.eval()
     
     img_num = 0 # file size output
@@ -102,18 +126,27 @@ def Test_save(Test_data, unet, unet_opt, save=False):
                     img_num += 1
                     
                     if img_num == 155:
-                        data_val += 1
+                        
+                        if len(path_ext) == 1:
+                            ext = path_ext[0]
+                        else:
+                            if data_val < HGG_len:
+                                ext = path_ext[0]
+                            else:
+                                ext = path_ext[1]
                         mean_val = np.mean(DS)
                         DS = []
                         
                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
-                        nib.save(pred_img_save, os.path.join('Predictions/data_' + str(data_val) + '_' + str(int(mean_val*100)) + '.nii.gz'))  
+                        nib.save(pred_img_save, os.path.join('Predictions' + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + '.nii.gz'))  
                         
+                        data_val += 1
                         pred_img = np.empty((240,240,155))
                         img_num = 0
-                        #print("File" + str(data_val))
 
 #Train_loss,validation_loss = train(Train_data,Val_data)
+#path_ext = ["/HGG_2","/LGG_2"]
+path_ext = ["/LGG_2"]
 
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
@@ -126,10 +159,10 @@ unet_opt.load_state_dict(checkpoint['optimizer'])
 #Test(Test_data_data, unet, unet_opt)
 #Test(Val_data, unet, unet_opt)
 
-dataset_single = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_2","/LGG_2"], size=size, apply_transform=False)
+dataset_single = BraTs_Dataset("Brats_2018 data", path_ext, size=size, apply_transform=False)
 Single_data = DataLoader(
     dataset=dataset_single,
     batch_size=batch_size,
     shuffle=False)
 
-Test_save(Single_data, unet, unet_opt, save=True)
+Test_save(Single_data, unet, unet_opt, path_ext, save=True)

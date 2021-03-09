@@ -27,9 +27,14 @@ class BraTs_Dataset(Dataset):
             counter = 0
             # each folder in extension
             for (dir_path, dir_names, file_names) in walk(path + self.path_ext[input_]):
-                self.f.extend(file_names)
-                self.d.extend(dir_names)
-                counter = counter + 1
+                
+                # gets rid of any pesky leftover .ipynb_checkpoints files
+                if not dir_names == []:
+                    if not dir_names[0].startswith("."):
+                        
+                        self.f.extend(file_names)
+                        self.d.extend(dir_names)
+                        counter = counter + 1
 
             # value for extension swapping
             if input_ == 0:
@@ -46,13 +51,17 @@ class BraTs_Dataset(Dataset):
         current_dir = int(np.floor(index/155))
 
         # assign the correct extension - HGG or LGG
-        if index < self.HGG_len:
-          ext = self.path_ext[0]
+        if len(self.path_ext) == 1:
+            ext = self.path_ext[0]
         else:
-          ext = self.path_ext[1]
+            if index < self.HGG_len:
+                ext = self.path_ext[0]
+            else:
+                ext = self.path_ext[1]
 
         #######################################################################
         #                          image return start                         #
+
 
         file_t = self.d[current_dir] + '/' + self.d[current_dir] + r"_" + "whimg_n" + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
@@ -79,10 +88,7 @@ class BraTs_Dataset(Dataset):
         label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
         label = F.interpolate(label,(int(label.shape[2]*self.size),int(label.shape[3]*self.size)))
         if self.apply_transform == True:
-            print("original uniques: ", np.unique(label))
             img,label = self.Transform(img,label)
-            print("transformed uniques: ", np.unique(label))
-            print(" ")
             
         img = img.squeeze().numpy()
         label = label.squeeze().numpy()
