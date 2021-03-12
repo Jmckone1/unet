@@ -17,7 +17,7 @@ f = []
 d = []
 
 path_ext = ["/HGG","/LGG"]
-output_path = ["/HGG_2","/LGG_2"]
+output_path = ["/HGG_split","/LGG_split"]
 
 for input_ in range(len(path_ext)):
     counter = 0

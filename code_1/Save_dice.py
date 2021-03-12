@@ -61,7 +61,7 @@ def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
     plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
     plt.show()
 
-def Test_save(Test_data, unet, unet_opt, path_ext, save=False):
+def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
     f = []
     d = []
 
@@ -79,11 +79,11 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False):
                     
                     f.extend(file_names)
                     d.extend(dir_names)
-                    counter = counter + 1
+                    counter = len(d)
 
         # value for extension swapping
         if input_ == 0:
-            HGG_len = (counter-1) * 155
+            HGG_len = counter * 155
             
     unet.eval()
     
@@ -127,31 +127,30 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False):
                     
                     if img_num == 155:
                         
-                        if len(path_ext) == 1:
+                        if data_val < HGG_len:
                             ext = path_ext[0]
                         else:
-                            if data_val < HGG_len:
-                                ext = path_ext[0]
-                            else:
-                                ext = path_ext[1]
+                            ext = path_ext[1]
+                                
                         mean_val = np.mean(DS)
                         DS = []
                         
                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
-                        nib.save(pred_img_save, os.path.join('Predictions' + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + '.nii.gz'))  
+                        nib.save(pred_img_save, os.path.join('Predictions' + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + "_" + save_val +'.nii.gz'))  
                         
                         data_val += 1
                         pred_img = np.empty((240,240,155))
                         img_num = 0
 
 #Train_loss,validation_loss = train(Train_data,Val_data)
-#path_ext = ["/HGG_2","/LGG_2"]
-path_ext = ["/LGG_2"]
+path_ext = ["/HGG_2","/LGG_2"]
+#path_ext = ["/LGG_2"]
+#path_ext = ["/HGG_single_2"]
 
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints/Checkpoints model_1/checkpoint_1.pth")
+checkpoint = torch.load("Checkpoints/checkpoint_2.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])

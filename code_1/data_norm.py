@@ -7,7 +7,7 @@ import time
 
 path_ext = ["/HGG","/LGG"]
 path = "Brats_2018 data"
-output_path = ["/HGG_2","/LGG_2"]
+output_path = ["/HGG_split","/LGG_split"]
 filetype = ["t1","flair","t1ce","t2","seg"]
 img_output = np.empty((4,240,240,155))
 img_out = np.empty((240,240,155))
@@ -24,16 +24,16 @@ for input_ in range(len(path_ext)):
         counter = counter + 1
     print(counter)
     if input_ == 0:
-      HGG_len = counter
+        HGG_len = counter
 
 for num, name in enumerate(d):
     print(num)
     if num < HGG_len-1:
-      ext = path_ext[0]
-      out = output_path[0]
+        ext = path_ext[0]
+        out = output_path[0]
     else:
-      ext = path_ext[1]
-      out = output_path[1]
+        ext = path_ext[1]
+        out = output_path[1]
 
     t = time.time()
     for file_ in range(4):

@@ -27,18 +27,17 @@ class BraTs_Dataset(Dataset):
             counter = 0
             # each folder in extension
             for (dir_path, dir_names, file_names) in walk(path + self.path_ext[input_]):
-                
                 # gets rid of any pesky leftover .ipynb_checkpoints files
                 if not dir_names == []:
                     if not dir_names[0].startswith("."):
                         
                         self.f.extend(file_names)
                         self.d.extend(dir_names)
-                        counter = counter + 1
-
+                        counter = len(self.d)
+            
             # value for extension swapping
             if input_ == 0:
-              self.HGG_len = (counter-1) * 155
+                self.HGG_len = (counter) * 155
         
         # inputs to global
         self.count = len(self.d) * 155
@@ -46,18 +45,16 @@ class BraTs_Dataset(Dataset):
         self.size = size
 
     def __getitem__(self,index):
+
         img_data = np.empty((4,240,240,155))
         img_labels = np.empty((240,240,155))
         current_dir = int(np.floor(index/155))
 
         # assign the correct extension - HGG or LGG
-        if len(self.path_ext) == 1:
+        if index < self.HGG_len:
             ext = self.path_ext[0]
         else:
-            if index < self.HGG_len:
-                ext = self.path_ext[0]
-            else:
-                ext = self.path_ext[1]
+            ext = self.path_ext[1]
 
         #######################################################################
         #                          image return start                         #

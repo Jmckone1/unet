@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
 import Net.Unet_components as net
+import csv
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -58,7 +59,7 @@ input_dim = 4
 label_dim = 1
 hidden_dim = 16
 
-display_step = 100
+display_step = 50
 batch_size = 16
 lr = 0.0002
 initial_shape = int(240 * size)
@@ -77,43 +78,45 @@ plt.gray()
 #--------------------------------------------------------#
 #              Define validation start                   #
 
-def Validate(model: nn.Module, criterion, Val_data):
+def Validate(unet, criterion, Val_data):
+    print(" ")
     print("Validation...")
-    model.eval()
+    unet.eval()
     losses = []
     running_loss = 0.0
     cur_step = 0
-    for real, labels in tqdm(Val_data):
-        real = real.to(device)
-        real = real.float() 
-        real = real.squeeze()
-        labels = labels.to(device)
-        labels = labels.float()
-        labels = labels.squeeze()
+    for truth_input, label_input in tqdm(Test_data):
 
-        pred = model(real)
+        cur_batch_size = len(truth_input)
+
+        # flatten ground truth and label masks
+        truth_input = truth_input.to(device)
+        truth_input = truth_input.float() 
+        truth_input = truth_input.squeeze()
+
+        label_input = label_input.to(device)
+        label_input = label_input.float()
+        label_input = label_input.squeeze()
+            
+        pred = unet(truth_input)
         pred = pred.squeeze()
 
-        loss = criterion(pred, labels)
-        running_loss =+ loss.item() * real.size(0)
+        loss = criterion(pred, label_input)
+        running_loss =+ loss.item() * truth_input.size(0)
         losses.append(running_loss / len(Val_data))
-        if cur_step % display_step == 0:
-            plt.plot(range(len(losses)),losses)
-            plt.show()
 
-            show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
-            show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
-
-            plt.show()
-
-            pred_output = pred.cpu().detach().numpy()
-            truth_output = label_input.cpu().detach().numpy()
-            DS = []
-            for i in range(cur_batch_size):
-                DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-            print("Dice Score: ", DS)
+        pred_output = pred.cpu().detach().numpy()
+        truth_output = label_input.cpu().detach().numpy()
+        DS = []
+        for i in range(cur_batch_size):
+            DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+        print("Validation Dice Score: ", DS)
+        
         cur_step += 1
     metrics = losses
+    print("Validation complete")
+    print(" ")
+    
     return metrics
 
 def Test(Test_data, unet, unet_opt):
@@ -147,31 +150,43 @@ def Test(Test_data, unet, unet_opt):
             DS = []
             for i in range(cur_batch_size):
                 DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-            print("Dice Score: ", DS)
+            print("Test Dice Score: ", DS)
 
 #               Define validation end                    #
 #--------------------------------------------------------#
 #                Define model start                      #
 
-def train(Train_data,Val_data):
-
+def train(Train_data,Val_data,load=False):
+    
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-    cur_step = 0
+    
+    
+    if load == True:
+        checkpoint = torch.load("Checkpoints/checkpoint_0_step_1900.pth")
 
-    valid_loss = []
-    total_loss = []
+        unet.load_state_dict(checkpoint['state_dict'])
+        unet_opt.load_state_dict(checkpoint['optimizer'])
 
 #                   Define model end                     #
 #--------------------------------------------------------#
 #                   Run model start                      #
 
     for epoch in range(n_epochs):
+        cur_step = 0
+        
+        print("Training...")
+        if epoch == 0 and load == True:
+            epoch = checkpoint['epoch'] + 1
+            
         unet.train()
+        
         running_loss = 0.0
         loss_values = []
-
+        valid_loss = []
+        total_loss = []
+        
         for truth_input, label_input in tqdm(Train_data):
 
             cur_batch_size = len(truth_input)
@@ -197,60 +212,63 @@ def train(Train_data,Val_data):
             unet_opt.step()
 
             running_loss =+ unet_loss.item() * truth_input.size(0)
+            
+            cur_step += 1
 
 #                     Run model end                      #
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
             #print('Training loss: {:.5f}'.format(running_loss/ len(Train_data)))
-            
-            if cur_step > 0:
-                if cur_step % 100 == 0:
-                    checkpoint = {'epoch': epoch,
-                                  'state_dict': unet.state_dict(),
-                                  'optimizer' : unet_opt.state_dict()}
-                    out = "Checkpoints/checkpoint_" + str(epoch) + "_step_" + str(cur_step) + ".pth"
-                    torch.save(checkpoint, out)
-                    
-                if cur_step % display_step == 0:
-                    
-                    print(f"Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
-                    show_tensor_images(truth_input[:,1,:,:], size=(label_dim, target_shape, target_shape),
-                                       title="Flair Input Channel ( channel 2 of 4 )")
-                    show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
-                    show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
-                    plt.plot(range(len(loss_values)),loss_values)
-                    plt.show()
+            if cur_step % 250 == 0:
+                checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
+                out = "Checkpoints/checkpoint_" + str(epoch) + "_step_" + str(cur_step) + ".pth"
+                torch.save(checkpoint, out)
 
-                    # I can make this into a function
-                    # kaggle 2017 2nd place
-                    # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
-                    pred_output = pred.cpu().detach().numpy()
-                    truth_output = label_input.cpu().detach().numpy()
-                    DS = []
-                    for i in range(cur_batch_size):
-                        DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-                    print("Dice Score: ", DS)
+            if cur_step % display_step == 0:
+
+                print(f"Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
+                show_tensor_images(truth_input[:,1,:,:], size=(label_dim, target_shape, target_shape),
+                                   title="Flair Input Channel ( channel 2 of 4 )")
+                show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
+                show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
+                plt.plot(range(len(loss_values)),loss_values)
+                plt.show()
+
+                # I can make this into a function
+                # kaggle 2017 2nd place
+                # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
+                pred_output = pred.cpu().detach().numpy()
+                truth_output = label_input.cpu().detach().numpy()
+                DS = []
+                for i in range(cur_batch_size):
+                    DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+                print("Training Dice Score: ", DS)
 
 #                    Display stage end                   #           
 #--------------------------------------------------------#
 #               step and loss output start               #
 
-            cur_step += 1
-            loss_values.append(running_loss / len(Train_data))
-            
-            checkpoint = {'epoch': epoch,
-                          'state_dict': unet.state_dict(),
-                          'optimizer' : unet_opt.state_dict()}
-            out = "Checkpoints/checkpoint_" + str(epoch) + ".pth"
-            torch.save(checkpoint, out)
+        loss_values.append(running_loss / len(Train_data))
   
         plt.plot(range(len(loss_values)),loss_values)
         plt.title("Epoch " + str(epoch + 1) + ": loss")
 
         plt.show()
         total_loss.append(loss_values)
-
+        
+        print("saving epoch: ", epoch)
+        checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
+        out = "Checkpoints/checkpoint_" + str(epoch) + ".pth"
+        torch.save(checkpoint, out)
+        
+        with open("Checkpoints/epoch_" + str(epoch) + "training_loss", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(total_loss)
+        with open("Checkpoints/epoch_" + str(epoch) + "validation_loss", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(valid_loss)
+        
         # validation (per epoch)
         valid_loss.append(Validate(unet, criterion, Val_data))
         # plt.plot(range(len(valid_loss[epoch])),valid_loss[epoch])
@@ -259,49 +277,50 @@ def train(Train_data,Val_data):
         t = []
         v = []
         for i in range(len(total_loss)):
-          t.append(np.mean(total_loss[i]))
-          v.append(np.mean(valid_loss[i]))
+            t.append(np.mean(total_loss[i]))
+            if len(valid_loss[i]) != 0:
+                v.append(np.mean(valid_loss[i]))
 
         plt.plot(range(len(t)),t)
         plt.plot(range(len(v)),v)
         plt.legend(["training","validation"])
         plt.show()
-        
-    print('Finished Training Trainset')
+
+    print('Finished Training Dataset')
     return total_loss, valid_loss
 
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018 data",path_ext = ["/HGG_2","/LGG_2"],size=size,apply_transform=True)
+#dataset = BraTs_Dataset("Brats_2018 data",path_ext = ["/HGG_2","/LGG_2"],size=size,apply_transform=True)
 #dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single"],size=size,apply_transform=True)
 
-n_val = int(len(dataset) * val_percent)
-n_test = int(len(dataset) * test_percent)
-n_train = (len(dataset) - n_val) - n_test
-train_load, val_load, test_load = random_split(dataset, [n_train, n_val, n_test])
-print("Training: ", n_train)
-print("validation: ", n_val)
-print("Test: ", n_test)
+Training_dataset = BraTs_Dataset("Brats_2018_data_split/Training", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
+Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
+Testing_dataset = BraTs_Dataset("Brats_2018_data_split/Testing", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
+
+print("Training: ", len(Training_dataset))
+print("validation: ", len(Validation_dataset))
+print("Test: ", len(Testing_dataset))
 
 Train_data = DataLoader(
-    dataset=train_load,
+    dataset=Training_dataset,
     batch_size=batch_size,
     shuffle=True)
 
 Val_data = DataLoader(
-    dataset=val_load,
+    dataset=Validation_dataset,
     batch_size=batch_size,
     shuffle=False,
     drop_last=True)
 
 Test_data = DataLoader(
-    dataset=test_load,
+    dataset=Testing_dataset,
     batch_size=batch_size,
     shuffle=False,
     drop_last=True)
 
-Train_loss,validation_loss = train(Train_data,Val_data)
+Train_loss,validation_loss = train(Train_data,Val_data,load=False)
 
 #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 #unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
