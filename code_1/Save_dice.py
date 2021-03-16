@@ -143,7 +143,7 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
                         img_num = 0
 
 #Train_loss,validation_loss = train(Train_data,Val_data)
-path_ext = ["/HGG_2","/LGG_2"]
+path_ext = ["/HGG","/LGG"]
 #path_ext = ["/LGG_2"]
 #path_ext = ["/HGG_single_2"]
 
@@ -158,7 +158,7 @@ unet_opt.load_state_dict(checkpoint['optimizer'])
 #Test(Test_data_data, unet, unet_opt)
 #Test(Val_data, unet, unet_opt)
 
-dataset_single = BraTs_Dataset("Brats_2018 data", path_ext, size=size, apply_transform=False)
+dataset_single = BraTs_Dataset("Brats_2018_data_split/Training", path_ext, size=size, apply_transform=False)
 Single_data = DataLoader(
     dataset=dataset_single,
     batch_size=batch_size,
