@@ -42,9 +42,10 @@ def calc_RANO(input_label, affine=None, resolution_x=1, resolution_y=1, resoluti
 
             lesion_properties = regionprops(lesion_slice)
             
-            lesion_print = regionprops_table(lesion_slice)
-            print(lesion_print["bbox-1"])
-            input(" ")
+            #lesion_print = regionprops_table(lesion_slice)
+            #print(lesion_print["bbox-1"])
+            
+            #input(" ")
             
             current_major = lesion_properties[0].major_axis_length * resolution_x
             current_minor = lesion_properties[0].minor_axis_length * resolution_y
@@ -104,15 +105,23 @@ def calc_RANO(input_label, affine=None, resolution_x=1, resolution_y=1, resoluti
             plt.plot(major_x_2, major_y_2, 'bo')
             plt.plot(minor_x_1, minor_y_1, 'yo') 
             plt.plot(minor_x_2, minor_y_2, 'co') 
+            
             plt.show()
             
-            #plt.plot(center_x, center_y, 'ro') 
-            #plt.plot(major_x_1, major_y_1, 'go') 
-            #plt.plot(major_x_2, major_y_2, 'bo')
-            #plt.plot(minor_x_1, minor_y_1, 'yo') 
-            #plt.plot(minor_x_2, minor_y_2, 'co') 
-            #plt.show()
+            print("orientation radians: ", lesion_props.orientation)
+            print("orientation degrees: ", lesion_props.orientation*(180/np.pi))
+            print(" ")
+            print("major length: ",lesion_props.major_axis_length)
+            print("minor length: ",lesion_props.minor_axis_length)
+
+
             
+            ##produces a generic un-rotated bounding box
+            #minr, minc, maxr, maxc = lesion_props.bbox
+            #bx = (minc, maxc, maxc, minc, minc)
+            #by = (minr, minr, maxr, maxr, minr)
+            #plt.plot(bx, by, '-b', linewidth=2.5)
+           
             # the data that i want to parameterise is the following:
             # x, y, len_x, len_y, orientation and crossover
             
