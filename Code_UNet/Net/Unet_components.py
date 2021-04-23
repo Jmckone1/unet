@@ -73,9 +73,7 @@ class UNet(nn.Module):
         self.contract2 = Contract(hidden_channels * 2)
         self.contract3 = Contract(hidden_channels * 4)
         self.contract4 = Contract(hidden_channels * 8)
-        
         self.expand1 = Expand(hidden_channels * 16)
-        
         self.expand2 = Expand(hidden_channels * 8)
         self.expand3 = Expand(hidden_channels * 4)
         self.expand4 = Expand(hidden_channels * 2)

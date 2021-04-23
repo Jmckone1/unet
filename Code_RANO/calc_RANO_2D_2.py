@@ -8,7 +8,7 @@ import time
 
 from skimage.morphology import label
 from skimage.measure import regionprops, mesh_surface_area, marching_cubes
-from skimage.morphology import label, binary_erosion, disk, binary_opening
+from skimage.morphology import label, binary_erosion, disk, binary_opening, binary_dilation
 from skimage.measure import regionprops, mesh_surface_area, marching_cubes, find_contours
 from scipy import signal
 from scipy.spatial.distance import cdist
@@ -111,16 +111,20 @@ def find_largest_orthogonal_cross_section(pairwise_distances, img, tolerance=0.0
                     XY = interpolate(q1, q2, d2)
                     intersections = sum(img[x, y] == 0 for x, y in XY)
                     if intersections == 0:
-                        return [p1, p2, q1, q2]
+                        return [p1, p2, q1, q2],[d1,d2]
                     
 def calc_2D_RANO_measure(input_data, pixdim=None, affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath=None, verbose=True):
     
     input_data, input_affine = read_image_files(input_data, return_affine=True)
     #input_affine = None
-
     pixdim = _get_pixdim(pixdim, affine, input_affine)
 
     #print("labels",component_labels)
+    
+    Bidimensional_output=np.zeros([8,155])
+    #print(Bidimensional_output)
+    #print(Bidimensional_output.shape)
+    #input("")
     
     max_2ds = []
     max_2d_images = []
@@ -135,12 +139,16 @@ def calc_2D_RANO_measure(input_data, pixdim=None, affine=None, mask_value=0, axi
         (unique, counts) = np.unique(connected_components, return_counts=True)
         counts[0] = 0
         largest_component = (connected_components == np.argmax(counts)).astype(int)
-
+        
+        #plt.imshow(largest_component)
+        #plt.show()
+        #input("")
+        
         #print("coomponent sum", sum(sum(largest_component[:,:,z_slice])))
         if sum(sum(largest_component)) > 10:
             #plt.imshow(largest_component[:,:,z_slice])
             #plt.show()
-            label_slice = largest_component
+            label_slice = binary_dilation(largest_component).astype(largest_component.dtype)
 
             label_properties = regionprops(label_slice)
             #print("length",len(label_properties))
@@ -155,62 +163,63 @@ def calc_2D_RANO_measure(input_data, pixdim=None, affine=None, mask_value=0, axi
             if np.sum(label_slice) == 0:
                 continue
 
-            p = calc_rano_points(label_slice)
-            #print(" ")
-            #print("P", p)
-            #print(" ")
+            p,d = calc_rano_points(label_slice)
+
             if p != None:
                 x_dim = abs(np.cos(current_orientation) * current_major)
                 y_dim = abs(np.sin(current_orientation) * current_major)
                 current_major = ((x_dim * pixdim[0])**2 + (y_dim * pixdim[1])**2)**.5
 
-                #print("Curr", current_major)
-
                 if major_diameter is None:
                     major_diameter = current_major
                 elif current_major > major_diameter:
                     major_diameter = current_major
-
-                plt.imshow(largest_component, cmap='gray')
-                plt.show()
                 
                 if p[0] != 0:
                     
                     D1 = np.asarray([[p[0].x, p[1].x], [p[0].y, p[1].y]])
                     D2 = np.asarray([[p[2].x, p[3].x], [p[2].y, p[3].y]])
                     
-#                    a = np.array((D1[0][0],D1[0][1]))
- #                   b = np.array((D1[1][0],D1[1][1]))
-  #                  print("a",a)
-   #                 print("b",b)
-    #                dist1 = np.linalg.norm(a-b)
-     #               print(dist1)
-      #              input(" ")
-       #             
-        #            a2 = np.array((D2[0][0],D2[0][1]))
-         #           b2 = np.array((D2[1][0],D2[1][1]))
-          #          print("a",a2)
-           #         print("b",b2)
-            #        dist2 = np.linalg.norm(a2-b2)
-             #       print(dist2)
-              #      input(" ")
-
-                    plt.plot(D1[1, :], D1[0, :], lw=2, c='r')
-                    plt.plot(D2[1, :], D2[0, :], lw=2, c='b')
+                    data_out = []
+                    for i in range(4):
+                        data_out = np.append(data_out, p[i].x)
+                        data_out = np.append(data_out, p[i].y)
+                        
+                    #print("save",data_out) 
                     
-                    print(D1)
-                    print(D2)
+                    #print("test_out", data_out[1],data_out[3],data_out[0],data_out[2],data_out[5],data_out[7],data_out[4],data_out[6]) #
+                    #this is saved into the same format as p - so to plot it would need to be arranged ##################################
+                    #D1 = np.asarray([[data_out[1],data_out[3],[data_out[0],data_out[2]]) ###############################################
+                    #D2 = np.asarray([[data_out[5],data_out[7],[data_out[4],data_out[6]]) ###############################################
+                    
+   #                 plt.imshow(largest_component, cmap='gray')
+    #                plt.plot(D1[1, :], D1[0, :], lw=2, c='r')
+     #               plt.plot(D2[1, :], D2[0, :], lw=2, c='b')
+      #              plt.show()
+    
+                    print(z_slice, D1[1, :], D1[0, :], D2[1, :], D2[0, :])
 
+                else:
+                    D1 = np.asarray([[0, 0], [0, 0]])
+                    D2 = np.asarray([[0, 0], [0, 0]])
+                    print(z_slice, D1[1, :], D1[0, :], D2[1, :], D2[0, :])
+                    data_out = [0,0,0,0,0,0,0,0]
+                
+                Bidimensional_output[:,z_slice] = data_out
+                #print(Bidimensional_output[:,z_slice])
+                
                 if major_diameter is not None:
                     max_2ds += [major_diameter]
+    
+    return Bidimensional_output
 
-    if max_2ds == None:
-        max_2ds = 0
-        
-    if calc_multiple:
-        return max_2ds
-    else:
-        return max(max_2ds)
+    #if max_2ds == None:
+    #    max_2ds = 0
+    #    
+    #if calc_multiple:
+    #    return max_2ds
+    #else:
+    #    return max(max_2ds)
 
 
 def calc_rano_points(binary_image, tol=0.01, output_file=None, background_image=None, verbose=False):
@@ -229,7 +238,7 @@ def calc_rano_points(binary_image, tol=0.01, output_file=None, background_image=
     if len(contours) == 0:
         if verbose:
             print("No lesion contours > 1 pixel detected.")
-        return [0,0,0,0]
+        return [0,0,0,0],[0,0]
 
     # Calculate pairwise distances over boundary
     outer_contour = np.round(contours[0]).astype(int)  # this assumption should always hold...
@@ -244,13 +253,14 @@ def calc_rano_points(binary_image, tol=0.01, output_file=None, background_image=
     # Exhaustive search for longest valid line segment and its orthogonal counterpart
     try:
         q = [0,0,0,0]
-        q = find_largest_orthogonal_cross_section(ordered_diameters, binary_image, tolerance=tol)
+        d = [0,0]
+        q,d = find_largest_orthogonal_cross_section(ordered_diameters, binary_image, tolerance=tol)
         #print("Q",q)
     except TypeError:
         if verbose:
             print("Error: unable to compute RANO measurement")
-        return 0.0
-    return q
+        return [0,0,0,0],[0,0]
+    return q,d
 
 def dataread(path):
     d = []
@@ -266,13 +276,21 @@ def dataread(path):
 
 if __name__ == "__main__":
     
-    path = "Brats_2018_data_split/Training/HGG/"
+    path = "Brats_2018_data_split/Training/LGG/"
 
     d = dataread(path)
     
-    for x in range(100):
-        print(x)
-        dataPLot = nib.load("Brats_2018_data_split/Training/HGG/Brats18_CBICA_ATF_1/Brats18_CBICA_ATF_1_whseg.nii.gz")
-        input_2 = dataPLot.get_fdata()
+    output_size = len(d)
+    print(output_size)
+    
+    # output_size = 1
+    
+    for x in range(output_size):
+        print("Data item:",x)
+        data_Plot = nib.load(path + d[x] + "/" + d[x] + "_whseg.nii.gz")
+        input_2 = data_Plot.get_fdata()
         
-        calc_2D_RANO_measure(input_2, pixdim=(240,240), affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath="output_rano", verbose=False)
+        Bi_output = calc_2D_RANO_measure(input_2, pixdim=(240,240), affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath="output_rano", verbose=False)
+        
+        np.savez(path + d[x] + "/" + d[x] + "_RANO",RANO=Bi_output)
+        
