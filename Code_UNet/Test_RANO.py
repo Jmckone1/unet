@@ -140,7 +140,7 @@ Data_1 = DataLoader(
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints_RANO/checkpoint_23.pth")
+checkpoint = torch.load("Checkpoints_RANO/r_data_8/checkpoint_25.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])

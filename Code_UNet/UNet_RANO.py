@@ -13,11 +13,89 @@ import csv
 from os import walk
 import nibabel as nib
 import os
+from sklearn.metrics import jaccard_score
+from matplotlib.path import Path
 
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
-c_file = "r_data_2_18-05-21/"
+def MSELossorthog(output, target):
+    
+    output_val = output.data.cpu().numpy()
+    
+    l1 = np.sqrt(np.square(output_val[1]-output_val[3]) + np.square(output_val[0]-output_val[2]))
+    l2 = np.sqrt(np.square(output_val[5]-output_val[7]) + np.square(output_val[4]-output_val[6]))
+    
+    m1 = (abs(output_val[1]/l1-output_val[3]/l1))/(abs(output_val[0]/l1-output_val[2]/l1)+0.1)
+    m2 = (abs(output_val[5]/l2-output_val[7]/l2))/(abs(output_val[4]/l2-output_val[6]/l2)+0.1)
+
+    orthog = abs(np.dot(m1,m2))
+    
+    weight = 10
+    
+    loss = torch.mean((output - target)**2) + (orthog * weight)
+    return loss
+
+#https://stackoverflow.com/questions/32892932/create-the-oriented-bounding-box-obb-with-python-and-numpy
+#https://hewjunwei.wordpress.com/2013/01/26/obb-generation-via-principal-component-analysis/
+#https://stackoverflow.com/questions/3654289/scipy-create-2d-polygon-mask
+
+def Obb(input_array):
+    
+    input_array = input_array.detach().cpu().numpy()
+        
+    input_data = np.array([(input_array[1], input_array[0]),
+                           (input_array[5], input_array[4]), 
+                           (input_array[3], input_array[2]), 
+                           (input_array[7], input_array[6])])
+    
+    input_covariance = np.cov(input_data,y = None, rowvar = 0,bias = 1)
+    
+    v, vect = np.linalg.eig(input_covariance)
+    tvect = np.transpose(vect)
+    #use the inverse of the eigenvectors as a rotation matrix and
+    #rotate the points so they align with the x and y axes
+    rotate = np.dot(input_data,vect)
+    
+    # get the minimum and maximum x and y 
+    mina = np.min(rotate,axis=0)
+    maxa = np.max(rotate,axis=0)
+    diff = (maxa - mina)*0.5
+    
+    # the center is just half way between the min and max xy
+    center = mina + diff
+    
+    #get the 4 corners by subtracting and adding half the bounding boxes height and width to the center
+    corners = np.array([center+[-diff[0],-diff[1]],
+                        center+[ diff[0],-diff[1]],
+                        center+[ diff[0], diff[1]],
+                        center+[-diff[0], diff[1]],
+                        center+[-diff[0],-diff[1]]])
+    
+    #use the the eigenvectors as a rotation matrix and
+    #rotate the corners and the centerback
+    corners = np.dot(corners,tvect)
+    center = np.dot(center,tvect)
+    
+    return corners, center
+
+def mask(shape,corners):
+    nx, ny = shape
+    
+    # Create vertex coordinates for each grid cell...
+    # (<0,0> is at the top left of the grid in this system)
+    x, y = np.meshgrid(np.arange(nx), np.arange(ny))
+    x, y = x.flatten(), y.flatten()
+    
+    points = np.vstack((x,y)).T
+    
+    path = Path(corners)
+    grid = path.contains_points(points)
+    grid = grid.reshape((ny,nx))
+    
+    return grid
+
+c_file = "Unet_8_3_data/"
 
 np.set_printoptions(precision=4)
 
@@ -28,12 +106,13 @@ np.set_printoptions(precision=4)
 size = 1
 
 # BCE with Logits loss, may change to soft dice
-criterion = nn.MSELoss()
+#criterion = nn.MSELoss()
+criterion = MSELossorthog
 
-n_epochs = 12
+n_epochs = 50
 input_dim = 4
 label_dim = 8
-hidden_dim = 16
+hidden_dim = 32
 
 display_step = 200
 batch_size = 16
@@ -48,27 +127,10 @@ train_percent = 1 - (val_percent + test_percent)
 
 # https://nipy.org/nibabel/gettingstarted.html
 
-def dice_score(prediction, truth):
-    # clip changes negative vals to 0 and those above 1 to 1
-    pred_1 = np.clip(prediction, 0, 1.0)
-    truth_1 = np.clip(truth, 0, 1.0)
-
-    # binarize
-    pred_1 = np.where(pred_1 > 0.5, 1, 0)
-    truth_1 = np.where(truth_1 > 0.5, 1, 0)
-
-    # Dice calculation
-    product = np.dot(truth_1.flatten(), pred_1.flatten())
-    dice_num = 2 * product + 1
-    pred_sum = pred_1.sum()
-    label_sum = truth_1.sum()
-    dice_den = pred_sum + label_sum + 1
-    score = dice_num / dice_den
-
-    return score
-
 #--------------------------------------------------------#
 #             show output tensors start                  #
+
+
 
 def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
 
@@ -90,6 +152,8 @@ def Validate(unet, criterion, Val_data):
     losses = []
     running_loss = 0.0
     cur_step = 0
+    jaccard_val = []
+    
     for truth_input, label_input in tqdm(Val_data):
 
         cur_batch_size = len(truth_input)
@@ -114,17 +178,24 @@ def Validate(unet, criterion, Val_data):
 
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
-        #DS = []
-        #for i in range(cur_batch_size):
-        #    DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-        #print("Validation Dice Score: ", DS)
+
+        for input_val in range(cur_batch_size):
+                
+            corners_truth, center_truth = Obb(label_input[input_val,:])
+            mask_truth = mask((240,240),corners_truth)*1
+            corners_pred, center_pred = Obb(pred[input_val,:])
+            mask_pred = mask((240,240),corners_pred)*1
+
+            if np.sum(np.sum(mask_pred)) > 2:
+                jaccard_val.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
+            else:
+                jaccard_val.append(0)
         
         cur_step += 1
-    #metrics = losses
     print("Validation complete")
     print(" ")
     
-    return losses
+    return losses, jaccard_val
 
 
 #               Define validation end                    #
@@ -134,6 +205,7 @@ def Validate(unet, criterion, Val_data):
 def train(Train_data,Val_data,load=False):
     
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+    print(unet)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr,betas=(0.9, 0.999), weight_decay=1e-8)
 
     if load == True:
@@ -160,7 +232,9 @@ def train(Train_data,Val_data,load=False):
         running_loss = 0.0
         loss_values = []
         valid_loss = []
-        total_loss = []        
+        total_loss = []
+        jaccard = []
+        valid_jaccard = []
         
         for truth_input, label_input in tqdm(Train_data):
 
@@ -184,6 +258,18 @@ def train(Train_data,Val_data,load=False):
 
             # forward
             unet_loss = criterion(pred, label_input)
+            
+            for input_val in range(cur_batch_size):
+                
+                corners_truth, center_truth = Obb(label_input[input_val,:])
+                mask_truth = mask((240,240),corners_truth)*1
+                corners_pred, center_pred = Obb(pred[input_val,:])
+                mask_pred = mask((240,240),corners_pred)*1
+                
+                if np.sum(np.sum(mask_pred)) > 2:
+                    jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
+                else:
+                    jaccard.append(0)
             
             # backward
             unet_loss.backward()
@@ -210,7 +296,7 @@ def train(Train_data,Val_data,load=False):
                 print(label_input[0,:].shape)
                 #for i in range(cur_batch_size):
                 #    print("input", label_input[i,:].data.cpu().numpy())
-                    
+                print("index", jaccard[-cur_batch_size:])
                 print("")
                     
                 for i in range(cur_batch_size):
@@ -239,8 +325,6 @@ def train(Train_data,Val_data,load=False):
                     axarr[1].set_title('Prediction')
                     
                     plt.show()
-                    
-                    
                    
                 # kaggle 2017 2nd place
                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
@@ -265,12 +349,22 @@ def train(Train_data,Val_data,load=False):
         with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "training_loss", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
-
-        valid_loss.append(Validate(unet, criterion, Val_data))
+        epoch_val_loss, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
+        
+        valid_loss.append(epoch_val_loss)
+        valid_jaccard.append(epoch_jaccard_valid)
         
         with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "validation_loss", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
+            
+        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "jaccard_index", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(jaccard)
+            
+        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "validation_jaccard_index", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(jaccard)
             
         #for t_loss_count in range(len(total_loss)):
         t.append(np.mean(total_loss[len(total_loss)-1]))
@@ -320,3 +414,7 @@ Val_data = DataLoader(
 #    drop_last=True)
 
 Train_loss, validation_loss = train(Train_data, Val_data, load=False)
+
+# i need to record the outputs alongside the model parameters in an addtional file so that i can delete the data outputs that are taking up space
+#save progress to github - its about time you did that tbh
+#maybe split some of the models into pre-packaged data model/files so that i dont lose progress here
