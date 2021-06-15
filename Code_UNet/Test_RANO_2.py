@@ -230,7 +230,7 @@ def Test(Test_data, unet, unet_opt, path, path_ext):
                 if np.sum(np.sum(mask_pred)) > 2:
                     jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
                 else:
-                    jaccard.append(0)
+                    jaccard.append(float("NaN"))
             
             if display_step == True:
                 print(jaccard[-16:])  
