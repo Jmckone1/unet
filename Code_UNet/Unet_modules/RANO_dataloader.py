@@ -60,7 +60,7 @@ class BraTs_Dataset(Dataset):
         #                          image return start                         #
 
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + r"_" + "whimg_n" + '.nii.gz'
+        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "r_" + "whimg_n" + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
@@ -74,7 +74,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + r"_" + "RANO" + '.npz'
+        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "r_" + "RANO" + '.npz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_input = np.load(l_full_path)

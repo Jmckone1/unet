@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
-from Unet_modules.RANO_dataloader import BraTs_Dataset
+from Unet_modules.RANO_dataloader_2 import BraTs_Dataset
 from Unet_modules.dataloader_test import Test_Dataset
 import Net.Unet_Rano_components as net
 import csv
@@ -15,12 +15,14 @@ import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
+
+c_file = "r_data_2_18-05-21/"
 
 np.set_printoptions(precision=4)
 
-torch.manual_seed(0)
-np.random.seed(0)
+#torch.manual_seed(0)
+#np.random.seed(0)
 
 # image interpolation multiplier
 size = 1
@@ -28,14 +30,14 @@ size = 1
 # BCE with Logits loss, may change to soft dice
 criterion = nn.MSELoss()
 
-n_epochs = 3
+n_epochs = 12
 input_dim = 4
 label_dim = 8
-hidden_dim = 32
+hidden_dim = 16
 
-display_step = 10
+display_step = 200
 batch_size = 16
-lr = 0.0002
+lr = 0.0001
 initial_shape = int(240 * size)
 target_shape = int(8)
 device = 'cuda'
@@ -104,22 +106,25 @@ def Validate(unet, criterion, Val_data):
         pred = unet(truth_input)
         pred = pred.squeeze()
         loss = criterion(pred, label_input)
+        
+        loss.backward()
+        
         running_loss =+ loss.item() * truth_input.size(0)
         losses.append(running_loss / len(Val_data))
 
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
-        DS = []
-        for i in range(cur_batch_size):
-            DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-        print("Validation Dice Score: ", DS)
+        #DS = []
+        #for i in range(cur_batch_size):
+        #    DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+        #print("Validation Dice Score: ", DS)
         
         cur_step += 1
-    metrics = losses
+    #metrics = losses
     print("Validation complete")
     print(" ")
     
-    return metrics
+    return losses
 
 
 #               Define validation end                    #
@@ -129,10 +134,10 @@ def Validate(unet, criterion, Val_data):
 def train(Train_data,Val_data,load=False):
     
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
-    unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
+    unet_opt = torch.optim.Adam(unet.parameters(), lr=lr,betas=(0.9, 0.999), weight_decay=1e-8)
 
     if load == True:
-        checkpoint = torch.load("Checkpoints/checkpoint_0_step_1900.pth")
+        checkpoint = torch.load("Checkpoints_RANO/" + c_file + "checkpoint_0_step_1900.pth")
 
         unet.load_state_dict(checkpoint['state_dict'])
         unet_opt.load_state_dict(checkpoint['optimizer'])
@@ -140,6 +145,8 @@ def train(Train_data,Val_data,load=False):
 #                   Define model end                     #
 #--------------------------------------------------------#
 #                   Run model start                      #
+    t = []
+    v = []
 
     for epoch in range(n_epochs):
         cur_step = 0
@@ -153,7 +160,7 @@ def train(Train_data,Val_data,load=False):
         running_loss = 0.0
         loss_values = []
         valid_loss = []
-        total_loss = []
+        total_loss = []        
         
         for truth_input, label_input in tqdm(Train_data):
 
@@ -196,19 +203,45 @@ def train(Train_data,Val_data,load=False):
             if cur_step % display_step == 0:
 
                 print(f"Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
+                
                 show_tensor_images(truth_input[:,1,:,:], size=(1, initial_shape, initial_shape),
                                    title="Flair Input Channel ( channel 2 of 4 )")
                 plt.show()
                 print(label_input[0,:].shape)
-                for i in range(cur_batch_size):
-                    print("input", label_input[i,:].data.cpu().numpy())
+                #for i in range(cur_batch_size):
+                #    print("input", label_input[i,:].data.cpu().numpy())
                     
                 print("")
                     
                 for i in range(cur_batch_size):
+                    
+                    print("input", label_input[i,:].data.cpu().numpy())
                     print("prediction",pred[i,:].data.cpu().numpy())
                     
+                    f, axarr = plt.subplots(1,2)
 
+                    data_in = label_input[i,:].data.cpu().numpy()
+                    D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
+                    D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
+                    
+                    axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+                    axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
+                    axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
+                    axarr[0].set_title('Truth')
+                    
+                    data_out = pred[i,:].data.cpu().numpy()
+                    D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
+                    D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
+
+                    axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+                    axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
+                    axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
+                    axarr[1].set_title('Prediction')
+                    
+                    plt.show()
+                    
+                    
+                   
                 # kaggle 2017 2nd place
                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
                 pred_output = pred.cpu().detach().numpy()
@@ -218,23 +251,32 @@ def train(Train_data,Val_data,load=False):
                 plt.title("Epoch " + str(epoch + 1) + ": loss")
 
                 plt.show()
-                
-                #DS = []
-                #for i in range(cur_batch_size):
-                #    DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-                #print("Training Dice Score: ", DS)
 
 #                    Display stage end                   #           
 #--------------------------------------------------------#
-#               step and loss output start               #
+#               step and loss output start   #
 
-        t = []
-        v = []
+        
+        print("saving epoch: ", epoch)
+        checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
+        out = "Checkpoints_RANO/" + c_file + "checkpoint_" + str(epoch) + ".pth"
+        torch.save(checkpoint, out)
 
-        for i in range(len(total_loss)):
-            t.append(np.mean(total_loss[i]))
-            if len(valid_loss[i]) != 0:
-                v.append(np.mean(valid_loss[i]))
+        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "training_loss", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(loss_values)
+
+        valid_loss.append(Validate(unet, criterion, Val_data))
+        
+        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "validation_loss", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(valid_loss)
+            
+        #for t_loss_count in range(len(total_loss)):
+        t.append(np.mean(total_loss[len(total_loss)-1]))
+            
+        #for v_loss_count in range(len(valid_loss)):
+        v.append(np.mean(valid_loss[len(valid_loss)-1]))
 
         plt.plot(range(len(t)),t)
         plt.plot(range(len(v)),v)
@@ -247,11 +289,14 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data_split/Training",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
+dataset = BraTs_Dataset("Brats_2018_data_split/Training",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
+
 #dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single_2"],size=size,apply_transform=True)
 
-#Training_dataset = BraTs_Dataset("Brats_2018_data_split/Training", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
-Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
+Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
+
+#Validation_dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single_2"],size=size,apply_transform=True)
+
 #Testing_dataset = BraTs_Dataset("Brats_2018_data_split/Testing", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
 
 print("Training: ", len(dataset))
@@ -266,8 +311,7 @@ Train_data = DataLoader(
 Val_data = DataLoader(
     dataset=Validation_dataset,
     batch_size=batch_size,
-    shuffle=False,
-    drop_last=True)
+    shuffle=True)
 
 #Test_data = DataLoader(
 #    dataset=Testing_dataset,

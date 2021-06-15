@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 from os import walk
 import time
+import os
 
 from skimage.morphology import label
 from skimage.measure import regionprops, mesh_surface_area, marching_cubes
@@ -15,6 +16,9 @@ from scipy.spatial.distance import cdist
 from collections import namedtuple
 
 from deepneuro.utilities.conversion import read_image_files
+
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 
 def _get_pixdim(pixdim, affine, input_affine, verbose=True):
@@ -121,7 +125,7 @@ def calc_2D_RANO_measure(input_data, pixdim=None, affine=None, mask_value=0, axi
 
     #print("labels",component_labels)
     
-    Bidimensional_output=np.zeros([8,155])
+    Bidimensional_output=np.zeros([8,input_data.shape[2]])
     #print(Bidimensional_output)
     #print(Bidimensional_output.shape)
     #input("")
@@ -189,20 +193,23 @@ def calc_2D_RANO_measure(input_data, pixdim=None, affine=None, mask_value=0, axi
                     
                     #print("test_out", data_out[1],data_out[3],data_out[0],data_out[2],data_out[5],data_out[7],data_out[4],data_out[6]) #
                     #this is saved into the same format as p - so to plot it would need to be arranged ##################################
-                    #D1 = np.asarray([[data_out[1],data_out[3],[data_out[0],data_out[2]]) ###############################################
-                    #D2 = np.asarray([[data_out[5],data_out[7],[data_out[4],data_out[6]]) ###############################################
+                    #D3 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) ###############################################
+                    #D4 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) ###############################################
                     
-   #                 plt.imshow(largest_component, cmap='gray')
-    #                plt.plot(D1[1, :], D1[0, :], lw=2, c='r')
-     #               plt.plot(D2[1, :], D2[0, :], lw=2, c='b')
-      #              plt.show()
-    
-                    print(z_slice, D1[1, :], D1[0, :], D2[1, :], D2[0, :])
-
+                    #plt.imshow(largest_component, cmap='gray')
+                    #plt.plot(D1[1, :], D1[0, :], lw=3, c='c')
+                    #plt.plot(D2[1, :], D2[0, :], lw=3, c='y')
+                    #plt.plot(D3[0, :], D3[1, :], lw=2, c='r')
+                    #plt.plot(D4[0, :], D4[1, :], lw=2, c='b')
+                    #plt.show()
+                    
+                    #print(z_slice, D1[1, :], D1[0, :], D2[1, :], D2[0, :])
+                    #print(z_slice, D3[0, :], D3[1, :], D4[0, :], D4[1, :])
+                    #input("")
                 else:
                     D1 = np.asarray([[0, 0], [0, 0]])
                     D2 = np.asarray([[0, 0], [0, 0]])
-                    print(z_slice, D1[1, :], D1[0, :], D2[1, :], D2[0, :])
+                    #print(z_slice, D1[1, :], D1[0, :], D2[1, :], D2[0, :])
                     data_out = [0,0,0,0,0,0,0,0]
                 
                 Bidimensional_output[:,z_slice] = data_out
@@ -276,21 +283,27 @@ def dataread(path):
 
 if __name__ == "__main__":
     
-    path = "Brats_2018_data_split/Training/LGG/"
+    name = ["HGG/","LGG/"]
+    #name = [1]
+    for i in range(len(name)):
+        path = "Brats_2018_data_split/Validation/" + name[i]
+        #path = "Brats_2018 data/HGG_single_2/"
 
-    d = dataread(path)
-    
-    output_size = len(d)
-    print(output_size)
-    
-    # output_size = 1
-    
-    for x in range(output_size):
-        print("Data item:",x)
-        data_Plot = nib.load(path + d[x] + "/" + d[x] + "_whseg.nii.gz")
-        input_2 = data_Plot.get_fdata()
+        d = dataread(path)
+
+        output_size = len(d)
+        print(output_size)
+
+        # output_size = 1
         
-        Bi_output = calc_2D_RANO_measure(input_2, pixdim=(240,240), affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath="output_rano", verbose=False)
-        
-        np.savez(path + d[x] + "/" + d[x] + "_RANO",RANO=Bi_output)
-        
+        for x in range(output_size):
+            print("Data item:", x)
+            if not os.path.exists(path + d[x] + "/" + d[x] + "r_RANO.npz"):
+                
+                data_Plot = nib.load(path + d[x] + "/" + d[x] + "r_whseg.nii.gz")
+                input_2 = data_Plot.get_fdata()
+
+                Bi_output = calc_2D_RANO_measure(input_2, pixdim=(240,240), affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath="output_rano", verbose=False)
+
+                print(path + d[x] + "/" + d[x] + "r_RANO")
+                np.savez(path + d[x] + "/" + d[x] + "r_RANO",RANO=Bi_output)
