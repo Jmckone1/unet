@@ -21,6 +21,9 @@ from matplotlib.pyplot import figure
 from sklearn.metrics import jaccard_score
 from matplotlib.path import Path
 
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
 # put the additional functions in an external file and call them !!!
 def input_data():
     path_ext = ["/HGG","/LGG"]
@@ -80,20 +83,46 @@ def input_data():
 
 def MSELossorthog(output, target):
     
+    #weighting values for orthogonality and area constraints
+    orth_weight = 4
+    area_weight = 4
+    
+    # convert prediction and truth to np data
     output_val = output.data.cpu().numpy()
     
-    l1 = np.sqrt(np.square(output_val[1]-output_val[3]) + np.square(output_val[0]-output_val[2]))
-    l2 = np.sqrt(np.square(output_val[5]-output_val[7]) + np.square(output_val[4]-output_val[6]))
+    #target_val = target.data.Tensor.cpu().numpy()
+    target_val = target.cpu().data.numpy()
     
-    m1 = (abs(output_val[1]/l1-output_val[3]/l1))/(abs(output_val[0]/l1-output_val[2]/l1)+0.1)
-    m2 = (abs(output_val[5]/l2-output_val[7]/l2))/(abs(output_val[4]/l2-output_val[6]/l2)+0.1)
+    batch_size = output_val.shape[0]
+    
+    loss = 0
+    
+    for i in range(batch_size):
+        # calculate the lengths of each of the lines (prediction = l1, l2) (truth = l3,l4)
+        l1 = np.sqrt(np.square(output_val[i][1]-output_val[i][3]) + np.square(output_val[i][0]-output_val[i][2]))
+        l2 = np.sqrt(np.square(output_val[i][5]-output_val[i][7]) + np.square(output_val[i][4]-output_val[i][6]))
+        l3 = np.sqrt(np.square(target_val[i][1]-target_val[i][3]) + np.square(target_val[i][0]-target_val[i][2]))
+        l4 = np.sqrt(np.square(target_val[i][5]-target_val[i][7]) + np.square(target_val[i][4]-target_val[i][6]))
 
-    orthog = abs(np.dot(m1,m2))
-    
-    weight = 2
-    
-    loss = torch.mean((output - target)**2) + (orthog * weight)
-    return loss
+        # calculate the slope of each of the lines
+        m1 = (abs(output_val[i][1]/l1-output_val[i][3]/l1))/(abs(output_val[i][0]/l1-output_val[i][2]/l1)+0.1)
+        m2 = (abs(output_val[i][5]/l2-output_val[i][7]/l2))/(abs(output_val[i][4]/l2-output_val[i][6]/l2)+0.1)
+
+        # calculate the orthogonality/ perpendicularity with 0 being perpendicular, 100 being parallel
+        orthog = abs(np.dot(m1,m2))
+
+        # calculate the area of the detected object to try and balance out the lengths of the lines (one of  which always appears to be significantly shorter than that of the other which is often more correct
+        output_area = l1*l2 
+        target_area = l3*l4
+
+        output_area_norm = output_area / (output_area+target_area)
+        target_area_norm = target_area / (output_area+target_area)
+
+        area_penalty = abs(output_area_norm - target_area_norm) * 100
+
+        loss = loss + torch.mean((output[i] - target[i])**2) + (orthog * orth_weight) + (area_penalty * area_weight)
+
+    return loss / batch_size
 
 #https://stackoverflow.com/questions/32892932/create-the-oriented-bounding-box-obb-with-python-and-numpy
 #https://hewjunwei.wordpress.com/2013/01/26/obb-generation-via-principal-component-analysis/
@@ -235,7 +264,10 @@ def Test(Test_data, unet, unet_opt, path, path_ext):
             if display_step == True:
                 print(jaccard[-16:])  
                 for i in range(cur_batch_size):
-                    print("prediction",pred[i,:].data.cpu().numpy())
+                    print("______________________________________")
+                    print("Jaccard score:", jaccard[-(16-i)])  
+                    
+                    #print("prediction",pred[i,:].data.cpu().numpy())
                     
                     plt.imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
                     
@@ -243,16 +275,18 @@ def Test(Test_data, unet, unet_opt, path, path_ext):
                     D3 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
                     D4 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
                     
-                    plt.plot(D3[0, :], D3[1, :], lw=3, c='y')
-                    plt.plot(D4[0, :], D4[1, :], lw=3, c='y')
+                    plt.plot(D3[0, :], D3[1, :], lw=3, c='y',label='_nolegend_')
+                    plt.plot(D4[0, :], D4[1, :], lw=3, c='y',label='Ground Truth')
                     
                     data_out = pred[i,:].data.cpu().numpy()
                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
                     D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
                     
-                    plt.plot(D1[0, :], D1[1, :], lw=2, c='b')
-                    plt.plot(D2[0, :], D2[1, :], lw=2, c='b')
-
+                    plt.plot(D1[0, :], D1[1, :], lw=2, c='b',label='_nolegend_')
+                    plt.plot(D2[0, :], D2[1, :], lw=2, c='b',label='Prediction')
+                    
+                    plt.legend(loc='best')
+                    
                     plt.show()
 
             pred_val = pred.cpu().detach().numpy()
@@ -293,7 +327,7 @@ Data_1 = DataLoader(
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints_RANO/unet8_data/checkpoint_49.pth")
+checkpoint = torch.load("Checkpoints_RANO/Unet_8_4_data/checkpoint_49.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])
@@ -302,12 +336,10 @@ jaccard = Test(Data_1, unet, unet_opt,"Brats_2018_data_split/Validation",["HGG",
 
 a = []
 a.extend(input_data())
-#print(a)
 
 figure(figsize=(8, 6), dpi=80)
 figure(figsize=(10,10))
 
-#this needs to be the jaccard for the validation in order for the index values to be correct, or i need to track it throughout training (which is probably more effort than it is worth...)
 print(np.array(jaccard).shape,np.array(a).shape)
 plt.scatter(np.array(jaccard),np.array(a))
 plt.xlabel("tumour size (pixels)")

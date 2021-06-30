@@ -17,24 +17,50 @@ from sklearn.metrics import jaccard_score
 from matplotlib.path import Path
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 def MSELossorthog(output, target):
     
+    #weighting values for orthogonality and area constraints
+    orth_weight = 0
+    area_weight = 0
+    
+    # convert prediction and truth to np data
     output_val = output.data.cpu().numpy()
     
-    l1 = np.sqrt(np.square(output_val[1]-output_val[3]) + np.square(output_val[0]-output_val[2]))
-    l2 = np.sqrt(np.square(output_val[5]-output_val[7]) + np.square(output_val[4]-output_val[6]))
+    #target_val = target.data.Tensor.cpu().numpy()
+    target_val = target.cpu().data.numpy()
     
-    m1 = (abs(output_val[1]/l1-output_val[3]/l1))/(abs(output_val[0]/l1-output_val[2]/l1)+0.1)
-    m2 = (abs(output_val[5]/l2-output_val[7]/l2))/(abs(output_val[4]/l2-output_val[6]/l2)+0.1)
+    batch_size = output_val.shape[0]
+    
+    loss = 0
+    
+    for i in range(batch_size):
+        # calculate the lengths of each of the lines (prediction = l1, l2) (truth = l3,l4)
+        l1 = np.sqrt(np.square(output_val[i][1]-output_val[i][3]) + np.square(output_val[i][0]-output_val[i][2]))
+        l2 = np.sqrt(np.square(output_val[i][5]-output_val[i][7]) + np.square(output_val[i][4]-output_val[i][6]))
+        l3 = np.sqrt(np.square(target_val[i][1]-target_val[i][3]) + np.square(target_val[i][0]-target_val[i][2]))
+        l4 = np.sqrt(np.square(target_val[i][5]-target_val[i][7]) + np.square(target_val[i][4]-target_val[i][6]))
 
-    orthog = abs(np.dot(m1,m2))
-    
-    weight = 10
-    
-    loss = torch.mean((output - target)**2) + (orthog * weight)
-    return loss
+        # calculate the slope of each of the lines
+        m1 = (abs(output_val[i][1]/l1-output_val[i][3]/l1))/(abs(output_val[i][0]/l1-output_val[i][2]/l1)+0.1)
+        m2 = (abs(output_val[i][5]/l2-output_val[i][7]/l2))/(abs(output_val[i][4]/l2-output_val[i][6]/l2)+0.1)
+
+        # calculate the orthogonality/ perpendicularity with 0 being perpendicular, 100 being parallel
+        orthog = abs(np.dot(m1,m2))
+
+        # calculate the area of the detected object to try and balance out the lengths of the lines (one of  which always appears to be significantly shorter than that of the other which is often more correct
+        output_area = l1*l2 
+        target_area = l3*l4
+
+        output_area_norm = output_area / (output_area+target_area)
+        target_area_norm = target_area / (output_area+target_area)
+
+        area_penalty = abs(output_area_norm - target_area_norm) * 100
+
+        loss = loss + torch.mean((output[i] - target[i])**2) + (orthog * orth_weight) + (area_penalty * area_weight)
+
+    return loss / batch_size
 
 #https://stackoverflow.com/questions/32892932/create-the-oriented-bounding-box-obb-with-python-and-numpy
 #https://hewjunwei.wordpress.com/2013/01/26/obb-generation-via-principal-component-analysis/
@@ -82,8 +108,6 @@ def Obb(input_array):
 def mask(shape,corners):
     nx, ny = shape
     
-    # Create vertex coordinates for each grid cell...
-    # (<0,0> is at the top left of the grid in this system)
     x, y = np.meshgrid(np.arange(nx), np.arange(ny))
     x, y = x.flatten(), y.flatten()
     
@@ -95,7 +119,7 @@ def mask(shape,corners):
     
     return grid
 
-c_file = "Unet_8_3_data/"
+c_file = "Unet_H16_M8_O0A0/"
 
 np.set_printoptions(precision=4)
 
@@ -105,14 +129,13 @@ np.set_printoptions(precision=4)
 # image interpolation multiplier
 size = 1
 
-# BCE with Logits loss, may change to soft dice
 #criterion = nn.MSELoss()
 criterion = MSELossorthog
 
-n_epochs = 50
+n_epochs = 1
 input_dim = 4
 label_dim = 8
-hidden_dim = 32
+hidden_dim = 16
 
 display_step = 200
 batch_size = 16
@@ -129,8 +152,6 @@ train_percent = 1 - (val_percent + test_percent)
 
 #--------------------------------------------------------#
 #             show output tensors start                  #
-
-
 
 def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
 
@@ -189,7 +210,7 @@ def Validate(unet, criterion, Val_data):
             if np.sum(np.sum(mask_pred)) > 2:
                 jaccard_val.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
             else:
-                jaccard_val.append(0)
+                jaccard_val.append(float("NaN"))
         
         cur_step += 1
     print("Validation complete")
@@ -269,7 +290,7 @@ def train(Train_data,Val_data,load=False):
                 if np.sum(np.sum(mask_pred)) > 2:
                     jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
                 else:
-                    jaccard.append(0)
+                    jaccard.append(float("NaN"))
             
             # backward
             unet_loss.backward()
@@ -340,7 +361,6 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#
 #               step and loss output start   #
 
-        
         print("saving epoch: ", epoch)
         checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
         out = "Checkpoints_RANO/" + c_file + "checkpoint_" + str(epoch) + ".pth"
@@ -349,6 +369,7 @@ def train(Train_data,Val_data,load=False):
         with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "training_loss", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
+            
         epoch_val_loss, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
         
         valid_loss.append(epoch_val_loss)
@@ -364,7 +385,7 @@ def train(Train_data,Val_data,load=False):
             
         with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "validation_jaccard_index", 'w') as f: 
             write = csv.writer(f) 
-            write.writerow(jaccard)
+            write.writerow(valid_jaccard)
             
         #for t_loss_count in range(len(total_loss)):
         t.append(np.mean(total_loss[len(total_loss)-1]))
@@ -383,22 +404,15 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data_split/Training",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
-
-#dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single_2"],size=size,apply_transform=True)
+Train_dataset = BraTs_Dataset("Brats_2018_data_split/Training", path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
 
 Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
 
-#Validation_dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single_2"],size=size,apply_transform=True)
-
-#Testing_dataset = BraTs_Dataset("Brats_2018_data_split/Testing", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
-
-print("Training: ", len(dataset))
+print("Training: ", len(Train_dataset))
 print("validation: ", len(Validation_dataset))
-#print("Test: ", len(Testing_dataset))
 
 Train_data = DataLoader(
-    dataset=dataset,
+    dataset=Train_dataset,
     batch_size=batch_size,
     shuffle=True)
 
@@ -407,14 +421,4 @@ Val_data = DataLoader(
     batch_size=batch_size,
     shuffle=True)
 
-#Test_data = DataLoader(
-#    dataset=Testing_dataset,
-#    batch_size=batch_size,
-#    shuffle=False,
-#    drop_last=True)
-
 Train_loss, validation_loss = train(Train_data, Val_data, load=False)
-
-# i need to record the outputs alongside the model parameters in an addtional file so that i can delete the data outputs that are taking up space
-#save progress to github - its about time you did that tbh
-#maybe split some of the models into pre-packaged data model/files so that i dont lose progress here
