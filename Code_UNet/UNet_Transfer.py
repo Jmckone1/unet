@@ -6,16 +6,16 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
-from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
+
+#from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
+from Unet_modules.Full_model_dataloader import BraTs_Dataset
+
 from Unet_modules.dataloader_test import Test_Dataset
 import Net.Full_UNet_components as net
 import csv
 from os import walk
 import nibabel as nib
 import os
-
-torch.manual_seed(0)
-np.random.seed(0)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="1"
@@ -258,15 +258,11 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#
 
 dataset = BraTs_Dataset("Brats_2018_data_split/Training",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
-#dataset = BraTs_Dataset("Brats_2018 data", path_ext = ["/HGG_single_2"],size=size,apply_transform=True)
 
-#Training_dataset = BraTs_Dataset("Brats_2018_data_split/Training", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
-#Testing_dataset = BraTs_Dataset("Brats_2018_data_split/Testing", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
 
 print("Training: ", len(dataset))
 print("validation: ", len(Validation_dataset))
-#print("Test: ", len(Testing_dataset))
 
 Train_data = DataLoader(
     dataset=dataset,
@@ -278,11 +274,5 @@ Val_data = DataLoader(
     batch_size=batch_size,
     shuffle=False,
     drop_last=True)
-
-#Test_data = DataLoader(
-#    dataset=Testing_dataset,
-#    batch_size=batch_size,
-#    shuffle=False,
-#    drop_last=True)
 
 Train_loss,validation_loss = train(Train_data, Val_data, load=False)

@@ -18,7 +18,7 @@ import os
 from sklearn.metrics import jaccard_score
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # In the format "FileName/"
 c_file = "Unet_H16_M8_O0A0/"
@@ -31,7 +31,7 @@ size = 1
 #criterion = nn.MSELoss()
 criterion = Penalty.MSELossorthog
 
-n_epochs = 1
+n_epochs = 50
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
