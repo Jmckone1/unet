@@ -1,136 +1,35 @@
 import torch
-from torch import nn
+# from torch import nn # need this to use built in loss functions
 from tqdm.auto import tqdm
 from torchvision.utils import make_grid
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-import torch.nn.functional as F
 import numpy as np
+
 from Unet_modules.RANO_dataloader_2 import BraTs_Dataset
 from Unet_modules.dataloader_test import Test_Dataset
+from Unet_modules.Penalty import Penalty
+from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
+
 import Net.Unet_Rano_components as net
+
 import csv
-from os import walk
-import nibabel as nib
 import os
 from sklearn.metrics import jaccard_score
-from matplotlib.path import Path
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
-def MSELossorthog(output, target):
-    
-    #weighting values for orthogonality and area constraints
-    orth_weight = 0
-    area_weight = 0
-    
-    # convert prediction and truth to np data
-    output_val = output.data.cpu().numpy()
-    
-    #target_val = target.data.Tensor.cpu().numpy()
-    target_val = target.cpu().data.numpy()
-    
-    batch_size = output_val.shape[0]
-    
-    loss = 0
-    
-    for i in range(batch_size):
-        # calculate the lengths of each of the lines (prediction = l1, l2) (truth = l3,l4)
-        l1 = np.sqrt(np.square(output_val[i][1]-output_val[i][3]) + np.square(output_val[i][0]-output_val[i][2]))
-        l2 = np.sqrt(np.square(output_val[i][5]-output_val[i][7]) + np.square(output_val[i][4]-output_val[i][6]))
-        l3 = np.sqrt(np.square(target_val[i][1]-target_val[i][3]) + np.square(target_val[i][0]-target_val[i][2]))
-        l4 = np.sqrt(np.square(target_val[i][5]-target_val[i][7]) + np.square(target_val[i][4]-target_val[i][6]))
-
-        # calculate the slope of each of the lines
-        m1 = (abs(output_val[i][1]/l1-output_val[i][3]/l1))/(abs(output_val[i][0]/l1-output_val[i][2]/l1)+0.1)
-        m2 = (abs(output_val[i][5]/l2-output_val[i][7]/l2))/(abs(output_val[i][4]/l2-output_val[i][6]/l2)+0.1)
-
-        # calculate the orthogonality/ perpendicularity with 0 being perpendicular, 100 being parallel
-        orthog = abs(np.dot(m1,m2))
-
-        # calculate the area of the detected object to try and balance out the lengths of the lines (one of  which always appears to be significantly shorter than that of the other which is often more correct
-        output_area = l1*l2 
-        target_area = l3*l4
-
-        output_area_norm = output_area / (output_area+target_area)
-        target_area_norm = target_area / (output_area+target_area)
-
-        area_penalty = abs(output_area_norm - target_area_norm) * 100
-
-        loss = loss + torch.mean((output[i] - target[i])**2) + (orthog * orth_weight) + (area_penalty * area_weight)
-
-    return loss / batch_size
-
-#https://stackoverflow.com/questions/32892932/create-the-oriented-bounding-box-obb-with-python-and-numpy
-#https://hewjunwei.wordpress.com/2013/01/26/obb-generation-via-principal-component-analysis/
-#https://stackoverflow.com/questions/3654289/scipy-create-2d-polygon-mask
-
-def Obb(input_array):
-    
-    input_array = input_array.detach().cpu().numpy()
-        
-    input_data = np.array([(input_array[1], input_array[0]),
-                           (input_array[5], input_array[4]), 
-                           (input_array[3], input_array[2]), 
-                           (input_array[7], input_array[6])])
-    
-    input_covariance = np.cov(input_data,y = None, rowvar = 0,bias = 1)
-    
-    v, vect = np.linalg.eig(input_covariance)
-    tvect = np.transpose(vect)
-    #use the inverse of the eigenvectors as a rotation matrix and
-    #rotate the points so they align with the x and y axes
-    rotate = np.dot(input_data,vect)
-    
-    # get the minimum and maximum x and y 
-    mina = np.min(rotate,axis=0)
-    maxa = np.max(rotate,axis=0)
-    diff = (maxa - mina)*0.5
-    
-    # the center is just half way between the min and max xy
-    center = mina + diff
-    
-    #get the 4 corners by subtracting and adding half the bounding boxes height and width to the center
-    corners = np.array([center+[-diff[0],-diff[1]],
-                        center+[ diff[0],-diff[1]],
-                        center+[ diff[0], diff[1]],
-                        center+[-diff[0], diff[1]],
-                        center+[-diff[0],-diff[1]]])
-    
-    #use the the eigenvectors as a rotation matrix and
-    #rotate the corners and the centerback
-    corners = np.dot(corners,tvect)
-    center = np.dot(center,tvect)
-    
-    return corners, center
-
-def mask(shape,corners):
-    nx, ny = shape
-    
-    x, y = np.meshgrid(np.arange(nx), np.arange(ny))
-    x, y = x.flatten(), y.flatten()
-    
-    points = np.vstack((x,y)).T
-    
-    path = Path(corners)
-    grid = path.contains_points(points)
-    grid = grid.reshape((ny,nx))
-    
-    return grid
-
+# In the format "FileName/"
 c_file = "Unet_H16_M8_O0A0/"
 
 np.set_printoptions(precision=4)
-
-#torch.manual_seed(0)
-#np.random.seed(0)
 
 # image interpolation multiplier
 size = 1
 
 #criterion = nn.MSELoss()
-criterion = MSELossorthog
+criterion = Penalty.MSELossorthog
 
 n_epochs = 1
 input_dim = 4
@@ -202,10 +101,10 @@ def Validate(unet, criterion, Val_data):
 
         for input_val in range(cur_batch_size):
                 
-            corners_truth, center_truth = Obb(label_input[input_val,:])
-            mask_truth = mask((240,240),corners_truth)*1
-            corners_pred, center_pred = Obb(pred[input_val,:])
-            mask_pred = mask((240,240),corners_pred)*1
+            corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+            mask_truth = Jacc.mask((240,240),corners_truth)*1
+            corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+            mask_pred = Jacc.mask((240,240),corners_pred)*1
 
             if np.sum(np.sum(mask_pred)) > 2:
                 jaccard_val.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
@@ -282,10 +181,10 @@ def train(Train_data,Val_data,load=False):
             
             for input_val in range(cur_batch_size):
                 
-                corners_truth, center_truth = Obb(label_input[input_val,:])
-                mask_truth = mask((240,240),corners_truth)*1
-                corners_pred, center_pred = Obb(pred[input_val,:])
-                mask_pred = mask((240,240),corners_pred)*1
+                corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+                mask_truth = Jacc.mask((240,240),corners_truth)*1
+                corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+                mask_pred = Jacc.mask((240,240),corners_pred)*1
                 
                 if np.sum(np.sum(mask_pred)) > 2:
                     jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
@@ -317,7 +216,9 @@ def train(Train_data,Val_data,load=False):
                 print(label_input[0,:].shape)
                 #for i in range(cur_batch_size):
                 #    print("input", label_input[i,:].data.cpu().numpy())
-                print("index", jaccard[-cur_batch_size:])
+                
+                # Print jaccard for current output in the batch
+                print("index", jaccard[-cur_batch_size:]) 
                 print("")
                     
                 for i in range(cur_batch_size):
