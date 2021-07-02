@@ -18,7 +18,7 @@ import os
 from sklearn.metrics import jaccard_score
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 # In the format "FileName/"
 c_file = "Unet_H16_M8_O0A0/"
@@ -28,13 +28,19 @@ np.set_printoptions(precision=4)
 # image interpolation multiplier
 size = 1
 
-#criterion = nn.MSELoss()
-criterion = Penalty.MSELossorthog
+
+
 
 n_epochs = 50
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
+orth_penalty = 4
+area_penalty = 4
+
+#criterion = nn.MSELoss()
+loss_f = Penalty(orth_penalty,area_penalty)
+criterion = loss_f.MSELossorthog
 
 display_step = 200
 batch_size = 16
@@ -126,6 +132,27 @@ def train(Train_data,Val_data,load=False):
     
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     print(unet)
+    
+    with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as f: 
+            write = csv.writer(f)
+            write.writerow("epochs: " + str(n_epochs))
+            write.writerow("batch size: " + str(batch_size))
+            write.writerow("learning rate: " + str(lr))
+            write.writerow("orthogonality weight: " + str(orth_penalty))
+            write.writerow("area weight: " + str(area_penalty))
+            
+            write.writerow(str(unet))
+            
+    with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as write: 
+        #write = csv.writer(f)
+        write.write("epochs: " + str(n_epochs) + "\n")
+        write.write("batch size: " + str(batch_size) + "\n")
+        write.write("learning rate: " + str(lr) + "\n")
+        write.write("orthogonality weight: " + str(orth_penalty) + "\n")
+        write.write("area weight: " + str(area_penalty) + "\n")
+
+        write.write(str(unet))
+    
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr,betas=(0.9, 0.999), weight_decay=1e-8)
 
     if load == True:

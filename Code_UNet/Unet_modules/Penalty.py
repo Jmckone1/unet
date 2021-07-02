@@ -2,14 +2,13 @@ import numpy as np
 import torch
 
 class Penalty():
-    def __init__(self):
-        return 0
-    
-    def MSELossorthog(output, target):
-
+    def __init__(self, w1, w2):
         #weighting values for orthogonality and area constraints
-        orth_weight = 0
-        area_weight = 0
+        
+        self.orth_weight = w1
+        self.area_weight = w2
+        
+    def MSELossorthog(self, output, target):
 
         # convert prediction and truth to np data
         output_val = output.data.cpu().numpy()
@@ -44,7 +43,7 @@ class Penalty():
 
             area_penalty = abs(output_area_norm - target_area_norm) * 100
 
-            loss = loss + torch.mean((output[i] - target[i])**2) + (orthog * orth_weight) + (area_penalty * area_weight)
+            loss = loss + torch.mean((output[i] - target[i])**2) + (orthog * self.orth_weight) + (area_penalty * self.area_weight)
 
         return loss / batch_size
 
