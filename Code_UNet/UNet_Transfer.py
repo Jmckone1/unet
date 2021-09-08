@@ -18,7 +18,10 @@ import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
+
+# In the format "FileName/"
+c_file = "Full_model_MK1_H16_O4A4_Unfrozen/"
 
 # image interpolation multiplier
 size = 1
@@ -127,14 +130,21 @@ def Validate(unet, criterion, Val_data):
 
 def train(Train_data,Val_data,load=False):
     
-    unet = net.UNet(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/checkpoint_0.pth").to(device)
+    unet = net.UNet(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth").to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
+    
+    with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
+        write.write("left_path: " + "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth" + "\n")
+        write.write("epochs: " + str(n_epochs) + "\n")
+        write.write("batch size: " + str(batch_size) + "\n")
+        write.write("learning rate: " + str(lr) + "\n")
+        write.write(str(unet))
 
-    if load == True:
-        checkpoint = torch.load("Checkpoints/checkpoint_0_step_1900.pth")
+#     if load == True:
+#         checkpoint = torch.load("Checkpoints/checkpoint_0_step_1900.pth")
 
-        unet.load_state_dict(checkpoint['state_dict'])
-        unet_opt.load_state_dict(checkpoint['optimizer'])
+#         unet.load_state_dict(checkpoint['state_dict'])
+#         unet_opt.load_state_dict(checkpoint['optimizer'])
 
 #                   Define model end                     #
 #--------------------------------------------------------#
@@ -186,11 +196,6 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
-            if cur_step % 250 == 0:
-                checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-                out = "Checkpoints/checkpoint_" + str(epoch) + "_step_" + str(cur_step) + ".pth"
-                torch.save(checkpoint, out)
-
             if cur_step % display_step == 0:
 
                 print(f"Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
@@ -201,7 +206,6 @@ def train(Train_data,Val_data,load=False):
                 plt.plot(range(len(loss_values)),loss_values)
                 plt.show()
 
-                # I can make this into a function
                 # kaggle 2017 2nd place
                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
                 pred_output = pred.cpu().detach().numpy()
@@ -225,16 +229,18 @@ def train(Train_data,Val_data,load=False):
         
         print("saving epoch: ", epoch)
         checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-        out = "Checkpoints/checkpoint_" + str(epoch) + ".pth"
+        out = "Checkpoints/" + c_file + "checkpoint_" + str(epoch) + ".pth"
         torch.save(checkpoint, out)
-        
-        with open("Checkpoints/epoch_" + str(epoch) + "training_loss", 'w') as f: 
+
+        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "training_loss", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
-
-        valid_loss.append(Validate(unet, criterion, Val_data))
-
-        with open("Checkpoints/epoch_" + str(epoch) + "validation_loss", 'w') as f: 
+            
+        epoch_val_loss = Validate(unet, criterion, Val_data)
+        
+        valid_loss.append(epoch_val_loss)
+        
+        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "validation_loss", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
             

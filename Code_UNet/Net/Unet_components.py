@@ -98,3 +98,21 @@ class UNet(nn.Module):
         data_out = self.downfeature(expand_8)
         
         return data_out
+input_dim = 4
+label_dim = 1
+hidden_dim = 16
+
+device = 'cuda'
+
+model = UNet(input_dim, label_dim, hidden_dim)
+print(model)
+from torchviz import make_dot
+import matplotlib.pyplot as plt
+import graphviz
+
+x = torch.zeros(1, 4, 240, 240, dtype=torch.float, requires_grad=False)
+out = model(x)
+y = make_dot(out)
+y.render("base.gv")
+y
+print(y)

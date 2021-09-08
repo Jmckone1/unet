@@ -45,9 +45,9 @@ def Test(Test_data, unet, unet_opt, path, path_ext=["/data"]):
                 counter = len(d)
 
         HGG_len = counter * 155
-        print(HGG_len)
+        #print(HGG_len)
 
-    print(path + path_ext[0])
+    #print(path + path_ext[0])
 
     unet.eval()
     
@@ -100,7 +100,7 @@ Data_1 = DataLoader(
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints/checkpoint_2.pth")
+checkpoint = torch.load("Checkpoints/Checkpoints model_3/checkpoint_2.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])

@@ -138,6 +138,7 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
                         nib.save(pred_img_save, os.path.join('Predictions' + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + "_" + save_val +'.nii.gz'))  
                         
+                        
                         data_val += 1
                         pred_img = np.empty((240,240,155))
                         img_num = 0

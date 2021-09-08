@@ -18,25 +18,22 @@ import os
 from sklearn.metrics import jaccard_score
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M8_O0A0/"
+c_file = "Unet_H16_M8_O4A10/"
 
 np.set_printoptions(precision=4)
 
 # image interpolation multiplier
 size = 1
 
-
-
-
-n_epochs = 50
+n_epochs = 100
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
 orth_penalty = 4
-area_penalty = 4
+area_penalty = 10
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(orth_penalty,area_penalty)
@@ -133,16 +130,6 @@ def train(Train_data,Val_data,load=False):
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     print(unet)
     
-    with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as f: 
-            write = csv.writer(f)
-            write.writerow("epochs: " + str(n_epochs))
-            write.writerow("batch size: " + str(batch_size))
-            write.writerow("learning rate: " + str(lr))
-            write.writerow("orthogonality weight: " + str(orth_penalty))
-            write.writerow("area weight: " + str(area_penalty))
-            
-            write.writerow(str(unet))
-            
     with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as write: 
         #write = csv.writer(f)
         write.write("epochs: " + str(n_epochs) + "\n")

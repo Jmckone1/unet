@@ -21,7 +21,7 @@ from sklearn.metrics import jaccard_score
 
 sns.set_theme()
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # function to loop through the MRI files with an non-uniform slice count
 def input_data(path ="Brats_2018_data_split/Validation", path_ext = ["/HGG","/LGG"]):
@@ -79,7 +79,7 @@ criterion = Penalty.MSELossorthog
 n_epochs = 6
 input_dim = 4
 label_dim = 8
-hidden_dim = 32
+hidden_dim = 16
 
 display_step = True
 batch_size = 16
@@ -87,8 +87,9 @@ lr = 0.0002
 initial_shape = int(240 * size)
 target_shape = int(8)
 device = 'cuda'
+outname = "Unet_H16_M8"
 
-def Test(Test_data, unet, unet_opt, path, path_ext):
+def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
     
     f = []
     d = []
@@ -117,9 +118,9 @@ def Test(Test_data, unet, unet_opt, path, path_ext):
     pred_out = [] # prediction array output
     data_val = 0 # number for file output naming
     jaccard = []
-    
+    savevalue = 0
     for truth_input,label_input in tqdm(Test_data):
-
+            
             cur_batch_size = len(truth_input)
 
             # flatten ground truth and label masks
@@ -149,34 +150,41 @@ def Test(Test_data, unet, unet_opt, path, path_ext):
                     jaccard.append(float("NaN"))
             
             if display_step == True:
-                print(jaccard[-16:])  
+                #print(jaccard[-16:])  
                 for i in range(cur_batch_size):
                     print("______________________________________")
                     print("Jaccard score:", jaccard[-(16-i)])  
                     
                     #print("prediction",pred[i,:].data.cpu().numpy())
-                    
+                    plt.grid(False)
                     plt.imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    
+
                     data_in = label_input[i,:].data.cpu().numpy()
                     D3 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
                     D4 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
-                    
+
                     plt.plot(D3[0, :], D3[1, :], lw=3, c='y',label='_nolegend_')
                     plt.plot(D4[0, :], D4[1, :], lw=3, c='y',label='Ground Truth')
-                    
+
                     data_out = pred[i,:].data.cpu().numpy()
                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
                     D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
-                    
+
                     plt.plot(D1[0, :], D1[1, :], lw=2, c='b',label='_nolegend_')
                     plt.plot(D2[0, :], D2[1, :], lw=2, c='b',label='Prediction')
-                    
-                    plt.legend(loc='best')
-                    
-                    plt.show()
 
+                    plt.legend(loc='best')
+                    plt.title("validation output for " + outname + " with jaccard score of " + str(jaccard[-(16-i)]))
+                                        
+                    plt.savefig('Comp_images/' + outname + '/image_'+ str(savevalue) + "_" + str(jaccard[-(16-i)]) +'.png')
+                    savevalue = savevalue + 1
+                    plt.show()
+                    plt.clf()
+                    plt.cla()
+
+            
             pred_val = pred.cpu().detach().numpy()
+            
             #print(pred_val.shape)
             
             for i in range(cur_batch_size):
@@ -213,7 +221,7 @@ Data_1 = DataLoader(
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints_RANO/Unet_8_4_data/checkpoint_49.pth")
+checkpoint = torch.load("Checkpoints_RANO/" + outname + "/checkpoint_49.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])

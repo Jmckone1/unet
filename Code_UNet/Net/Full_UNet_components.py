@@ -150,7 +150,8 @@ def UNet(input_dim, label_dim, hidden_dim, model_name):
 
     #Freeze all layers in the pre-Trained model
     for param in Contracting_path.parameters():
-        param.requires_grad = False
+        #param.requires_grad = False # Frozen
+        param.requires_grad = True # Un-Frozen
 
     # concatenation of the contracting and expanding paths of the unet
     model = Full_UNet(Contracting_path, Expanding_path)
@@ -158,12 +159,23 @@ def UNet(input_dim, label_dim, hidden_dim, model_name):
     #print(model)
     return model
 
-
 input_dim = 4
-label_dim = 8
-hidden_dim = 32
+label_dim = 1
+hidden_dim = 16
 
 device = 'cuda'
 
-model = UNet(input_dim, label_dim, hidden_dim,"Checkpoints_RANO/Unet_8_2_data/checkpoint_49.pth")
-print(model)
+model = UNet(input_dim, label_dim, hidden_dim,"Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth")
+#print(model)
+from torchviz import make_dot
+import matplotlib.pyplot as plt
+import graphviz
+
+x = torch.zeros(1, 4, 240, 240, dtype=torch.float, requires_grad=False)
+out = model(x)
+
+print(model.named_parameters())
+y = make_dot(out)
+y.render("test_merged.gv")
+y
+print(y)
