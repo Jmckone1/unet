@@ -197,6 +197,10 @@ def train(Train_data,Val_data,load=False):
             loss_values.append(running_loss / len(Train_data))
             cur_step += 1
             
+            # kaggle 2017 2nd place
+            # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
+            pred_output = pred.cpu().detach().numpy()
+            truth_output = label_input.cpu().detach().numpy()
             for i in range(cur_batch_size):
                 DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
                 print("Training Dice Score: ", DS)
@@ -216,10 +220,7 @@ def train(Train_data,Val_data,load=False):
                 plt.plot(range(len(loss_values)),loss_values)
                 plt.show()
 
-                # kaggle 2017 2nd place
-                # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
-                pred_output = pred.cpu().detach().numpy()
-                truth_output = label_input.cpu().detach().numpy()
+                
                 
                 
 #                    Display stage end                   #           
