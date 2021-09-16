@@ -8,20 +8,20 @@ import torch.nn.functional as F
 import numpy as np
 
 #from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
-from Unet_modules.Full_model_dataloader import BraTs_Dataset
+from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
 
 from Unet_modules.dataloader_test import Test_Dataset
-import Net.Full_UNet_components as net
+import Net.Unet_components_v2 as net
 import csv
 from os import walk
 import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # In the format "FileName/"
-c_file = "Full_model_MK1_H16_O4A4_Unfrozen/"
+c_file = "Full_model_MK3_H16_O4A4_unfrozen/"
 
 # image interpolation multiplier
 size = 1
@@ -47,6 +47,7 @@ train_percent = 1 - (val_percent + test_percent)
 
 # https://nipy.org/nibabel/gettingstarted.html
 
+# this has been written as an external file function and should be called from there instead of here
 def dice_score(prediction, truth):
     # clip changes negative vals to 0 and those above 1 to 1
     pred_1 = np.clip(prediction, 0, 1.0)
@@ -87,6 +88,7 @@ def Validate(unet, criterion, Val_data):
     print("Validation...")
     unet.eval()
     losses = []
+    DS = []
     running_loss = 0.0
     cur_step = 0
     for truth_input, label_input in tqdm(Val_data):
@@ -111,7 +113,7 @@ def Validate(unet, criterion, Val_data):
 
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
-        DS = []
+        
         for i in range(cur_batch_size):
             DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
         print("Validation Dice Score: ", DS)
@@ -121,7 +123,7 @@ def Validate(unet, criterion, Val_data):
     print("Validation complete")
     print(" ")
     
-    return metrics
+    return metrics, DS
 
 
 #               Define validation end                    #
@@ -130,7 +132,9 @@ def Validate(unet, criterion, Val_data):
 
 def train(Train_data,Val_data,load=False):
     
-    unet = net.UNet(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth").to(device)
+    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", freeze=True).to(device)
+    
+    #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
     
     with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
@@ -163,6 +167,7 @@ def train(Train_data,Val_data,load=False):
         loss_values = []
         valid_loss = []
         total_loss = []
+        DS = []
         
         for truth_input, label_input in tqdm(Train_data):
 
@@ -189,8 +194,13 @@ def train(Train_data,Val_data,load=False):
             unet_opt.step()
 
             running_loss =+ unet_loss.item() * truth_input.size(0)
-            
+            loss_values.append(running_loss / len(Train_data))
             cur_step += 1
+            
+            for i in range(cur_batch_size):
+                DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+                print("Training Dice Score: ", DS)
+
 
 #                     Run model end                      #
 #--------------------------------------------------------#         
@@ -210,16 +220,13 @@ def train(Train_data,Val_data,load=False):
                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
                 pred_output = pred.cpu().detach().numpy()
                 truth_output = label_input.cpu().detach().numpy()
-                DS = []
-                for i in range(cur_batch_size):
-                    DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-                print("Training Dice Score: ", DS)
-
+                
+                
 #                    Display stage end                   #           
 #--------------------------------------------------------#
 #               step and loss output start               #
 
-        loss_values.append(running_loss / len(Train_data))
+        
   
         plt.plot(range(len(loss_values)),loss_values)
         plt.title("Epoch " + str(epoch + 1) + ": loss")
@@ -232,17 +239,25 @@ def train(Train_data,Val_data,load=False):
         out = "Checkpoints/" + c_file + "checkpoint_" + str(epoch) + ".pth"
         torch.save(checkpoint, out)
 
-        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "training_loss", 'w') as f: 
+        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
             
-        epoch_val_loss = Validate(unet, criterion, Val_data)
+        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "training_dice.csv", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(DS)
+            
+        epoch_val_loss, val_dice = Validate(unet, criterion, Val_data)
         
         valid_loss.append(epoch_val_loss)
         
-        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "validation_loss", 'w') as f: 
+        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
+            
+        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "validation_dice.csv", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(val_dice)
             
         t = []
         v = []

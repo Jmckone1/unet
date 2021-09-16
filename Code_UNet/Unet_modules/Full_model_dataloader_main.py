@@ -98,7 +98,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir]+ "_" + "whseg" + '.nii.gz'
+        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whseg" + '.nii.gz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_img = nib.load(l_full_path)

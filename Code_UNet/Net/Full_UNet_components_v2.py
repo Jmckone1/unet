@@ -51,7 +51,6 @@ class UNet_contracting(nn.Module):
         self.contract2 = Contract(hidden_channels * 2)
         self.contract3 = Contract(hidden_channels * 4)
         self.contract4 = Contract(hidden_channels * 8)
-        self.contract5 = Contract(hidden_channels * 16)
 
     def forward(self, data_in):
 
@@ -61,9 +60,8 @@ class UNet_contracting(nn.Module):
         contract_2 = self.contract2(contract_1)
         contract_3 = self.contract3(contract_2)
         contract_4 = self.contract4(contract_3)
-        contract_5 = self.contract5(contract_4)
         
-        return contract_0,contract_1,contract_2,contract_3,contract_4,contract_5
+        return contract_0,contract_1,contract_2,contract_3,contract_4
 
 #expanding path of the model
 class Expand(nn.Module):
@@ -82,7 +80,6 @@ class Expand(nn.Module):
 
         # https://github.com/xiaopeng-liao/Pytorch-UNet
         # /commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
-        # This is a fix for the skip conncetion dimesion padding to match with the other layers (check)
         diffY = skip_con_x.size()[2] - x.size()[2]
         diffX = skip_con_x.size()[3] - x.size()[3]
         x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
@@ -100,25 +97,24 @@ class UNet_expanding(nn.Module):
     def __init__(self, contract_layers, output_channels, hidden_channels=32):
         super(UNet_expanding, self).__init__()
         
-        # the model here is a whole layer in additon to the prior unet segmentation example due to the RANO model responding much better with having the additonal layer, so it endeavours to match this, not sure if the problem with segmenation is here, have made a second file with a smaller model that will drop the layer.
-        
-        self.expand0 = Expand(hidden_channels * 32)
-        self.expand1 = Expand(hidden_channels * 16)
-        self.expand2 = Expand(hidden_channels * 8)
-        self.expand3 = Expand(hidden_channels * 4)
-        self.expand4 = Expand(hidden_channels * 2)
+        self.expand0 = Expand(hidden_channels * 16)
+        self.expand1 = Expand(hidden_channels * 8)
+        self.expand2 = Expand(hidden_channels * 4)
+        self.expand3 = Expand(hidden_channels * 2)
         
         self.downfeature = FeatureMap(hidden_channels, output_channels)
-
-    def forward(self,contract_0,contract_1,contract_2,contract_3,contract_4,contract_5 ):
-
-        expand_0 = self.expand0(contract_5,contract_4)
-        expand_1 = self.expand1(expand_0,contract_3)
-        expand_2 = self.expand2(expand_1,contract_2)
-        expand_3 = self.expand3(expand_2,contract_1)
-        expand_4 = self.expand4(expand_3,contract_0)
         
-        data_out = self.downfeature(expand_4)
+        # input image = 240, conv1 = 120, conv2 = 60, conv3 = 30 15 7 4
+        #self.Linear1 = nn.Linear(((hidden_channels * 32) * 7 * 7), output_channels) 
+
+    def forward(self,contract_0,contract_1,contract_2,contract_3,contract_4):
+
+        expand_0 = self.expand0(contract_4,contract_3)
+        expand_1 = self.expand1(expand_0,contract_2)
+        expand_2 = self.expand2(expand_1,contract_1)
+        expand_3 = self.expand3(expand_2,contract_0)
+        
+        data_out = self.downfeature(expand_3)
         
         return data_out
     
@@ -129,10 +125,9 @@ class Full_UNet(nn.Module):
         self.expand = expand
         
     def forward(self,x1):
-        contract_0,contract_1,contract_2,contract_3,contract_4,contract_5 = self.contract(x1)
-        expand_layer = self.expand(contract_0,contract_1,contract_2,contract_3,contract_4,contract_5)
-        # maybe there is something here that needs to happen, if i recall there was only one layer in the example that connected so i will have to further look into this
-        #full_model = torch.cat((contract_0, expand_layer), dim=1)
+        contract_0,contract_1,contract_2,contract_3,contract_4 = self.contract(x1)
+        expand_layer = self.expand(contract_0,contract_1,contract_2,contract_3,contract_4)
+        #full_model = torch.cat((contract_1, expand_layer), dim=1)
         return expand_layer
 
 def UNet(input_dim, label_dim, hidden_dim, model_name):
@@ -142,8 +137,8 @@ def UNet(input_dim, label_dim, hidden_dim, model_name):
 
     # Load state dicts
     checkpoint = torch.load(model_name)
-    
-    # remove the final layer of the regression model weights and bias before merging the models
+    #checkpoint = torch.load("Checkpoints_RANO/Unet_8_2_data/checkpoint_49.pth")
+
     del checkpoint['state_dict']["Linear1.weight"]
     del checkpoint['state_dict']["Linear1.bias"]
 
@@ -157,6 +152,7 @@ def UNet(input_dim, label_dim, hidden_dim, model_name):
     # concatenation of the contracting and expanding paths of the unet
     model = Full_UNet(Contracting_path, Expanding_path)
 
+    #print(model)
     return model
 
 # input_dim = 4

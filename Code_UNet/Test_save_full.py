@@ -2,18 +2,26 @@ import torch
 from torch import nn
 from tqdm.auto import tqdm
 from torchvision.utils import make_grid
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
-from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
-import Net.Unet_components as net
+
+#from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
+from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
+
+#from Unet_modules.dataloader_test import Test_Dataset
+import Net.Unet_components_v2 as net
+import csv
+from os import walk
 import nibabel as nib
 import os
-from os import walk
 
-torch.manual_seed(0)
-np.random.seed(0)
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
+
+load_path = "Checkpoints/Full_model_MK3_H16_O4A4/checkpoint_0.pth"
+save_path = 'Predictions/Full_model_predictions_main_1/epoch_0'
 
 # image interpolation multiplier
 size = 1
@@ -61,11 +69,11 @@ def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
     plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
     plt.show()
 
-def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
+def Test_save(Test_data, unet, unet_opt, path, path_ext, save=False, save_val =""):
     f = []
     d = []
 
-    path = "Brats_2018 data"
+    #path = "Brats_2018 data"
 
     # each extension - HGG or LGG
     for input_ in range(len(path_ext)):
@@ -80,6 +88,8 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
                     f.extend(file_names)
                     d.extend(dir_names)
                     counter = len(d)
+                    print(d)
+                    print(f)
 
         # value for extension swapping
         if input_ == 0:
@@ -120,6 +130,7 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
                     pred_1 = np.clip(pred_output[i,:,:], 0, 1.0)
                     pred_1 = np.where(pred_1 > 0.5, 1, 0)
                     pred_img[:,:,img_num] = pred_1
+                    #pred_img[:,:,img_num] = pred_output[i,:,:]
                     
                     DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
                     
@@ -136,33 +147,28 @@ def Test_save(Test_data, unet, unet_opt, path_ext, save=False, save_val =""):
                         DS = []
                         
                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
-                        nib.save(pred_img_save, os.path.join('Predictions' + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + "_" + save_val +'.nii.gz'))  
-                        
+                        nib.save(pred_img_save, os.path.join(save_path + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + "_" + save_val +'.nii.gz'))  
                         
                         data_val += 1
                         pred_img = np.empty((240,240,155))
                         img_num = 0
 
-#Train_loss,validation_loss = train(Train_data,Val_data)
+path = "Brats_2018_data_split/Validation"
 path_ext = ["/HGG","/LGG"]
-#path_ext = ["/LGG_2"]
-#path_ext = ["/HGG_single_2"]
 
+#unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim,"Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth").to(device)
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints/checkpoint_2.pth")
+checkpoint = torch.load(load_path)
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])
 
-#Test(Test_data_data, unet, unet_opt)
-#Test(Val_data, unet, unet_opt)
-
-dataset_single = BraTs_Dataset("Brats_2018_data_split/Training", path_ext, size=size, apply_transform=False)
+dataset_single = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext, size=size, apply_transform=False)
 Single_data = DataLoader(
     dataset=dataset_single,
     batch_size=batch_size,
     shuffle=False)
 
-Test_save(Single_data, unet, unet_opt, path_ext, save=True)
+Test_save(Single_data, unet, unet_opt, path, path_ext, save=True)
