@@ -21,7 +21,7 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # In the format "FileName/"
-c_file = "Full_model_MK3_H16_O4A4_unfrozen/"
+c_file = "Full_model_MK5_H16_O4A4_frozen/"
 
 # image interpolation multiplier
 size = 1
@@ -132,7 +132,9 @@ def Validate(unet, criterion, Val_data):
 
 def train(Train_data,Val_data,load=False):
     
-    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", freeze=True).to(device)
+    # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
+    # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
+    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", allow_update=False).to(device)
     
     #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
@@ -203,7 +205,7 @@ def train(Train_data,Val_data,load=False):
             truth_output = label_input.cpu().detach().numpy()
             for i in range(cur_batch_size):
                 DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-                print("Training Dice Score: ", DS)
+                #print("Training Dice Score: ", DS)
 
 
 #                     Run model end                      #
@@ -219,10 +221,11 @@ def train(Train_data,Val_data,load=False):
                 show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
                 plt.plot(range(len(loss_values)),loss_values)
                 plt.show()
+                
+                checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
+                out = "Checkpoints/" + c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
+                torch.save(checkpoint, out)
 
-                
-                
-                
 #                    Display stage end                   #           
 #--------------------------------------------------------#
 #               step and loss output start               #

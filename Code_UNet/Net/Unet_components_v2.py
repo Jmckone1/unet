@@ -105,7 +105,7 @@ class UNet(nn.Module):
                       
         return data_out
                               
-    def load_weights(input_channels, output_channels, hidden_channels, model_name, freeze = False):
+    def load_weights(input_channels, output_channels, hidden_channels, model_name, allow_update = False):
         # load the model and the checkpoint
         model = UNet(input_channels, output_channels, hidden_channels)
         checkpoint = torch.load(model_name)
@@ -117,17 +117,17 @@ class UNet(nn.Module):
         # load the existing model weights from the checkpoint
         model.load_state_dict(checkpoint['state_dict'], strict=False)
         
-        # freeze the weights if false - leave unfrozen if true
+        # freeze the weights if allow_update is false - leave unfrozen if allow_update is true
         for param in model.contract1.parameters():
-            param.requires_grad = freeze
+            param.requires_grad = allow_update
         for param in model.contract2.parameters():
-            param.requires_grad = freeze
+            param.requires_grad = allow_update
         for param in model.contract3.parameters():
-            param.requires_grad = freeze
+            param.requires_grad = allow_update
         for param in model.contract4.parameters():
-            param.requires_grad = freeze
+            param.requires_grad = allow_update
         for param in model.contract5.parameters():
-            param.requires_grad = freeze
+            param.requires_grad = allow_update
                       
         return model
                        
@@ -141,8 +141,8 @@ class UNet(nn.Module):
 # device = 'cuda'
                       
 # # to use the model with weights, frozen or unfrozen utilise UNet.load_weights
-# # to use the model without having any weights use UNet without freeze and path
-# model = UNet.load_weights(input_dim, label_dim, hidden_dim,"Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", freeze=False)
+# # to use the model without having any weights use UNet without allow_update and path
+# model = UNet.load_weights(input_dim, label_dim, hidden_dim,"Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", allow_update=False)
 # print(model)
 # #print(model.contract1.parameters())
 

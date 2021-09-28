@@ -20,8 +20,8 @@ import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
-load_path = "Checkpoints/Full_model_MK3_H16_O4A4/checkpoint_0.pth"
-save_path = 'Predictions/Full_model_predictions_main_1/epoch_0'
+load_path = "Checkpoints/Full_model_MK5_H16_O4A4_base/checkpoint_0_550.pth"
+save_path = 'Predictions/MK_5_model_predictions/MK_5_base_step_550/'
 
 # image interpolation multiplier
 size = 1
@@ -72,6 +72,7 @@ def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
 def Test_save(Test_data, unet, unet_opt, path, path_ext, save=False, save_val =""):
     f = []
     d = []
+    DS_mean = []
 
     #path = "Brats_2018 data"
 
@@ -144,6 +145,7 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save=False, save_val ="
                             ext = path_ext[1]
                                 
                         mean_val = np.mean(DS)
+                        DS_mean.append(mean_val)
                         DS = []
                         
                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
@@ -152,6 +154,10 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save=False, save_val ="
                         data_val += 1
                         pred_img = np.empty((240,240,155))
                         img_num = 0
+                        
+    with open(os.path.join(save_path + "validation_dice.csv"), 'w') as f:
+        write = csv.writer(f) 
+        write.writerow(DS_mean)
 
 path = "Brats_2018_data_split/Validation"
 path_ext = ["/HGG","/LGG"]
