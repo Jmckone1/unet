@@ -21,7 +21,7 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M8_O4A10/"
+c_file = "Unet_H16_M9_O20A0/"
 
 np.set_printoptions(precision=4)
 
@@ -32,8 +32,8 @@ n_epochs = 100
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
-orth_penalty = 4
-area_penalty = 10
+orth_penalty = 20
+area_penalty = 0
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(orth_penalty,area_penalty)
@@ -55,14 +55,14 @@ train_percent = 1 - (val_percent + test_percent)
 #--------------------------------------------------------#
 #             show output tensors start                  #
 
-def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
+# def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
 
-    image_shifted = image_tensor
-    image_unflat = image_shifted.detach().cpu().view(-1, *size)
-    image_grid = make_grid(image_unflat[:num_images], nrow=4)
-    plt.title(title)
-    plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
-    plt.show()
+#     image_shifted = image_tensor
+#     image_unflat = image_shifted.detach().cpu().view(-1, *size)
+#     image_grid = make_grid(image_unflat[:num_images], nrow=4)
+#     plt.title(title)
+#     plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
+#     plt.show()
 
 #              show output tensors end                   #
 #--------------------------------------------------------#
@@ -129,6 +129,9 @@ def train(Train_data,Val_data,load=False):
     
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     print(unet)
+    
+    if not os.path.exists("Checkpoints_RANO/" + c_file):
+        os.makedirs("Checkpoints_RANO/" + c_file)
     
     with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as write: 
         #write = csv.writer(f)
@@ -224,8 +227,8 @@ def train(Train_data,Val_data,load=False):
 
                 print(f"Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
                 
-                show_tensor_images(truth_input[:,1,:,:], size=(1, initial_shape, initial_shape),
-                                   title="Flair Input Channel ( channel 2 of 4 )")
+#                 show_tensor_images(truth_input[:,1,:,:], size=(1, initial_shape, initial_shape),
+#                                    title="Flair Input Channel ( channel 2 of 4 )")
                 plt.show()
                 print(label_input[0,:].shape)
                 #for i in range(cur_batch_size):

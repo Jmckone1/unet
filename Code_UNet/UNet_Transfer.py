@@ -18,10 +18,10 @@ import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # In the format "FileName/"
-c_file = "Full_model_MK5_H16_O4A4_frozen/"
+c_file = "Full_model_MK5_H16_O4A4_unfrozen_alldata/"
 
 # image interpolation multiplier
 size = 1
@@ -64,7 +64,10 @@ def dice_score(prediction, truth):
     label_sum = truth_1.sum()
     dice_den = pred_sum + label_sum + 1
     score = dice_num / dice_den
-
+    
+    if pred_1.sum() == 0 and truth_1.sum() > 2:
+        score = 0
+    
     return score
 
 #--------------------------------------------------------#
@@ -134,7 +137,7 @@ def train(Train_data,Val_data,load=False):
     
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
-    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", allow_update=False).to(device)
+    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", allow_update=True).to(device)
     
     #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
@@ -282,7 +285,7 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data_split/Training",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
+dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
 
 Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 

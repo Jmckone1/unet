@@ -80,6 +80,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
+
         file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_n" + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
