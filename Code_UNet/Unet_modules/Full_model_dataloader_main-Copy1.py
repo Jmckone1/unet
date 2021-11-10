@@ -97,26 +97,26 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whseg_n" + '.nii.gz'
-        l_full_path = os.path.join(self.path + ext, file_label)
+#         file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whseg_n" + '.nii.gz'
+#         l_full_path = os.path.join(self.path + ext, file_label)
         
-        l_img = nib.load(l_full_path)
-        img_labels = l_img.get_fdata()
-        label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
+#         l_img = nib.load(l_full_path)
+#         img_labels = l_img.get_fdata()
+#         label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
         
-        # interpolate label
-        label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
-        label = F.interpolate(label,(int(label.shape[2]*self.size),int(label.shape[3]*self.size)))
+#         # interpolate label
+#         label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
+#         label = F.interpolate(label,(int(label.shape[2]*self.size),int(label.shape[3]*self.size)))
         
         #                          labels return end                          #
         #######################################################################
         #                                                                     #
         
-        if self.apply_transform == True:
-            img,label = self.Transform(img,label)
+#         if self.apply_transform == True:
+#             img,label = self.Transform(img,label)
             
-        img = img.squeeze().numpy()
-        label = label.squeeze().numpy()
+#         img = img.squeeze().numpy()
+#         label = label.squeeze().numpy()
         
         #                                                                     #
         #######################################################################
@@ -124,7 +124,7 @@ class BraTs_Dataset(Dataset):
         #                          labels return end                          #
         #######################################################################
         
-        return img,label
+        return img#,label
     
     def Transform(self, image, label):
 

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 
 #from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
-from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
+from Unet_modules.Full_model_dataloader_main_Copy import BraTs_Dataset
 
 #from Unet_modules.dataloader_test import Test_Dataset
 import Net.Unet_components_v2 as net
@@ -18,7 +18,7 @@ import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # image interpolation multiplier
 size = 1
@@ -104,7 +104,7 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
     DS_none = []
     data_val = 0 # number for file output naming
     
-    for truth_input, label_input in tqdm(Test_data):
+    for truth_input in tqdm(Test_data):
 
             cur_batch_size = len(truth_input)
 
@@ -113,9 +113,9 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
             truth_input = truth_input.float() 
             truth_input = truth_input.squeeze()
             
-            label_input = label_input.to(device)
-            label_input = label_input.float()
-            label_input = label_input.squeeze()
+#             label_input = label_input.to(device)
+#             label_input = label_input.float()
+#             label_input = label_input.squeeze()
             
             # set accumilated gradients to 0 for param update
             unet_opt.zero_grad()
@@ -125,7 +125,7 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
             plt.show()
 
             pred_output = pred.cpu().detach().numpy()
-            truth_output = label_input.cpu().detach().numpy()
+#             truth_output = label_input.cpu().detach().numpy()
 
             if save == True:
                 for i in range(cur_batch_size):
@@ -133,56 +133,57 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                     pred_1 = np.where(pred_1 > 0.5, 1, 0)
                     pred_img[:,:,img_num] = pred_1
                     
-                    # DS calculates the dice for all slices with a tumour region in ground truth
-                    # DS_all calculates the dice for all slices including those that are empty in truth and prediction
-                    # DS_none calulates the dice only for slices with no tumour region in the ground truth
-                    if np.where(truth_output[i,:,:] > 0.5, 1, 0).sum() != 0:
-                        DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-                    else:
-                        DS_none.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+#                     # DS calculates the dice for all slices with a tumour region in ground truth
+#                     # DS_all calculates the dice for all slices including those that are empty in truth and prediction
+#                     # DS_none calulates the dice only for slices with no tumour region in the ground truth
+#                     if np.where(truth_output[i,:,:] > 0.5, 1, 0).sum() != 0:
+#                         DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+#                     else:
+#                         DS_none.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
                         
-                    DS_all.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+#                     DS_all.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
                     
                     img_num += 1
                     
                     if img_num == 155:
+                        print("image 155 slice")
                         
                         if data_val < HGG_len:
                             ext = path_ext[0]
                         else:
                             ext = path_ext[1]
                                 
-                        mean_val = np.mean(DS)
-                        mean_val_all = np.mean(DS_all)
-                        mean_val_none = np.mean(DS_none)
+#                         mean_val = np.mean(DS)
+#                         mean_val_all = np.mean(DS_all)
+#                         mean_val_none = np.mean(DS_none)
                         
-                        DS_mean.append(mean_val)
-                        DS_mean_all.append(mean_val_all)
-                        DS_mean_none.append(mean_val_none)
-                        DS = []
-                        DS_all = []
-                        DS_none = []
+#                         DS_mean.append(mean_val)
+#                         DS_mean_all.append(mean_val_all)
+#                         DS_mean_none.append(mean_val_none)
+#                         DS = []
+#                         DS_all = []
+#                         DS_none = []
                         
-                        if save_image == True:
-                        
+                        if save == True:
+                            print("saving: ", save_path + ext + "_" + d[data_val] + '.nii.gz')
                             pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
-                            nib.save(pred_img_save, os.path.join('save_path' + ext + "_" + d[data_val] + '.nii.gz'))  
+                            nib.save(pred_img_save, os.path.join(save_path + ext + "_" + d[data_val] + '.nii.gz'))  
 #                             pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
 #                             nib.save(pred_img_save, os.path.join(save_path + ext + "_" + d[data_val] + '_' + str(int(mean_val*100)) + "_" + save_val +'.nii.gz'))  
 
                         data_val += 1
                         pred_img = np.empty((240,240,155))
                         img_num = 0
-    if save == True:
-        with open(os.path.join(save_path + "0_Tumour_slice_validation_dice.csv"), 'w') as f:
-            write = csv.writer(f) 
-            write.writerow(DS_mean)
-        with open(os.path.join(save_path + "0_All_slice_validation_dice.csv"), 'w') as f:
-            write = csv.writer(f) 
-            write.writerow(DS_mean_all)
-        with open(os.path.join(save_path + "0_None_slice_validation_dice.csv"), 'w') as f:
-            write = csv.writer(f) 
-            write.writerow(DS_mean_none)
+#     if save == True:
+#         with open(os.path.join(save_path + "0_Tumour_slice_validation_dice.csv"), 'w') as f:
+#             write = csv.writer(f) 
+#             write.writerow(DS_mean)
+#         with open(os.path.join(save_path + "0_All_slice_validation_dice.csv"), 'w') as f:
+#             write = csv.writer(f) 
+#             write.writerow(DS_mean_all)
+#         with open(os.path.join(save_path + "0_None_slice_validation_dice.csv"), 'w') as f:
+#             write = csv.writer(f) 
+#             write.writerow(DS_mean_none)
 
 
 # load_path = ['Checkpoints/Full_model_MK5_H16_O4A4_base/checkpoint_0.pth',
@@ -219,8 +220,9 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
 
 values = np.linspace(50, 550, num=11)
 
-path = "Brats_2018_data_split/Validation"
-path_ext = ["/HGG","/LGG"]
+path = "MICCAI_BraTS_2018_Data_Validation/data"
+# path_ext = ["/HGG","/LGG"]
+path_ext = [""]
 
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
@@ -244,14 +246,12 @@ Single_data = DataLoader(
 
 #         Test_save(Single_data, unet, unet_opt, path, path_ext, save_path, load_path, save=True)
 
-for j in range(len(values)):
+load_path = 'Checkpoints/Full_model_MK5_H16_O0A0_baseline_alldata/checkpoint_2.pth'
+save_path = 'Predictions/model_5_offical_val_all_data_baseline_official_main/'
 
-    load_path = 'Checkpoints/Full_model_MK5_H16_O4A4_z_alldata/checkpoint_2.pth'
-    save_path = 'Predictions/model_5_offical_val_all_data_unfrozen/'
+checkpoint = torch.load(load_path)
 
-    checkpoint = torch.load(load_path)
+unet.load_state_dict(checkpoint['state_dict'])
+unet_opt.load_state_dict(checkpoint['optimizer'])
 
-    unet.load_state_dict(checkpoint['state_dict'])
-    unet_opt.load_state_dict(checkpoint['optimizer'])
-
-    Test_save(Single_data, unet, unet_opt, path, path_ext, save_path, load_path, save=True)
+Test_save(Single_data, unet, unet_opt, path, path_ext, save_path, load_path, save=True)

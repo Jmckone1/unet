@@ -18,10 +18,10 @@ import os
 from sklearn.metrics import jaccard_score
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M9_O20A0/"
+c_file = "Unet_H16_M9_O0A20/"
 
 np.set_printoptions(precision=4)
 
@@ -32,8 +32,8 @@ n_epochs = 100
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
-orth_penalty = 20
-area_penalty = 0
+orth_penalty = 0
+area_penalty = 20
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(orth_penalty,area_penalty)
@@ -49,24 +49,6 @@ device = 'cuda'
 val_percent = 0.1
 test_percent = 0.2
 train_percent = 1 - (val_percent + test_percent)
-
-# https://nipy.org/nibabel/gettingstarted.html
-
-#--------------------------------------------------------#
-#             show output tensors start                  #
-
-# def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
-
-#     image_shifted = image_tensor
-#     image_unflat = image_shifted.detach().cpu().view(-1, *size)
-#     image_grid = make_grid(image_unflat[:num_images], nrow=4)
-#     plt.title(title)
-#     plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
-#     plt.show()
-
-#              show output tensors end                   #
-#--------------------------------------------------------#
-#              Define validation start                   #
 
 def Validate(unet, criterion, Val_data):
     print(" ")

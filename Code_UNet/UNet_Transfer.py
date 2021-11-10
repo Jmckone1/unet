@@ -7,8 +7,11 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
 
+np.random.seed(0)
+
 #from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
-from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
+#from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
+from Unet_modules.Full_model_dataloader_all_data import BraTs_Dataset
 
 from Unet_modules.dataloader_test import Test_Dataset
 import Net.Unet_components_v2 as net
@@ -21,7 +24,7 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # In the format "FileName/"
-c_file = "Full_model_MK5_H16_O4A4_unfrozen_alldata/"
+c_file = "Full_model_MK5_H16_O0A0_baseline_alldata/"
 
 # image interpolation multiplier
 size = 1
@@ -137,9 +140,9 @@ def train(Train_data,Val_data,load=False):
     
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
-    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", allow_update=True).to(device)
+    #unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth", allow_update=True).to(device)
     
-    #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+    unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
     
     with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
