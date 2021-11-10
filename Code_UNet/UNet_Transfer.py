@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 
 np.random.seed(0)
+torch.manual_seed(0)
 
 #from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
 #from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
@@ -236,8 +237,6 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#
 #               step and loss output start               #
 
-        
-  
         plt.plot(range(len(loss_values)),loss_values)
         plt.title("Epoch " + str(epoch + 1) + ": loss")
 
