@@ -14,7 +14,6 @@ torch.manual_seed(0)
 #from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
 from Unet_modules.Full_model_dataloader_all_data import BraTs_Dataset
 
-from Unet_modules.dataloader_test import Test_Dataset
 import Net.Unet_components_v2 as net
 import csv
 from os import walk
@@ -22,18 +21,22 @@ import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
+from Unet_modules.Evaluation import DiceLoss
+from Unet_modules.Evaluation import Dice_Evaluation as Dice_Eval
 
 # In the format "FileName/"
-c_file = "Full_model_MK5_H16_O0A0_baseline_alldata/"
+c_file = "Full_model_MK5_H16_unfrozen_5_epochs_DiceLoss/"
 
 # image interpolation multiplier
 size = 1
 
 # BCE with Logits loss, may change to soft dice
-criterion = nn.BCEWithLogitsLoss()
+#criterion = nn.BCEWithLogitsLoss()
+criterion = DiceLoss()
 
-n_epochs = 3
+n_epochs = 6
 input_dim = 4
 label_dim = 1
 hidden_dim = 16
@@ -49,44 +52,6 @@ val_percent = 0.1
 test_percent = 0.2
 train_percent = 1 - (val_percent + test_percent)
 
-# https://nipy.org/nibabel/gettingstarted.html
-
-# this has been written as an external file function and should be called from there instead of here
-def dice_score(prediction, truth):
-    # clip changes negative vals to 0 and those above 1 to 1
-    pred_1 = np.clip(prediction, 0, 1.0)
-    truth_1 = np.clip(truth, 0, 1.0)
-
-    # binarize
-    pred_1 = np.where(pred_1 > 0.5, 1, 0)
-    truth_1 = np.where(truth_1 > 0.5, 1, 0)
-
-    # Dice calculation
-    product = np.dot(truth_1.flatten(), pred_1.flatten())
-    dice_num = 2 * product + 1
-    pred_sum = pred_1.sum()
-    label_sum = truth_1.sum()
-    dice_den = pred_sum + label_sum + 1
-    score = dice_num / dice_den
-    
-    if pred_1.sum() == 0 and truth_1.sum() > 2:
-        score = 0
-    
-    return score
-
-#--------------------------------------------------------#
-#             show output tensors start                  #
-
-def show_tensor_images(image_tensor, num_images=25, size=(1, 28, 28),title=""):
-
-    image_shifted = image_tensor
-    image_unflat = image_shifted.detach().cpu().view(-1, *size)
-    image_grid = make_grid(image_unflat[:num_images], nrow=4)
-    plt.title(title)
-    plt.imshow((image_grid.permute(1, 2, 0).squeeze()* 255).type(torch.uint8))
-    plt.show()
-
-#              show output tensors end                   #
 #--------------------------------------------------------#
 #              Define validation start                   #
 
@@ -122,8 +87,8 @@ def Validate(unet, criterion, Val_data):
         truth_output = label_input.cpu().detach().numpy()
         
         for i in range(cur_batch_size):
-            DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-        print("Validation Dice Score: ", DS)
+            DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+        #print("Validation Dice Score: ", DS)
         
         cur_step += 1
     metrics = losses
@@ -132,32 +97,26 @@ def Validate(unet, criterion, Val_data):
     
     return metrics, DS
 
-
 #               Define validation end                    #
 #--------------------------------------------------------#
 #                Define model start                      #
 
 def train(Train_data,Val_data,load=False):
     
+    checkpoint_name = "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth"
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
-    #unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth", allow_update=True).to(device)
+    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, checkpoint_name, allow_update=True).to(device)
     
-    unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+    #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
     
     with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
-        write.write("left_path: " + "Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth" + "\n")
+        write.write("left_path: " + checkpoint_name + "\n")
         write.write("epochs: " + str(n_epochs) + "\n")
         write.write("batch size: " + str(batch_size) + "\n")
         write.write("learning rate: " + str(lr) + "\n")
         write.write(str(unet))
-
-#     if load == True:
-#         checkpoint = torch.load("Checkpoints/checkpoint_0_step_1900.pth")
-
-#         unet.load_state_dict(checkpoint['state_dict'])
-#         unet_opt.load_state_dict(checkpoint['optimizer'])
 
 #                   Define model end                     #
 #--------------------------------------------------------#
@@ -211,9 +170,8 @@ def train(Train_data,Val_data,load=False):
             pred_output = pred.cpu().detach().numpy()
             truth_output = label_input.cpu().detach().numpy()
             for i in range(cur_batch_size):
-                DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+                DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
                 #print("Training Dice Score: ", DS)
-
 
 #                     Run model end                      #
 #--------------------------------------------------------#         
@@ -221,14 +179,6 @@ def train(Train_data,Val_data,load=False):
 
             if cur_step % display_step == 0:
 
-                print(f"Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
-                show_tensor_images(truth_input[:,1,:,:], size=(label_dim, target_shape, target_shape),
-                                   title="Flair Input Channel ( channel 2 of 4 )")
-                show_tensor_images(label_input, size=(label_dim, target_shape, target_shape),title="Real Labels")
-                show_tensor_images(torch.sigmoid(pred), size=(label_dim, target_shape, target_shape),title="Predicted Output")
-                plt.plot(range(len(loss_values)),loss_values)
-                plt.show()
-                
                 checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
                 out = "Checkpoints/" + c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                 torch.save(checkpoint, out)
@@ -288,7 +238,6 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#
 
 dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
-
 Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 
 print("Training: ", len(dataset))

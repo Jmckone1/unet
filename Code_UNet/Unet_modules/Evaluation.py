@@ -1,6 +1,54 @@
 import numpy as np
 import torch
 from matplotlib.path import Path
+from torch import nn
+import torch.nn.functional as F
+
+class DiceLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        inputs = torch.sigmoid(inputs)       
+        
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.view(-1)
+        
+        intersection = (inputs * targets).sum()                            
+        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        
+        return 1 - dice
+    
+class Dice_Evaluation():
+    
+    def __init__(self):
+        return 0
+    
+    def dice_score(prediction, truth):
+        # clip changes negative vals to 0 and those above 1 to 1
+        pred_1 = np.clip(prediction, 0, 1.0)
+        truth_1 = np.clip(truth, 0, 1.0)
+
+        # binarize
+        pred_1 = np.where(pred_1 > 0.5, 1, 0)
+        truth_1 = np.where(truth_1 > 0.5, 1, 0)
+
+        # Dice calculation
+        product = np.dot(truth_1.flatten(), pred_1.flatten())
+        dice_num = 2 * product + 1
+        pred_sum = pred_1.sum()
+        label_sum = truth_1.sum()
+        dice_den = pred_sum + label_sum + 1
+        score = dice_num / dice_den
+
+        if pred_1.sum() == 0 and truth_1.sum() > 2:
+            score = 0
+
+        return score
+
 
 class Jaccard_Evaluation():
     

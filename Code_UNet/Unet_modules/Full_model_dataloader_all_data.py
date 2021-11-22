@@ -24,6 +24,8 @@ class BraTs_Dataset(Dataset):
         self.path_ext = path_ext
         self.apply_transform = apply_transform
         
+        self.HGG_len = 0
+        
         c_s = 0
         
         # each extension - HGG or LGG
