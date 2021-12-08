@@ -13,6 +13,7 @@ torch.manual_seed(0)
 #from Unet_modules.Brats_dataloader_3 import BraTs_Dataset
 #from Unet_modules.Full_model_dataloader_main import BraTs_Dataset
 from Unet_modules.Full_model_dataloader_all_data import BraTs_Dataset
+#from Unet_modules.Full_dataloader_Rand import BraTs_Dataset
 
 # shuffle the dataset within the dataloader using an additional boolean input
 # split the dataset as defined in the zip folder - which should do it at the brain/ patient level instead of slice level
@@ -24,13 +25,13 @@ import nibabel as nib
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 from Unet_modules.Evaluation import DiceLoss
 from Unet_modules.Evaluation import Dice_Evaluation as Dice_Eval
 
 # In the format "FileName/"
-c_file = "Full_model_MK5_H16_unfrozen_5_epochs_BCELoss_2_3/"
+c_file = "Full_model_MK5_H16_baseline_6_epochs_BCELoss_2_50/"
 
 # image interpolation multiplier
 size = 1
@@ -109,9 +110,9 @@ def train(Train_data,Val_data,load=False):
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth"
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
-    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, checkpoint_name, allow_update=True).to(device)
+    # unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, checkpoint_name, allow_update=True).to(device)
     
-    #unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+    unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
     
     with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
@@ -240,21 +241,64 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
-Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
+dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
+#dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True,Randomize=False)
+#Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 
-print("Training: ", len(dataset))
-print("validation: ", len(Validation_dataset))
+train_split = 0.7
+validation_split = 0.1
+test_split = 0.2
 
-Train_data = DataLoader(
+# percentage amount to split the training set by (in all data there are 200 patients within the training dataset)
+split_amount = 0.5
+
+data_size = len(dataset)
+patients_number = data_size / 155
+
+train_length = int(155*(np.ceil(patients_number * train_split)))
+validation_length = int(155*(np.floor(patients_number * validation_split)))
+test_length = int(155*(np.floor(patients_number * test_split)))
+
+# split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * 1)))))
+# print(len(split_1))
+# split_2 = list(range(0,int(155*(np.ceil((train_length / 155) * 0.9)))))
+# print(len(split_2))
+# split_3 = list(range(0,int(155*(np.ceil((train_length / 155) * 0.5)))))
+# print(len(split_3))
+# split_4 = list(range(0,int(155*(np.ceil((train_length / 155) * 0.1)))))
+# print(len(split_4))
+
+split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
+
+train_range = list(range(0,train_length))
+val_range = list(range(train_length,train_length+validation_length))
+#test_range = range(train_length+validation_length,train_length+validation_length+test_length)
+
+train_data_m = torch.utils.data.RandomSampler(train_range,False)
+validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+#test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
+
+data_split_m = torch.utils.data.RandomSampler(split_1,False)
+
+# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
+print("Training: ", len(train_data_m))
+print("Actual_input: ", len(split_1))
+print("validation: ", len(validation_data_m))
+
+# Train_data = DataLoader(
+#     dataset=dataset,
+#     batch_size=batch_size,sampler = train_data_m)
+
+Train_data=DataLoader(
     dataset=dataset,
     batch_size=batch_size,
-    shuffle=True)
+    sampler=split_1)
 
-Val_data = DataLoader(
-    dataset=Validation_dataset,
+Val_data=DataLoader(
+    dataset=dataset,
     batch_size=batch_size,
-    shuffle=False,
-    drop_last=True)
+    sampler=validation_data_m)
 
+# print(type(Train_data))
+# print(type(Val_data))
 Train_loss,validation_loss = train(Train_data, Val_data, load=False)

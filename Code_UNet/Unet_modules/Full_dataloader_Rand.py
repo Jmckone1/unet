@@ -9,13 +9,14 @@ import time
 import random
 import torchvision.transforms.functional as TF
 import torchvision
-# random.seed(0)
+
 import sys
 import numpy
 numpy.set_printoptions(threshold=sys.maxsize)
+random.seed(0)
 
 class BraTs_Dataset(Dataset):
-    def __init__(self, path, path_ext, size, apply_transform, **kwargs):
+    def __init__(self, path, path_ext, size, apply_transform, Randomize=False, **kwargs):
 
         self.d = []
         self.index_max = []
@@ -23,6 +24,9 @@ class BraTs_Dataset(Dataset):
         
         self.path_ext = path_ext
         self.apply_transform = apply_transform
+
+        
+        self.HGG_len = 0
         
         c_s = 0
         
@@ -35,9 +39,13 @@ class BraTs_Dataset(Dataset):
                 if not dir_names == []:
                     if not dir_names[0].startswith("."):
                         
+                        for add_extension in range(len(dir_names)):
+                            dir_names[add_extension] = self.path_ext[input_] + "/" + dir_names[add_extension]
+                            
                         self.d.extend(dir_names)
-                        
-                        counter = len(self.d)
+                        #print(self.d)
+
+                        counter = len(self.d)     
                         
             for directory in range(counter-c_s):
                 if directory == 0:
@@ -46,8 +54,9 @@ class BraTs_Dataset(Dataset):
                 if input_ == 1:
                     directory = directory + c_s
 
-                file = self.d[directory] + '/' + self.d[directory] + "_" + "whimg_n" + '.nii.gz'
-                full_path = os.path.join(path + path_ext[input_], file)
+                file = self.d[directory] + '/' + self.d[directory][5:] + "_" + "whimg_n" + '.nii.gz'
+                full_path = path + file
+
                 img_a = nib.load(full_path)
                 img_data = img_a.get_fdata()
                 
@@ -56,7 +65,10 @@ class BraTs_Dataset(Dataset):
                 # value for extension swapping
                 if input_ == 0:
                     self.HGG_len = self.index_max[-1]
-            
+
+        if Randomize == True:
+            random.shuffle(self.d)
+
         # inputs to global
         self.count = self.index_max[-1] # anything with 155 in it needs to be redone to not rely on the hard coded value
         self.path = path
@@ -64,6 +76,8 @@ class BraTs_Dataset(Dataset):
 
     def __getitem__(self,index):
 
+        print(index)
+        print(self.index_max)
         for i in range(len(self.index_max)):
             if index >= self.index_max[i]:
                 continue
@@ -80,8 +94,8 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_n" + '.nii.gz'
-        full_path = os.path.join(self.path + ext, file_t)
+        file_t = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whimg_n" + '.nii.gz'
+        full_path = self.path + file_t
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
@@ -97,34 +111,32 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-#         file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whseg_n" + '.nii.gz'
-#         l_full_path = os.path.join(self.path + ext, file_label)
+        file_label = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whseg" + '.nii.gz'
+        l_full_path = self.path + file_t
         
-#         l_img = nib.load(l_full_path)
-#         img_labels = l_img.get_fdata()
-#         label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
+        l_img = nib.load(l_full_path)
+        img_labels = l_img.get_fdata()
+        label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
         
-#         # interpolate label
-#         label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
-#         label = F.interpolate(label,(int(label.shape[2]*self.size),int(label.shape[3]*self.size)))
+        # interpolate label
+        label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
+        label = F.interpolate(label,(int(label.shape[2]*self.size),int(label.shape[3]*self.size)))
         
         #                          labels return end                          #
         #######################################################################
         #                                                                     #
         
-#         if self.apply_transform == True:
-#             img,label = self.Transform(img,label)
+        if self.apply_transform == True:
+            img,label = self.Transform(img,label)
             
-#         img = img.squeeze().numpy()
-#         label = label.squeeze().numpy()
+        img = img.squeeze().numpy()
+        label = label.squeeze().numpy()
         
-        #                                                                     #
         #######################################################################
-        
         #                          labels return end                          #
         #######################################################################
         
-        return img#,label
+        return img,label
     
     def Transform(self, image, label):
 
