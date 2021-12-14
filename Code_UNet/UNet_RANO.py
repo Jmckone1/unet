@@ -38,6 +38,8 @@ hidden_dim = 16
 orth_penalty = 4
 area_penalty = 0
 
+Improvement = 0
+
 #criterion = nn.MSELoss()
 loss_f = Penalty(orth_penalty,area_penalty)
 criterion = loss_f.MSELossorthog
@@ -263,43 +265,45 @@ def train(Train_data,Val_data,load=False):
 #                    Display stage end                   #           
 #--------------------------------------------------------#
 #               step and loss output start   #
-
-        print("saving epoch: ", epoch)
-        checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-        out = "Checkpoints_RANO/" + c_file + "checkpoint_" + str(epoch) + ".pth"
-        torch.save(checkpoint, out)
-
-        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "training_loss", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(loss_values)
-            
         epoch_val_loss, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
         
         valid_loss.append(epoch_val_loss)
         valid_jaccard.append(epoch_jaccard_valid)
         
-        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "validation_loss", 'w') as f: 
+        if np.nanmean(epoch_jaccard_valid) > Improvement:
+            Improvement = np.nanmean(epoch_jaccard_valid)
+        
+            print("saving epoch: ", epoch)
+            checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
+            out = "Checkpoints_RANO/" + c_file + "checkpoint_" + str(epoch) + ".pth"
+            torch.save(checkpoint, out)
+
+        with open("Checkpoints_RANO/" + c_file + "Training_loss/epoch_" + str(epoch) + "training_loss", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(loss_values)
+
+        with open("Checkpoints_RANO/" + c_file + "Validation_loss/epoch_" + str(epoch) + "validation_loss", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
-            
-        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "jaccard_index", 'w') as f: 
+
+        with open("Checkpoints_RANO/" + c_file + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(jaccard)
-            
-        with open("Checkpoints_RANO/" + c_file + "epoch_" + str(epoch) + "validation_jaccard_index", 'w') as f: 
+
+        with open("Checkpoints_RANO/" + c_file + "Valdiation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_jaccard)
-            
-        #for t_loss_count in range(len(total_loss)):
-        t.append(np.mean(total_loss[len(total_loss)-1]))
-            
-        #for v_loss_count in range(len(valid_loss)):
-        v.append(np.mean(valid_loss[len(valid_loss)-1]))
 
-        plt.plot(range(len(t)),t)
-        plt.plot(range(len(v)),v)
-        plt.legend(["training","validation"])
-        plt.show()
+#             for t_loss_count in range(len(total_loss)):
+#             t.append(np.mean(total_loss[len(total_loss)-1]))
+
+#             #for v_loss_count in range(len(valid_loss)):
+#             v.append(np.mean(valid_loss[len(valid_loss)-1]))
+
+#             plt.plot(range(len(t)),t)
+#             plt.plot(range(len(v)),v)
+#             plt.legend(["training","validation"])
+#             plt.show()
 
     print('Finished Training Dataset')
     return total_loss, valid_loss

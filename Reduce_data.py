@@ -1,3 +1,11 @@
+##################################################################
+# if the dataset has any slices that have no segmentation in the # 
+# ground truth we remove that slice for the RANO training as it  #
+# has little impact on the output but reduces the training time  #
+# by half ------------------------------------------------------ #
+# this is used for RANO regression training NOT segmentation     #
+##################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 import nibabel as nib
@@ -5,7 +13,8 @@ from os import walk
 import time
 import os
 
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+# choosing the GPU number that is utilised
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 def dataread(path):
