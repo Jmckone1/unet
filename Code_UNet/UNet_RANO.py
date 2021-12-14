@@ -17,11 +17,14 @@ import csv
 import os
 from sklearn.metrics import jaccard_score
 
+np.random.seed(0)
+torch.manual_seed(0)
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M9_O0A20/"
+c_file = "Unet_H16_M9_O4A0_V2/"
 
 np.set_printoptions(precision=4)
 
@@ -32,8 +35,8 @@ n_epochs = 100
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
-orth_penalty = 0
-area_penalty = 20
+orth_penalty = 4
+area_penalty = 0
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(orth_penalty,area_penalty)

@@ -31,7 +31,7 @@ from Unet_modules.Evaluation import DiceLoss
 from Unet_modules.Evaluation import Dice_Evaluation as Dice_Eval
 
 # In the format "FileName/"
-c_file = "Full_model_MK5_H16_baseline_6_epochs_BCELoss_2_50/"
+c_file = "split_data_experiments/Full_model_MK5_H16_baseline_6_epochs_BCELoss_2/"
 
 # image interpolation multiplier
 size = 1
@@ -110,9 +110,9 @@ def train(Train_data,Val_data,load=False):
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth"
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
-    # unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, checkpoint_name, allow_update=True).to(device)
+    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, checkpoint_name, allow_update=True).to(device)
     
-    unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+    # unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
     
     with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
@@ -250,7 +250,7 @@ validation_split = 0.1
 test_split = 0.2
 
 # percentage amount to split the training set by (in all data there are 200 patients within the training dataset)
-split_amount = 0.5
+split_amount = 1
 
 data_size = len(dataset)
 patients_number = data_size / 155
@@ -259,15 +259,7 @@ train_length = int(155*(np.ceil(patients_number * train_split)))
 validation_length = int(155*(np.floor(patients_number * validation_split)))
 test_length = int(155*(np.floor(patients_number * test_split)))
 
-# split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * 1)))))
-# print(len(split_1))
-# split_2 = list(range(0,int(155*(np.ceil((train_length / 155) * 0.9)))))
-# print(len(split_2))
-# split_3 = list(range(0,int(155*(np.ceil((train_length / 155) * 0.5)))))
-# print(len(split_3))
-# split_4 = list(range(0,int(155*(np.ceil((train_length / 155) * 0.1)))))
-# print(len(split_4))
-
+# splits the dataset
 split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
 
 train_range = list(range(0,train_length))
@@ -299,6 +291,33 @@ Val_data=DataLoader(
     batch_size=batch_size,
     sampler=validation_data_m)
 
-# print(type(Train_data))
-# print(type(Val_data))
+############################################
+# from datetime import datetime
+# import time
+# t0 = time.time()
+# dt_start = now.strftime("%d/%m/%Y %H:%M:%S")
+############################################
+
 Train_loss,validation_loss = train(Train_data, Val_data, load=False)
+
+############################################
+# runtime = time.time() - t0,
+# dt_end = now.strftime("%d/%m/%Y %H:%M:%S")
+############################################
+
+############################################
+# save dt start
+# save dt end
+# save runtime
+# save epochs
+# save losstype
+# save total train amount
+# save actual train amount
+# save valdation amount
+# save c_file
+# save input_dim
+# save hidden_dim
+# save output_dim
+# save epoch time taken training (all) (mean)
+# save epoch time taken validation (all) (mean)
+############################################
