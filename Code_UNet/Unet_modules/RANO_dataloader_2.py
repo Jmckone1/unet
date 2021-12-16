@@ -50,6 +50,9 @@ class BraTs_Dataset(Dataset):
                 file = self.d[directory] + '/' + self.d[directory] + "r_" + "whimg_n" + '.nii.gz'
                 full_path = os.path.join(path + path_ext[input_], file)
                 img_a = nib.load(full_path)
+#                 print("")
+#                 print(full_path)
+#                 print("")
                 img_data = img_a.get_fdata()
                 
                 self.index_max.extend([img_data.shape[3] + self.index_max[-1]])

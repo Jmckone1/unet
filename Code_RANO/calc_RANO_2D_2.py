@@ -16,6 +16,7 @@ from scipy.spatial.distance import cdist
 from collections import namedtuple
 
 from deepneuro.utilities.conversion import read_image_files
+from tqdm.auto import tqdm
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"]="1"
@@ -281,23 +282,25 @@ def dataread(path):
                 d.extend(dir_names)
     return d
 
+import time
+
 if __name__ == "__main__":
     
     name = ["HGG/","LGG/"]
-    #name = [1]
     for i in range(len(name)):
-        path = "Brats_2018_data_split/Validation/" + name[i]
+        path = "Brats_2018_data_all/All_data/" + name[i]
         #path = "Brats_2018 data/HGG_single_2/"
 
         d = dataread(path)
 
         output_size = len(d)
         print(output_size)
-
-        # output_size = 1
         
-        for x in range(output_size):
-            print("Data item:", x)
+        for c in range(output_size):
+            print(c+1,d[c])
+        
+        for x in tqdm(range(output_size)):
+            time.sleep(0.5)
             if not os.path.exists(path + d[x] + "/" + d[x] + "r_RANO.npz"):
                 
                 data_Plot = nib.load(path + d[x] + "/" + d[x] + "r_whseg.nii.gz")
@@ -305,5 +308,6 @@ if __name__ == "__main__":
 
                 Bi_output = calc_2D_RANO_measure(input_2, pixdim=(240,240), affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath="output_rano", verbose=False)
 
-                print(path + d[x] + "/" + d[x] + "r_RANO")
+                #print(path + d[x] + "/" + d[x] + "r_RANO")
                 np.savez(path + d[x] + "/" + d[x] + "r_RANO",RANO=Bi_output)
+        print(j)

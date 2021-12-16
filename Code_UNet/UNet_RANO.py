@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Unet_modules.RANO_dataloader_2 import BraTs_Dataset
+from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.dataloader_test import Test_Dataset
 from Unet_modules.Penalty import Penalty
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
@@ -24,19 +24,19 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M9_O10A0_LONGTERM/"
+c_file = "Unet_H16_M9_O10A100/"
 
 np.set_printoptions(precision=4)
 
 # image interpolation multiplier
 size = 1
 
-n_epochs = 500
+n_epochs = 20
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
 orth_penalty = 10
-area_penalty = 0
+area_penalty = 100
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(orth_penalty,area_penalty)
@@ -321,11 +321,10 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-Train_dataset = BraTs_Dataset("Brats_small_data/Validation", path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
+Train_dataset = BraTs_Dataset("Brats_2018_data_split/Training", path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
 
-Validation_dataset = BraTs_Dataset("Brats_small_data/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
+Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
 
-Train_dataset = Train_dataset + Train_dataset + Train_dataset + Train_dataset
 print("Training: ", len(Train_dataset))
 print("validation: ", len(Validation_dataset))
 

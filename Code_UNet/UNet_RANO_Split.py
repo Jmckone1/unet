@@ -21,7 +21,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # In the format "FileName/"
 c_file = "Unet_H16_M9_O10A0_LONGTERM/"
@@ -339,7 +339,7 @@ def train(Train_data,Val_data,load=False):
 #     batch_size=batch_size,
 #     shuffle=True)
 
-dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
+dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
 #dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True,Randomize=False)
 #Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 
@@ -374,6 +374,10 @@ data_split_m = torch.utils.data.RandomSampler(split_1,False)
 print("Training: ", len(train_data_m))
 print("Actual_input: ", len(split_1))
 print("validation: ", len(validation_data_m))
+
+# Train_data = DataLoader(
+#     dataset=dataset,
+#     batch_size=batch_size,sampler = train_data_m)
 
 Train_data=DataLoader(
     dataset=dataset,
