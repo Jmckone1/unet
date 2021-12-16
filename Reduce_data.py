@@ -12,6 +12,7 @@ import nibabel as nib
 from os import walk
 import time
 import os
+from tqdm.auto import tqdm
 
 # choosing the GPU number that is utilised
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -32,16 +33,14 @@ def dataread(path):
 name = ["HGG/","LGG/"]
 
 for i in range(len(name)):
-    path = "Brats_2018_data_split/Validation/" + name[i]
+    path = "Brats_2018_data_all/All_data/" + name[i]
 
     d = dataread(path)
 
     output_size = len(d)
-    print(output_size)
+    print("Reduce Data Size: " + path)
 
-    for x in range(output_size):
-        
-        print("Data item:", x)
+    for x in tqdm(range(output_size)):
         
         data_Seg = nib.load(path + d[x] + "/" + d[x] + "_whseg.nii.gz")
         input_1 = data_Seg.get_fdata()

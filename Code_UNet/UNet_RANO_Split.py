@@ -321,22 +321,68 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-Train_dataset = BraTs_Dataset("Brats_small_data/Validation", path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
+# Train_dataset = BraTs_Dataset("Brats_small_data/Validation", path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
 
-Validation_dataset = BraTs_Dataset("Brats_small_data/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
+# Validation_dataset = BraTs_Dataset("Brats_small_data/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
 
-Train_dataset = Train_dataset + Train_dataset + Train_dataset + Train_dataset
-print("Training: ", len(Train_dataset))
-print("validation: ", len(Validation_dataset))
+# Train_dataset = Train_dataset + Train_dataset + Train_dataset + Train_dataset
+# print("Training: ", len(Train_dataset))
+# print("validation: ", len(Validation_dataset))
 
-Train_data = DataLoader(
-    dataset=Train_dataset,
+# Train_data = DataLoader(
+#     dataset=Train_dataset,
+#     batch_size=batch_size,
+#     shuffle=True)
+
+# Val_data = DataLoader(
+#     dataset=Validation_dataset,
+#     batch_size=batch_size,
+#     shuffle=True)
+
+dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
+#dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True,Randomize=False)
+#Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
+
+train_split = 0.7
+validation_split = 0.1
+test_split = 0.2
+
+# percentage amount to split the training set by (in all data there are 200 patients within the training dataset)
+split_amount = 1
+
+data_size = len(dataset)
+patients_number = data_size / 155
+
+train_length = int(155*(np.ceil(patients_number * train_split)))
+validation_length = int(155*(np.floor(patients_number * validation_split)))
+test_length = int(155*(np.floor(patients_number * test_split)))
+
+# splits the dataset
+split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
+
+train_range = list(range(0,train_length))
+val_range = list(range(train_length,train_length+validation_length))
+#test_range = range(train_length+validation_length,train_length+validation_length+test_length)
+
+train_data_m = torch.utils.data.RandomSampler(train_range,False)
+validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+#test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
+
+data_split_m = torch.utils.data.RandomSampler(split_1,False)
+
+# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
+print("Training: ", len(train_data_m))
+print("Actual_input: ", len(split_1))
+print("validation: ", len(validation_data_m))
+
+Train_data=DataLoader(
+    dataset=dataset,
     batch_size=batch_size,
-    shuffle=True)
+    sampler=split_1)
 
-Val_data = DataLoader(
-    dataset=Validation_dataset,
+Val_data=DataLoader(
+    dataset=dataset,
     batch_size=batch_size,
-    shuffle=True)
+    sampler=validation_data_m)
 
 Train_loss, validation_loss = train(Train_data, Val_data, load=False)
