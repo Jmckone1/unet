@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Unet_modules.RANO_dataloader_2 import BraTs_Dataset
+from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.dataloader_test import Test_Dataset
 from Unet_modules.Penalty import Penalty
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
@@ -21,7 +21,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # In the format "FileName/"
 c_file = "Unet_H16_M9_O10A0_LONGTERM/"

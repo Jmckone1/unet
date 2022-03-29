@@ -24,7 +24,7 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M9_O10A100/"
+c_file = "Unet_H16_M10_O10/"
 
 np.set_printoptions(precision=4)
 

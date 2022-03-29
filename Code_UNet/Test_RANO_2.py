@@ -21,7 +21,7 @@ from sklearn.metrics import jaccard_score
 
 sns.set_theme()
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # function to loop through the MRI files with an non-uniform slice count
 def input_data(path ="Brats_2018_data_split/Validation", path_ext = ["/HGG","/LGG"]):
@@ -52,7 +52,11 @@ def input_data(path ="Brats_2018_data_split/Validation", path_ext = ["/HGG","/LG
                     c_s = counter
             if input_ == 1:
                 directory = directory + c_s
-
+        
+            
+            
+            
+            ################## change the r_ here
             file = d[directory] + '/' + d[directory] + "r_" + "whseg" + '.nii.gz'
             full_path = os.path.join(path + path_ext[input_], file)
             img_a = nib.load(full_path)
@@ -87,7 +91,7 @@ lr = 0.0002
 initial_shape = int(240 * size)
 target_shape = int(8)
 device = 'cuda'
-outname = "Unet_H16_M8"
+outname = "Unet_H16_M9_O10A0"
 
 def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
     
@@ -163,8 +167,8 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                     D3 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
                     D4 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
 
-                    plt.plot(D3[0, :], D3[1, :], lw=3, c='y',label='_nolegend_')
-                    plt.plot(D4[0, :], D4[1, :], lw=3, c='y',label='Ground Truth')
+                    #plt.plot(D3[0, :], D3[1, :], lw=3, c='y',label='_nolegend_')
+                    #plt.plot(D4[0, :], D4[1, :], lw=3, c='y',label='Ground Truth')
 
                     data_out = pred[i,:].data.cpu().numpy()
                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
@@ -174,15 +178,14 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                     plt.plot(D2[0, :], D2[1, :], lw=2, c='b',label='Prediction')
 
                     plt.legend(loc='best')
-                    plt.title("validation output for " + outname + " with jaccard score of " + str(jaccard[-(16-i)]))
+                    plt.title("Jaccard score of " + str('%.2f' % jaccard[-(16-i)]))
                                         
-                    plt.savefig('Comp_images/' + outname + '/image_'+ str(savevalue) + "_" + str(jaccard[-(16-i)]) +'.png')
+                    plt.savefig('Comp_images_2/' + outname + '/image_'+ str(savevalue) + "_" + str(jaccard[-(16-i)]) +'.png')
                     savevalue = savevalue + 1
                     plt.show()
                     plt.clf()
                     plt.cla()
 
-            
             pred_val = pred.cpu().detach().numpy()
             
             #print(pred_val.shape)
@@ -200,10 +203,10 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                         ext = path_ext[0]
                     else:
                         ext = path_ext[1]
-                    #print(ext)
-                    #print(d)
-                    #print(data_val)
-                    #np.savez("Predictions_RANO/" + d[data_val] + "_" + ext,RANO=pred_out)
+                    print(ext)
+                    print(d)
+                    print(data_val)
+                    np.savez("Predictions_RANO/test_2/" + d[data_val] + "_" + ext,RANO=pred_out)
 
                     data_val += 1
                     pred_out = []
@@ -211,7 +214,7 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
     return jaccard
                     
 #dataset = Test_Dataset("MICCAI_BraTS_2018_Data_Validation",path_ext=["/data"],size=size,apply_transform=False)
-dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext=["/LGG","/HGG"],size=size,apply_transform=False)
+dataset = BraTs_Dataset("Brats_2018_data_split/Validation/",path_ext=["/HGG"],size=size,apply_transform=False)
 
 Data_1 = DataLoader(
     dataset=dataset,
@@ -221,7 +224,7 @@ Data_1 = DataLoader(
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints_RANO/" + outname + "/checkpoint_49.pth")
+checkpoint = torch.load("Checkpoints_RANO/" + outname + "/checkpoint_99.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])
