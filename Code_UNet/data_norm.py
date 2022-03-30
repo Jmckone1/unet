@@ -31,7 +31,6 @@ for input_ in range(len(path_ext)):
         HGG_len = counter
 
 for num, name in enumerate(d):
-    print(num)
     if num < HGG_len-1:
         ext = path_ext[0]
         out = output_path[0]
@@ -57,14 +56,13 @@ for num, name in enumerate(d):
         img_input = b * img.get_fdata() + m
 
         # apply the mask for normailsation, ignoring background
-        # zero mean unit variance (i think)
+        # zero mean unit variance
         
         idx_nonzeros = np.nonzero(img_input)
         vol_mean = np.mean(idx_nonzeros)
         vol_std = np.std(idx_nonzeros)
         img_input = (img_input - vol_mean) / vol_std
 
-        
         for slice_num in range(155):
             
             if file_ == 0:
@@ -74,7 +72,7 @@ for num, name in enumerate(d):
                 
                 data2[:,:,slice_num][data2[:,:,slice_num] > 0. ] = 1.
                 seg_output[:,:,slice_num] = data2[:,:,slice_num]
-                print(np.unique(seg_output[:,:,slice_num]))
+                # print(np.unique(seg_output[:,:,slice_num]))
         img_output[file_,:,:,:] = img_input
         
     seg_output_ni = nib.Nifti1Image(seg_output, np.eye(4))
@@ -89,14 +87,14 @@ for num, name in enumerate(d):
     new_img.header.set_slope_inter(1,0)
     new_img.header.set_data_dtype(img_input.dtype)
 
-    print(os.path.join(path + ext, name), " : ", img_output.shape)
+    print(num , " : " , os.path.join(path + ext, name), " : ", img_output.shape)
     if save == True:
         if not os.path.exists(os.path.join(path + out, name + '/')):
             os.makedirs(os.path.join(path + out, name + '/'))
         img_output_save = new_img
         nib.save(img_output_save, os.path.join(path + out, name + '/' + name + "_" + data_out  + '.nii.gz')) 
             
-        nib.save(seg_output_ni, os.path.join(path + out, name + '/' + name + "_" + "whseg_n"  + '.nii.gz'))
+        nib.save(seg_output_ni, os.path.join(path + out, name + '/' + name + "_" + "whseg"  + '.nii.gz'))
     elapsed = time.time() - t
     print(elapsed)
     print(" ")
