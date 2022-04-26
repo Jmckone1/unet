@@ -339,7 +339,7 @@ def train(Train_data,Val_data,load=False):
 #     batch_size=batch_size,
 #     shuffle=True)
 
-dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
+dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/LGG","/HGG"],size=size,apply_transform=False)
 #dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True,Randomize=False)
 #Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 

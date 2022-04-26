@@ -33,7 +33,9 @@ class BraTs_Dataset(Dataset):
             # each folder in extension
             for files in os.scandir(path + self.path_ext[input_]):
                 if files.is_dir() or files.is_file():
-                    self.d.append(files.name)
+                    # need to do one for each line not each char
+                    if not files.name.startswith("."):
+                        self.d.append(files.name)
             counter = len(self.d)
             if not os.path.exists(path + "/index_max.npy"):
                 for directory in range(counter-c_s):
@@ -43,7 +45,7 @@ class BraTs_Dataset(Dataset):
                     if input_ == 1:
                         directory = directory + c_s
 
-                    file = self.d[directory] + '/' + self.d[directory] + "r_" + "whimg_n" + '.nii.gz'
+                    file = self.d[directory] + '/' + self.d[directory] + "_" + "whimg_reduced" + '.nii.gz'
                     full_path = os.path.join(path + path_ext[input_], file)
                     img_a = nib.load(full_path)
                     img_data = img_a.get_fdata()
@@ -80,7 +82,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "r_" + "whimg_n" + '.nii.gz'
+        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_reduced" + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
@@ -94,7 +96,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "r_" + "RANO" + '.npz'
+        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "RANO_reduced" + '.npz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_input = np.load(l_full_path)

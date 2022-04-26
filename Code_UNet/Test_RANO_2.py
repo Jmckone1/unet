@@ -180,7 +180,7 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                     plt.legend(loc='best')
                     plt.title("Jaccard score of " + str('%.2f' % jaccard[-(16-i)]))
                                         
-                    plt.savefig('Comp_images_2/' + outname + '/image_'+ str(savevalue) + "_" + str(jaccard[-(16-i)]) +'.png')
+                    plt.savefig('Comp_images_2/' + outname +'/' + d[data_val] + '_' +'_image_' +  str(savevalue) + "_" + str(jaccard[-(16-i)]) +'.png')
                     savevalue = savevalue + 1
                     plt.show()
                     plt.clf()

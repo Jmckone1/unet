@@ -7,7 +7,7 @@ import torch.cuda.amp as amp
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
+from Unet_modules.RANO_dataloader_2 import BraTs_Dataset
 from Unet_modules.dataloader_test import Test_Dataset
 from Unet_modules.Penalty_2 import Penalty
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
@@ -25,18 +25,18 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M10_O10/"
+c_file = "Unet_H16_M11_O100/"
 
 np.set_printoptions(precision=4)
 
 # image interpolation multiplier
 size = 1
 
-n_epochs = 20
+n_epochs = 50
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
-orth_penalty = 10
+orth_penalty = 100
 area_penalty = 0
 
 #criterion = nn.MSELoss()

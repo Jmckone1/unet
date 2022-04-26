@@ -5,9 +5,9 @@ import numpy as np
 import torch
 import time
 
-path_ext = ["/HGG","/LGG"]
+path_ext = ["/LGG"]
 path = "Brats_2018_data/Brats_2018_data"
-output_path = ["/HGG","/LGG"]
+output_path = ["/LGG"]
 filetype = ["t1","flair","t1ce","t2","seg"]
 img_output = np.empty((4,240,240,155))
 img_out = np.empty((240,240,155))

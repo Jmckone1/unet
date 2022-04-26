@@ -28,12 +28,13 @@ def dataread(path):
             if not dir_names[0].startswith("."):
                 f.extend(file_names)
                 d.extend(dir_names)
+    print(d)
     return d
 
 name = ["HGG/","LGG/"]
 
 for i in range(len(name)):
-    path = "Brats_2018_data_all/All_data/" + name[i]
+    path = "Brats_2018_data/Brats_2018_data/" + name[i]
 
     d = dataread(path)
 
@@ -42,10 +43,10 @@ for i in range(len(name)):
 
     for x in tqdm(range(output_size)):
         
-        data_Seg = nib.load(path + d[x] + "/" + d[x] + "_whseg.nii.gz")
+        data_Seg = nib.load(path + d[x] + "/" + d[x] + "_whseg_norm.nii.gz")
         input_1 = data_Seg.get_fdata()
 
-        data_Plot = nib.load(path + d[x] + "/" + d[x] + "_whimg_n.nii.gz")
+        data_Plot = nib.load(path + d[x] + "/" + d[x] + "_whimg_norm.nii.gz")
         input_2 = data_Plot.get_fdata()
         
         num = 0
@@ -69,7 +70,7 @@ for i in range(len(name)):
                 tumours_found += 1
 
         red_output_save = nib.Nifti1Image(reduced_output, np.eye(4))
-        nib.save(red_output_save, os.path.join(path + d[x] + "/" + d[x] +'r_whimg_n.nii.gz'))
+        nib.save(red_output_save, os.path.join(path + d[x] + "/" + d[x] +'_whimg_reduced.nii.gz'))
         
         red_segment_save = nib.Nifti1Image(reduced_segment, np.eye(4))
-        nib.save(red_segment_save, os.path.join(path + d[x] + "/" + d[x] +'r_whseg.nii.gz'))
+        nib.save(red_segment_save, os.path.join(path + d[x] + "/" + d[x] +'_whseg_reduced.nii.gz'))

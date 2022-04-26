@@ -241,7 +241,7 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data_all/All_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
+dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
 #dataset = BraTs_Dataset("Brats_2018_data_split/Validation",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True,Randomize=False)
 #Validation_dataset = BraTs_Dataset("Brats_2018_data_split/Validation", path_ext=["/HGG","/LGG"],size=size,apply_transform=True)
 
