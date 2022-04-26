@@ -1,8 +1,7 @@
-import numpy as np
-import torch
 from matplotlib.path import Path
 from torch import nn
-import torch.nn.functional as F
+import numpy as np
+import torch
 
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -49,7 +48,6 @@ class Dice_Evaluation():
 
         return score
 
-
 class Jaccard_Evaluation():
     
     def __init__(self):
@@ -68,8 +66,8 @@ class Jaccard_Evaluation():
 
         v, vect = np.linalg.eig(input_covariance)
         tvect = np.transpose(vect)
-        #use the inverse of the eigenvectors as a rotation matrix and
-        #rotate the points so they align with the x and y axes
+        # use the inverse of the eigenvectors as a rotation matrix and
+        # rotate the points so they align with the x and y axes
         rotate = np.dot(input_data,vect)
 
         # get the minimum and maximum x and y 
@@ -80,15 +78,15 @@ class Jaccard_Evaluation():
         # the center is just half way between the min and max xy
         center = mina + diff
 
-        #get the 4 corners by subtracting and adding half the bounding boxes height and width to the center
+        # get the 4 corners by subtracting and adding half the bounding boxes height and width to the center
         corners = np.array([center+[-diff[0],-diff[1]],
                             center+[ diff[0],-diff[1]],
                             center+[ diff[0], diff[1]],
                             center+[-diff[0], diff[1]],
                             center+[-diff[0],-diff[1]]])
 
-        #use the the eigenvectors as a rotation matrix and
-        #rotate the corners and the centerback
+        # use the the eigenvectors as a rotation matrix and
+        # rotate the corners and the centerback
         corners = np.dot(corners,tvect)
         center = np.dot(center,tvect)
 

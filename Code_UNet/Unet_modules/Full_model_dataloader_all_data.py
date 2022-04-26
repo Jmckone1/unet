@@ -1,18 +1,19 @@
-from torch.utils.data.dataset import Dataset
-from os import walk
-import os
-import nibabel as nib
-import numpy as np
-import torch
-import torch.nn.functional as F
-import time
-import random
 import torchvision.transforms.functional as TF
+from torch.utils.data.dataset import Dataset
+import torch.nn.functional as F
+import nibabel as nib
+from os import walk
+import numpy as np
 import torchvision
-random.seed(0)
+import random
+import torch
 import sys
-import numpy
-numpy.set_printoptions(threshold=sys.maxsize)
+import os
+
+random.seed(0)
+torch.manual_seed(0)
+
+np.set_printoptions(threshold=sys.maxsize)
 
 class BraTs_Dataset(Dataset):
     def __init__(self, path, path_ext, size, apply_transform, **kwargs):

@@ -333,7 +333,7 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/LGG","/HGG"],size=size,apply_transform=False)
+dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
 
 train_split = 0.7
 validation_split = 0.1

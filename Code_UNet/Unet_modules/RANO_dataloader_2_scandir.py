@@ -1,18 +1,16 @@
 from torch.utils.data.dataset import Dataset
-from os import walk
-import os
+import torch.nn.functional as F
 import nibabel as nib
 import numpy as np
-import torch
-import torch.nn.functional as F
-import time
 import random
-import torchvision.transforms.functional as TF
-import torchvision
-random.seed(0)
+import torch
 import sys
-import numpy
-numpy.set_printoptions(threshold=sys.maxsize)
+import os
+
+random.seed(0)
+torch.manual_seed(0)
+
+np.set_printoptions(threshold=sys.maxsize)
 
 class BraTs_Dataset(Dataset):
     def __init__(self, path, path_ext, size, apply_transform, **kwargs):
@@ -33,7 +31,6 @@ class BraTs_Dataset(Dataset):
             # each folder in extension
             for files in os.scandir(path + self.path_ext[input_]):
                 if files.is_dir() or files.is_file():
-                    # need to do one for each line not each char
                     if not files.name.startswith("."):
                         self.d.append(files.name)
             counter = len(self.d)
