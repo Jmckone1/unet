@@ -1,5 +1,11 @@
+####################################################################################################
+# The Primary dataloader used for rano regression after the 04/2022 dataset normaization rework.   #
+# RANO dataloader for the reduceed dataset, utilising the scandir file visulisation directive.     #
+####################################################################################################
+
 from torch.utils.data.dataset import Dataset
 import torch.nn.functional as F
+from tqdm import tqdm
 import nibabel as nib
 import numpy as np
 import random
@@ -12,9 +18,13 @@ torch.manual_seed(0)
 
 np.set_printoptions(threshold=sys.maxsize)
 
+image_in = "whimg_reduced"
+rano_in = "RANO_reduced"
+index_file = "/index_max_reduced.npy"
+
 class BraTs_Dataset(Dataset):
     def __init__(self, path, path_ext, size, apply_transform, **kwargs):
-
+        
         self.d = []
         self.index_max = []
         self.index_max.extend([0])
@@ -34,23 +44,28 @@ class BraTs_Dataset(Dataset):
                     if not files.name.startswith("."):
                         self.d.append(files.name)
             counter = len(self.d)
-            if not os.path.exists(path + "/index_max.npy"):
-                for directory in range(counter-c_s):
+            if not os.path.exists(path + index_file):
+                print("Creating index_file...")
+                for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
                         if input_ == 0:
                             c_s = counter
                     if input_ == 1:
                         directory = directory + c_s
 
-                    file = self.d[directory] + '/' + self.d[directory] + "_" + "whimg_reduced" + '.nii.gz'
+                    file = self.d[directory] + '/' + self.d[directory] + "_" + image_in + '.nii.gz'
                     full_path = os.path.join(path + path_ext[input_], file)
                     img_a = nib.load(full_path)
                     img_data = img_a.get_fdata()
 
                     self.index_max.extend([img_data.shape[3] + self.index_max[-1]])
-                np.save(path + "/index_max.npy",self.index_max)
+                
+                if input_ == len(self.path_ext):
+                    print("Saving index file . . . ")
+                    np.save(path + index_file, self.index_max)
+                    print("Index file complete")
             else:
-                self.index_max = np.load(path + "/index_max.npy")
+                self.index_max = np.load(path + index_file)
 
                 # value for extension swapping
                 if input_ == 0:
@@ -79,11 +94,10 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_reduced" + '.nii.gz'
+        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + image_in + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
-        
         img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
         
         img = torch.from_numpy(img).unsqueeze(0)
@@ -93,7 +107,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "RANO_reduced" + '.npz'
+        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + rano_in + '.npz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_input = np.load(l_full_path)

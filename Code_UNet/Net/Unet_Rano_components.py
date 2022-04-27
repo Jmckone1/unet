@@ -114,19 +114,28 @@ class UNet(nn.Module):
         self.contract5 = Contract(hidden_channels * 16)
         
         # input image = 240, conv1 = 120, conv2 = 60, conv3 = 30 15 7 4
-        self.Linear1 = nn.Linear(((hidden_channels * 32) * 7 * 7), output_channels) 
+        self.Linear1 = nn.Linear(((hidden_channels * 32) * 7 * 7), output_channels) # if size = 1
+#         self.Linear1 = nn.Linear(((hidden_channels * 32) * 3 * 3), output_channels) # if size = 0.5
+#         self.Linear1 = nn.Linear(((hidden_channels * 32) * 1 * 1), output_channels) # if size = 0.25
 
     def forward(self, data_in):
-
-        contract_0 = self.upfeature(data_in)
         
+#         print(data_in.shape)
+        contract_0 = self.upfeature(data_in)
+#         print(contract_0.shape)
         contract_1 = self.contract1(contract_0)
+#         print(contract_1.shape)
         contract_2 = self.contract2(contract_1)
+#         print(contract_2.shape)
         contract_3 = self.contract3(contract_2)
+#         print(contract_3.shape)
         contract_4 = self.contract4(contract_3)
+#         print(contract_4.shape)
         contract_5 = self.contract5(contract_4)
+#         print(contract_5.shape)
         
         data_flat = torch.flatten(contract_5, start_dim=1)
+#         print(data_flat.shape)
         data_out = self.Linear1(data_flat)
 
         return data_out

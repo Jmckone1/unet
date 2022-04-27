@@ -10,6 +10,8 @@ import torch
 import sys
 import os
 
+# have a look at incorporating the scandir variant instead of walk here which would make it both cleaner and more consistant with the current RANO dataloader example. added torch manual seed here - may be worth adding this into the class or function that can be toggled but we shall see whether that is relevant or not - will save time having to delve into the code each time having to turn them on/ off or change them in any case.
+
 random.seed(0)
 torch.manual_seed(0)
 
@@ -75,6 +77,7 @@ class BraTs_Dataset(Dataset):
                 break
 
         # assign the correct extension - HGG or LGG
+        # im thinking overall this may be easier to append to d - the array for filenames - idk.
         if index < self.HGG_len:
             ext = self.path_ext[0]
         else:
@@ -83,14 +86,11 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-
         file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_n" + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
-        #print(index)
-        #print(self.index_max[current_dir])
         img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
         
         # interpolate image 
@@ -114,19 +114,12 @@ class BraTs_Dataset(Dataset):
         
         #                          labels return end                          #
         #######################################################################
-        #                                                                     #
         
         if self.apply_transform == True:
             img,label = self.Transform(img,label)
             
         img = img.squeeze().numpy()
         label = label.squeeze().numpy()
-        
-        #                                                                     #
-        #######################################################################
-        
-        #                          labels return end                          #
-        #######################################################################
         
         return img,label
     

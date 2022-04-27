@@ -1,3 +1,9 @@
+####################################################################################################
+# The primary folder used for runngin the networks aafter the 04/2022 dataset normailsation rework #
+# Unet running RANO regression, Splitting the dataset into train, val and test automatically while #
+# utilising some memory improvement functions hence the file naming conventions.                   #
+####################################################################################################
+
 from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
 from Unet_modules.Penalty_2 import Penalty
@@ -32,6 +38,7 @@ c_file = "Unet_H16_M12_O10/"
 np.set_printoptions(precision=4)
 
 # image interpolation multiplier
+# this does not work at this time for the RANO implementation
 size = 1
 
 # inital testing showed 50 as the best estimated region before plautau though this may change.
@@ -54,9 +61,9 @@ initial_shape = int(240 * size)
 target_shape = int(8)
 device = 'cuda'
 
-##################################################################################################
-# ATTEMPT 1 AT LOGGING ERRORS (didnt work but going to leave for the time being)                 #
-##################################################################################################
+###########################################################################################
+# ATTEMPT 1 AT LOGGING ERRORS (didnt work but going to leave for the time being)          #
+###########################################################################################
 # # Create a logging instance
 # logger = logging.getLogger('my_application')
 # logger.setLevel(logging.INFO) # you can set this to be DEBUG, INFO, ERROR
@@ -76,7 +83,7 @@ device = 'cuda'
 #     raise ValueError("Some error occurred")
 # except ValueError as e:
 #     logger.exception(e) # Will send the errors to the file
-###################################################################################################
+###########################################################################################
 
 def Validate(unet, criterion, Val_data):
     print(" ")
@@ -125,6 +132,7 @@ def Validate(unet, criterion, Val_data):
                 jaccard_val.append(float("NaN"))
         
         cur_step += 1
+        
     print("Validation complete")
     print(" ")
     
