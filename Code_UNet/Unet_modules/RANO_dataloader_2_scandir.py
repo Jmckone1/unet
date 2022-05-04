@@ -3,6 +3,8 @@
 # RANO dataloader for the reduceed dataset, utilising the scandir file visulisation directive.     #
 ####################################################################################################
 
+# check Test_RANO_2.py file for cleaning a improvement.
+
 from torch.utils.data.dataset import Dataset
 import torch.nn.functional as F
 from tqdm import tqdm
@@ -19,7 +21,9 @@ torch.manual_seed(0)
 np.set_printoptions(threshold=sys.maxsize)
 
 image_in = "whimg_reduced"
-rano_in = "RANO_reduced"
+# is this the case or does it need to be regular RANO?
+# rano_in = "RANO_reduced"
+rano_in = "RANO"
 index_file = "/index_max_reduced.npy"
 
 class BraTs_Dataset(Dataset):

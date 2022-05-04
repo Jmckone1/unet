@@ -26,14 +26,13 @@ np.random.seed(0)
 torch.manual_seed(0)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M13_O10/"
+c_file = "Unet_H16_M12_O100/"
 # model 11 makes use of the new orthogonality penalty at 50 epochs
 # model 12 makes use of the new orthogonality penalty at 50 epochs including the new quality dataset
-# (although there is an issue with the ground truth dataset being incorrect for the dataset in this case).
-# model 13 makes use of the new updated ground truth so make sure you get it right this time
+
 # going to have a rethink on the naming conventions used for the models here - currently rerunning the dataset aquisition code for the rano part of the model.
 
 np.set_printoptions(precision=4)
@@ -47,7 +46,7 @@ n_epochs = 250
 input_dim = 4
 label_dim = 8
 hidden_dim = 16
-orth_penalty = 10
+orth_penalty = 100
 area_penalty = 0 
 # area penalty value is currently redundant and will not produce any impact for the penalty 2 model as it has not been implemented - this is purposeful until the point in time where we can test if there is any reasonable point or evidence in it working.
 
@@ -208,6 +207,12 @@ def train(Train_data,Val_data,load=False):
             label_input = label_input.to(device)
             label_input = label_input.float()
             label_input = label_input.squeeze()
+            
+            image = truth_input.to(device)
+            image = image.float()
+            image = image.squeeze()
+            
+            image.requires_grad_()
             
             # set accumilated gradients to 0 for param update
             unet_opt.zero_grad()

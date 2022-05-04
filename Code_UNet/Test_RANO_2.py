@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Unet_modules.RANO_dataloader_2 import BraTs_Dataset
+from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.dataloader_test import Test_Dataset
 from Unet_modules.Penalty import Penalty
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
@@ -24,7 +24,7 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # function to loop through the MRI files with an non-uniform slice count
-def input_data(path ="Brats_2018_data_split/Validation", path_ext = ["/HGG","/LGG"]):
+def input_data(path ="A_Brats/Brats_2018_data", path_ext = ["/HGG","/LGG"]):
     
     d, f = [], []
     index_max = []
@@ -32,6 +32,7 @@ def input_data(path ="Brats_2018_data_split/Validation", path_ext = ["/HGG","/LG
     
     # init global counter value - allows checking the length of the first file
     c_s = 0
+    counter = 0
 
     # each extension - HGG or LGG
     for input_ in range(len(path_ext)):
@@ -53,9 +54,6 @@ def input_data(path ="Brats_2018_data_split/Validation", path_ext = ["/HGG","/LG
             if input_ == 1:
                 directory = directory + c_s
         
-            
-            
-            
             ################## change the r_ here
             file = d[directory] + '/' + d[directory] + "r_" + "whseg" + '.nii.gz'
             full_path = os.path.join(path + path_ext[input_], file)
@@ -91,7 +89,7 @@ lr = 0.0002
 initial_shape = int(240 * size)
 target_shape = int(8)
 device = 'cuda'
-outname = "Unet_H16_M9_O10A0"
+outname = "Unet_H16_M12_O10"
 
 def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
     
@@ -167,8 +165,8 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                     D3 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
                     D4 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
 
-                    #plt.plot(D3[0, :], D3[1, :], lw=3, c='y',label='_nolegend_')
-                    #plt.plot(D4[0, :], D4[1, :], lw=3, c='y',label='Ground Truth')
+                    plt.plot(D3[0, :], D3[1, :], lw=3, c='y',label='_nolegend_')
+                    plt.plot(D4[0, :], D4[1, :], lw=3, c='y',label='Ground Truth')
 
                     data_out = pred[i,:].data.cpu().numpy()
                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
@@ -180,6 +178,7 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                     plt.legend(loc='best')
                     plt.title("Jaccard score of " + str('%.2f' % jaccard[-(16-i)]))
                                         
+                    # here we need to mae the d[data_val] a folder in the file to hold the images this would make it easier, maybe even zip it up? to save on space.
                     plt.savefig('Comp_images_2/' + outname +'/' + d[data_val] + '_' +'_image_' +  str(savevalue) + "_" + str(jaccard[-(16-i)]) +'.png')
                     savevalue = savevalue + 1
                     plt.show()
@@ -206,7 +205,7 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
                     print(ext)
                     print(d)
                     print(data_val)
-                    np.savez("Predictions_RANO/test_2/" + d[data_val] + "_" + ext,RANO=pred_out)
+                    np.savez("Predictions_RANO/newtest/" + d[data_val] + "_" + ext,RANO=pred_out)
 
                     data_val += 1
                     pred_out = []
@@ -214,7 +213,7 @@ def Test(Test_data, unet, unet_opt, path, path_ext,output_plot = True):
     return jaccard
                     
 #dataset = Test_Dataset("MICCAI_BraTS_2018_Data_Validation",path_ext=["/data"],size=size,apply_transform=False)
-dataset = BraTs_Dataset("Brats_2018_data_split/Validation/",path_ext=["/HGG"],size=size,apply_transform=False)
+dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext=["/HGG","/LGG"],size=size,apply_transform=False)
 
 Data_1 = DataLoader(
     dataset=dataset,
@@ -224,12 +223,12 @@ Data_1 = DataLoader(
 unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=1e-8)
 
-checkpoint = torch.load("Checkpoints_RANO/" + outname + "/checkpoint_99.pth")
+checkpoint = torch.load("Checkpoints_RANO/" + outname + "/checkpoint_34.pth")
 
 unet.load_state_dict(checkpoint['state_dict'])
 unet_opt.load_state_dict(checkpoint['optimizer'])
 
-jaccard = Test(Data_1, unet, unet_opt,"Brats_2018_data_split/Validation",["HGG","LGG"])
+jaccard = Test(Data_1, unet, unet_opt,"Brats_2018_data/Brats_2018_data",["HGG","LGG"])
 
 a = []
 a.extend(input_data())
@@ -243,10 +242,10 @@ plt.xlabel("tumour size (pixels)")
 plt.ylabel("Jaccard index")
 plt.show()
 
-Data_1 = pd.DataFrame(data=jaccard, columns=range(1)).assign(Data="data")
-mdf = pd.melt(Data_1, id_vars=['Data'])
+# Data_1 = pd.DataFrame(data=jaccard, columns=range(1)).assign(Data="data")
+# mdf = pd.melt(Data_1, id_vars=['Data'])
 
-ax = sns.boxplot(x="Data", y="value", data=mdf)  # RUN PLOT   
-plt.show()
-ax = sns.violinplot(x="Data", y="value", data=mdf)  # RUN PLOT   
-plt.show()
+# ax = sns.boxplot(x="Data", y="value", data=mdf)  # RUN PLOT   
+# plt.show()
+# ax = sns.violinplot(x="Data", y="value", data=mdf)  # RUN PLOT   
+# plt.show()

@@ -227,6 +227,10 @@ def dataread(path):
 
 if __name__ == "__main__":
     
+    overwrite = True
+    RANO_out_path = "_RANO_reduced.npz"
+    segment_in_path = "_whseg_reduced.nii.gz"
+    
     name = ["HGG/","LGG/"]
     
     for i in range(len(name)):
@@ -244,11 +248,14 @@ if __name__ == "__main__":
         for x in tqdm(range(output_size)):
             # not sure why this is here?
             time.sleep(0.5)
-            if not os.path.exists(path + d[x] + "/" + d[x] + "_RANO_reduced.npz"):
+            if overwrite == True:
+                if os.path.exists(path + d[x] + "/" + d[x] + RANO_out_path):
+                    os.remove(path + d[x] + "/" + d[x] + RANO_out_path)
+            if not os.path.exists(path + d[x] + "/" + d[x] + RANO_out_path):
                 
-                data_Plot = nib.load(path + d[x] + "/" + d[x] + "_whseg_norm.nii.gz")
+                data_Plot = nib.load(path + d[x] + "/" + d[x] + segment_in_path)
                 input_2 = data_Plot.get_fdata()
 
                 Bi_output = calc_2D_RANO_measure(input_2, pixdim=(240,240), affine=None, mask_value=0, axis=2, calc_multiple=False, background_image=None, output_filepath="output_rano", verbose=False)
 
-                np.savez(path + d[x] + "/" + d[x] + "_RANO_reduced",RANO=Bi_output)
+                np.savez(path + d[x] + "/" + d[x] + RANO_out_path,RANO=Bi_output)
