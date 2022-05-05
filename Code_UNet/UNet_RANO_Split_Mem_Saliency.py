@@ -142,27 +142,27 @@ def Validate(unet, criterion, Val_data):
 #--------------------------------------------------------#
 #                Define model start                      #
 
-def train(Train_data,Val_data,load=False):
-    Improvement = 0
+# def train(Train_data,Val_data,load=False):
+#     Improvement = 0
     
     unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
     print(unet)
     
-    if not os.path.exists("Checkpoints_RANO/" + c_file):
-        os.makedirs("Checkpoints_RANO/" + c_file)
-        os.makedirs("Checkpoints_RANO/" + c_file + "Training_loss")
-        os.makedirs("Checkpoints_RANO/" + c_file + "Validation_loss")
-        os.makedirs("Checkpoints_RANO/" + c_file + "Training_Jaccard")
-        os.makedirs("Checkpoints_RANO/" + c_file + "Validation_Jaccard")
+#     if not os.path.exists("Checkpoints_RANO/" + c_file):
+#         os.makedirs("Checkpoints_RANO/" + c_file)
+#         os.makedirs("Checkpoints_RANO/" + c_file + "Training_loss")
+#         os.makedirs("Checkpoints_RANO/" + c_file + "Validation_loss")
+#         os.makedirs("Checkpoints_RANO/" + c_file + "Training_Jaccard")
+#         os.makedirs("Checkpoints_RANO/" + c_file + "Validation_Jaccard")
     
-    with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as write: 
-        write.write("epochs: " + str(n_epochs) + "\n")
-        write.write("batch size: " + str(batch_size) + "\n")
-        write.write("learning rate: " + str(lr) + "\n")
-        write.write("orthogonality weight: " + str(orth_penalty) + "\n")
-        write.write("area weight: " + str(area_penalty) + "\n")
+#     with open("Checkpoints_RANO/" + c_file + "Model_architecture", 'w') as write: 
+#         write.write("epochs: " + str(n_epochs) + "\n")
+#         write.write("batch size: " + str(batch_size) + "\n")
+#         write.write("learning rate: " + str(lr) + "\n")
+#         write.write("orthogonality weight: " + str(orth_penalty) + "\n")
+#         write.write("area weight: " + str(area_penalty) + "\n")
 
-        write.write(str(unet))
+#         write.write(str(unet))
     
     unet_opt = torch.optim.Adam(unet.parameters(), lr=lr,betas=(0.9, 0.999), weight_decay=1e-8)
 
@@ -172,224 +172,269 @@ def train(Train_data,Val_data,load=False):
         unet.load_state_dict(checkpoint['state_dict'])
         unet_opt.load_state_dict(checkpoint['optimizer'])
 
-#                   Define model end                     #
-#--------------------------------------------------------#
-#                   Run model start                      #
-    t = []
-    v = []
+# #                   Define model end                     #
+# #--------------------------------------------------------#
+# #                   Run model start                      #
+#     t = []
+#     v = []
     
-    scaler = amp.GradScaler(enabled = True)
+#     scaler = amp.GradScaler(enabled = True)
 
-    for epoch in range(n_epochs):
-        cur_step = 0
+#     for epoch in range(n_epochs):
+#         cur_step = 0
         
-        print("Training...")
-        if epoch == 0 and load == True:
-            epoch = checkpoint['epoch'] + 1
+#         print("Training...")
+#         if epoch == 0 and load == True:
+#             epoch = checkpoint['epoch'] + 1
             
-        unet.train()
+#         unet.train()
         
-        running_loss = 0.0
-        loss_values = []
-        valid_loss = []
-        total_loss = []
-        jaccard = []
-        valid_jaccard = []
+#         running_loss = 0.0
+#         loss_values = []
+#         valid_loss = []
+#         total_loss = []
+#         jaccard = []
+#         valid_jaccard = []
         
-        for truth_input, label_input in tqdm(Train_data):
+#         for truth_input, label_input in tqdm(Train_data):
 
-            cur_batch_size = len(truth_input)
+#             cur_batch_size = len(truth_input)
 
-            # flatten ground truth and label masks
-            truth_input = truth_input.to(device)
-            truth_input = truth_input.float() 
-            truth_input = truth_input.squeeze()
-            label_input = label_input.to(device)
-            label_input = label_input.float()
-            label_input = label_input.squeeze()
+#             # flatten ground truth and label masks
+#             truth_input = truth_input.to(device)
+#             truth_input = truth_input.float() 
+#             truth_input = truth_input.squeeze()
+#             label_input = label_input.to(device)
+#             label_input = label_input.float()
+#             label_input = label_input.squeeze()
             
-            image = truth_input.to(device)
-            image = image.float()
-            image = image.squeeze()
+#             image = truth_input.to(device)
+#             image = image.float()
+#             image = image.squeeze()
             
-            image.requires_grad_()
+#             image.requires_grad_()
             
-            # set accumilated gradients to 0 for param update
-            unet_opt.zero_grad()
-            with amp.autocast(enabled = True):
-                pred = unet(truth_input)
-                pred = pred.squeeze()
+#             # set accumilated gradients to 0 for param update
+#             unet_opt.zero_grad()
+#             with amp.autocast(enabled = True):
+#                 pred = unet(truth_input)
+#                 pred = pred.squeeze()
 
-            # forward
-            unet_loss = criterion(pred, label_input)
+#             # forward
+#             unet_loss = criterion(pred, label_input)
             
-            for input_val in range(cur_batch_size):
+#             for input_val in range(cur_batch_size):
                 
-                corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
-                mask_truth = Jacc.mask((240,240),corners_truth)*1
-                corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
-                mask_pred = Jacc.mask((240,240),corners_pred)*1
+#                 corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+#                 mask_truth = Jacc.mask((240,240),corners_truth)*1
+#                 corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+#                 mask_pred = Jacc.mask((240,240),corners_pred)*1
                 
-                if np.sum(np.sum(mask_pred)) > 2:
-                    jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
-                else:
-                    jaccard.append(float("NaN"))
+#                 if np.sum(np.sum(mask_pred)) > 2:
+#                     jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
+#                 else:
+#                     jaccard.append(float("NaN"))
             
-            # backward
-            scaler.scale(unet_loss).backward()
-            scaler.step(unet_opt)
-            scaler.update()
+#             # backward
+#             scaler.scale(unet_loss).backward()
+#             scaler.step(unet_opt)
+#             scaler.update()
 
-            running_loss =+ unet_loss.item() * truth_input.size(0)
+#             running_loss =+ unet_loss.item() * truth_input.size(0)
             
-            cur_step += 1
+#             cur_step += 1
 
-#                     Run model end                      #
-#--------------------------------------------------------#         
-#                  Display stage start                   #
+# #                     Run model end                      #
+# #--------------------------------------------------------#         
+# #                  Display stage start                   #
 
-            loss_values.append(running_loss / len(Train_data))
-            total_loss.append(loss_values)
+#             loss_values.append(running_loss / len(Train_data))
+#             total_loss.append(loss_values)
         
-            if cur_step % display_step == 0:
+#             if cur_step % display_step == 0:
 
-                print("Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
-                print(label_input[0,:].shape)
+#                 print("Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
+#                 print(label_input[0,:].shape)
                 
-                # Print jaccard for current output in the batch
-                print("index", jaccard[-cur_batch_size:]) 
-                print("")
+#                 # Print jaccard for current output in the batch
+#                 print("index", jaccard[-cur_batch_size:]) 
+#                 print("")
                     
-                for i in range(cur_batch_size):
+#                 for i in range(cur_batch_size):
                     
-                    print("input", label_input[i,:].data.cpu().numpy())
-                    print("prediction",pred[i,:].data.cpu().numpy())
+#                     print("input", label_input[i,:].data.cpu().numpy())
+#                     print("prediction",pred[i,:].data.cpu().numpy())
                     
-                    f, axarr = plt.subplots(1,2)
+#                     f, axarr = plt.subplots(1,2)
 
-                    data_in = label_input[i,:].data.cpu().numpy()
-                    D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
-                    D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
+#                     data_in = label_input[i,:].data.cpu().numpy()
+#                     D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
+#                     D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
                     
-                    axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
-                    axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
-                    axarr[0].set_title('Truth')
+#                     axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+#                     axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
+#                     axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
+#                     axarr[0].set_title('Truth')
                     
-                    data_out = pred[i,:].data.cpu().numpy()
-                    D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
-                    D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
+#                     data_out = pred[i,:].data.cpu().numpy()
+#                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
+#                     D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
 
-                    axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
-                    axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
-                    axarr[1].set_title('Prediction')
+#                     axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+#                     axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
+#                     axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
+#                     axarr[1].set_title('Prediction')
                     
-                    plt.show()
+#                     plt.show()
                    
-                # kaggle 2017 2nd place
-                # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
-                pred_output = pred.cpu().detach().numpy()
-                truth_output = label_input.cpu().detach().numpy()
+#                 # kaggle 2017 2nd place
+#                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017
+#                 pred_output = pred.cpu().detach().numpy()
+#                 truth_output = label_input.cpu().detach().numpy()
                 
-                plt.plot(range(len(loss_values)),loss_values)
-                plt.title("Epoch " + str(epoch + 1) + ": loss")
+#                 plt.plot(range(len(loss_values)),loss_values)
+#                 plt.title("Epoch " + str(epoch + 1) + ": loss")
 
-                plt.show()
+#                 plt.show()
 
-#                    Display stage end                   #           
-#--------------------------------------------------------#
-#               step and loss output start   #
-        epoch_val_loss, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
+# #                    Display stage end                   #           
+# #--------------------------------------------------------#
+# #               step and loss output start   #
+#         epoch_val_loss, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
         
-        valid_loss.append(epoch_val_loss)
-        valid_jaccard.append(epoch_jaccard_valid)
+#         valid_loss.append(epoch_val_loss)
+#         valid_jaccard.append(epoch_jaccard_valid)
       
- ####################################################################################################################
+#  ####################################################################################################################
 
-        print(Improvement)
-        print(np.nanmean(epoch_jaccard_valid))
-        print(epoch_jaccard_valid)
-        print("")
+#         print(Improvement)
+#         print(np.nanmean(epoch_jaccard_valid))
+#         print(epoch_jaccard_valid)
+#         print("")
               
-        # save a checkpoint only if there has been an improvement in the total jaccard score for the model.
-        if np.nanmean(epoch_jaccard_valid) > Improvement:
-            if np.nanmean(epoch_jaccard_valid) == np.isnan:
-                Improvement = 0
-            else:
-                Improvement = np.nanmean(epoch_jaccard_valid)
+#         # save a checkpoint only if there has been an improvement in the total jaccard score for the model.
+#         if np.nanmean(epoch_jaccard_valid) > Improvement:
+#             if np.nanmean(epoch_jaccard_valid) == np.isnan:
+#                 Improvement = 0
+#             else:
+#                 Improvement = np.nanmean(epoch_jaccard_valid)
         
-            print("saving epoch: ", epoch)
-            checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-            out = "Checkpoints_RANO/" + c_file + "checkpoint_" + str(epoch) + ".pth"
-            torch.save(checkpoint, out)
+#             print("saving epoch: ", epoch)
+#             checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
+#             out = "Checkpoints_RANO/" + c_file + "checkpoint_" + str(epoch) + ".pth"
+#             torch.save(checkpoint, out)
             
-        with open("Checkpoints_RANO/" + c_file + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(loss_values)
+#         with open("Checkpoints_RANO/" + c_file + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(loss_values)
 
-        with open("Checkpoints_RANO/" + c_file + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(valid_loss)
+#         with open("Checkpoints_RANO/" + c_file + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(valid_loss)
 
-        with open("Checkpoints_RANO/" + c_file + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(jaccard)
+#         with open("Checkpoints_RANO/" + c_file + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(jaccard)
 
-        with open("Checkpoints_RANO/" + c_file + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(valid_jaccard)
-            #################################################################################################################################
+#         with open("Checkpoints_RANO/" + c_file + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(valid_jaccard)
+#             #################################################################################################################################
 
-    print('Finished Training Dataset')
-    return total_loss, valid_loss
+#     print('Finished Training Dataset')
+#     return total_loss, valid_loss
 
-#               step and loss output start               #
-#--------------------------------------------------------#
+# #               step and loss output start               #
+# #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
+# dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=False)
 
-train_split = 0.7
-validation_split = 0.1
-test_split = 0.2
+# train_split = 0.7
+# validation_split = 0.1
+# test_split = 0.2
 
-# percentage amount to split the training set by (in all data there are 200 patients within the training dataset)
-# i.e 0.1 would output 10% of the dataset for a total of 20 patients; whereas 1 would output 100% of the total dataset.
-split_amount = 1
+# # percentage amount to split the training set by (in all data there are 200 patients within the training dataset)
+# # i.e 0.1 would output 10% of the dataset for a total of 20 patients; whereas 1 would output 100% of the total dataset.
+# split_amount = 1
 
-data_size = len(dataset)
-patients_number = data_size / 155
+# data_size = len(dataset)
+# patients_number = data_size / 155
 
-train_length = int(155*(np.ceil(patients_number * train_split)))
-validation_length = int(155*(np.floor(patients_number * validation_split)))
-test_length = int(155*(np.floor(patients_number * test_split)))
+# train_length = int(155*(np.ceil(patients_number * train_split)))
+# validation_length = int(155*(np.floor(patients_number * validation_split)))
+# test_length = int(155*(np.floor(patients_number * test_split)))
 
-# splits the dataset
-split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
+# # splits the dataset
+# split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
 
-train_range = list(range(0,train_length))
-val_range = list(range(train_length,train_length+validation_length))
-#test_range = range(train_length+validation_length,train_length+validation_length+test_length)
+# train_range = list(range(0,train_length))
+# val_range = list(range(train_length,train_length+validation_length))
+# #test_range = range(train_length+validation_length,train_length+validation_length+test_length)
 
-train_data_m = torch.utils.data.RandomSampler(train_range,False)
-validation_data_m = torch.utils.data.RandomSampler(val_range,False)
-#test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
+# train_data_m = torch.utils.data.RandomSampler(train_range,False)
+# validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+# #test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
 
-data_split_m = torch.utils.data.RandomSampler(split_1,False)
+# data_split_m = torch.utils.data.RandomSampler(split_1,False)
 
-# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
-print("Training: ", len(train_data_m))
-print("Actual_input: ", len(split_1))
-print("validation: ", len(validation_data_m))
+# # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
+# print("Training: ", len(train_data_m))
+# print("Actual_input: ", len(split_1))
+# print("validation: ", len(validation_data_m))
 
-Train_data=DataLoader(
-    dataset=dataset,
-    batch_size=batch_size,
-    sampler=split_1)
+# Train_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=batch_size,
+#     sampler=split_1)
 
-Val_data=DataLoader(
-    dataset=dataset,
-    batch_size=batch_size,
-    sampler=validation_data_m)
+# Val_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=batch_size,
+#     sampler=validation_data_m)
 
-Train_loss, validation_loss = train(Train_data, Val_data, load=False)
+# Train_loss, validation_loss = train(Train_data, Val_data, load=False)
+
+import nibabel as nib
+
+unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
+print(unet)
+
+unet_opt = torch.optim.Adam(unet.parameters(), lr=lr,betas=(0.9, 0.999), weight_decay=1e-8)
+
+
+checkpoint = torch.load("Checkpoints_RANO/Unet_H16_M11_O10/checkpoint_6.pth")
+
+unet.load_state_dict(checkpoint['state_dict'])
+unet_opt.load_state_dict(checkpoint['optimizer'])
+    
+img_a = nib.load("Brats_2018_data/Brats_2018_data/HGG/Brats18_CBICA_ATF_1/Brats18_CBICA_ATF_1_whimg_norm.nii.gz")
+image = img_a.get_fdata()
+print("sHAPE", image.shape)
+
+image = torch.from_numpy(image).unsqueeze(0)
+
+image = image.to(device)
+image = image.float() 
+image = image.squeeze()
+image.requires_grad_()
+
+output = unet(image)
+
+# Catch the output
+output_idx = output.argmax()
+output_max = output[0, output_idx]
+
+# Do backpropagation to get the derivative of the output based on the image
+output_max.backward()
+
+saliency, _ = torch.max(X.grad.data.abs(), dim=1) 
+saliency = saliency.reshape(240, 240)
+
+fig, ax = plt.subplots(1, 2)
+ax[0].imshow(image.cpu().detach().numpy().transpose(1, 2, 0))
+ax[0].axis('off')
+ax[1].imshow(saliency.cpu(), cmap='hot')
+ax[1].axis('off')
+plt.tight_layout()
+fig.suptitle('The Image and Its Saliency Map')
+plt.show()
