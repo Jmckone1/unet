@@ -47,3 +47,4 @@ class rNet:
 ###########################################################
 # param file usage currently implemented in:
 # RANO_dataloader_2_scandir.py (can use different naming once completed)
+# UNet_RANO_Split_Mem.py
