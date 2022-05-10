@@ -6,7 +6,7 @@
 
 from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
-from Unet_modules.Penalty_2 import Penalty
+from Unet_modules.Penalty import Penalty
 from sklearn.metrics import jaccard_score
 
 from torch.utils.data import DataLoader
@@ -22,16 +22,16 @@ import torch
 import csv
 import os
 
-import Code_UNet.Parameters as Param
+import Unet_modules.Parameters as Param
 
-np.random.seed(0)
-torch.manual_seed(0)
+np.random.seed(Param.Global.Seed)
+torch.manual_seed(0Param.Global.Seed)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # In the format "FileName/"
-c_file = "Unet_H16_M13_O10/"
+# c_file = "Unet_H16_M13_O10/"
 # model 11 makes use of the new orthogonality penalty at 50 epochs
 # model 12 makes use of the new orthogonality penalty at 50 epochs including the new quality dataset
 # (although there is an issue with the ground truth dataset being incorrect for the dataset in this case).
@@ -39,27 +39,6 @@ c_file = "Unet_H16_M13_O10/"
 # going to have a rethink on the naming conventions used for the models here - currently rerunning the dataset aquisition code for the rano part of the model.
 
 np.set_printoptions(precision=4)
-
-# parameters
-# inital testing showed 50 as the best estimated region before plautau though this may change.
-# n_epochs = Param.rNet.n_epochs
-# input_dim = Param.rNet.input_dim
-# label_dim = Param.rNet.label_dim
-# hidden_dim = Param.rNet.hidden_dim
-# orth_penalty = Param.rNet.orth_penalty
-# area_penalty = Param.rNet.area_penalty 
-
-# area penalty value is currently redundant and will not produce any impact for the penalty 2 model as it has not been implemented - this is purposeful until the point in time where we can test if there is any reasonable point or evidence in it working.
-
-# display_step = Param.rNet.display_step
-# batch_size = Param.rNet.batch_size
-# lr = Param.rNet.lr
-
-# these are apparently never used
-# initial_shape = Param.rNet.initial_shape
-# target_shape = Param.rNet.target_shape
-
-# device = Param.rNet.device
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(Param.rNet.orth_penalty, Param.rNet.area_penalty)
@@ -152,14 +131,14 @@ def train(Train_data,Val_data,load=False):
     unet = net.UNet(Param.rNet.input_dim, Param.rNet.label_dim, Param.rNet.hidden_dim).to(Param.rNet.device)
     print(unet)
     
-    if not os.path.exists("Checkpoints_RANO/" + Param.rNet.c_file):
-        os.makedirs("Checkpoints_RANO/" + Param.rNet.c_file)
-        os.makedirs("Checkpoints_RANO/" + Param.rNet.c_file + "Training_loss")
-        os.makedirs("Checkpoints_RANO/" + Param.rNet.c_file + "Validation_loss")
-        os.makedirs("Checkpoints_RANO/" + Param.rNet.c_file + "Training_Jaccard")
-        os.makedirs("Checkpoints_RANO/" + Param.rNet.c_file + "Validation_Jaccard")
+    if not os.path.exists("Checkpoints_RANO/" + Param.rNet.checkpoint):
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint)
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_Jaccard")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_Jaccard")
     
-    with open("Checkpoints_RANO/" + Param.rNet.c_file + "Model_architecture", 'w') as write: 
+    with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Model_architecture", 'w') as write: 
         write.write("epochs: " + str(Param.rNet.n_epochs) + "\n")
         write.write("batch size: " + str(Param.rNet.batch_size) + "\n")
         write.write("learning rate: " + str(Param.rNet.lr) + "\n")
@@ -171,7 +150,7 @@ def train(Train_data,Val_data,load=False):
     unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.rNet.lr, betas=(0.9, 0.999), weight_decay=1e-8)
 
     if load == True:
-        checkpoint = torch.load("Checkpoints_RANO/" + Param.rNet.c_file + "checkpoint_0_step_1900.pth")
+        checkpoint = torch.load("Checkpoints_RANO/" + Param.rNet.checkpoint + "checkpoint_0_step_1900.pth")
 
         unet.load_state_dict(checkpoint['state_dict'])
         unet_opt.load_state_dict(checkpoint['optimizer'])
@@ -319,27 +298,27 @@ def train(Train_data,Val_data,load=False):
         
             print("saving epoch: ", epoch)
             checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-            out = "Checkpoints_RANO/" + Param.rNet.c_file + "checkpoint_" + str(epoch) + ".pth"
+            out = "Checkpoints_RANO/" + Param.rNet.checkpoint + "checkpoint_" + str(epoch) + ".pth"
             torch.save(checkpoint, out)
             
-        with open("Checkpoints_RANO/" + Param.rNet.c_file + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
 
-        with open("Checkpoints_RANO/" + Param.rNet.c_file + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
 
-        with open("Checkpoints_RANO/" + Param.rNet.c_file + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(jaccard)
 
-        with open("Checkpoints_RANO/" + Param.rNet.c_file + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_jaccard)
             
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-        # save a copy of the current parameters fil in the location of : ("Checkpoints_RANO/" + Param.rNet.c_file + "parameters_used.py") #
+        # save a copy of the current parameters fil in the location of : ("Checkpoints_RANO/" + Param.rNet.checkpoint + "parameters_used.py") #
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
             #################################################################################################################################
 
@@ -356,11 +335,11 @@ dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = ["/HGG","/LGG"], siz
 index_f = np.load(Param.rNet.dataset_path + Param.rData.index_file)
 patients_number = len(index_f)
 
-train_length = index_f[int(np.ceil(patients_number*Param.rData.train_split))]
-validation_length = index_f[int(np.floor(patients_number*Param.rData.validation_split))]
-test_length = index_f[int(np.floor(patients_number*Param.rData.test_split))]
+train_length = index_f[int(np.ceil(patients_number*Param.rNet.train_split))-1]
+validation_length = index_f[int(np.floor(patients_number*Param.rNet.validation_split))-1]
+test_length = index_f[int(np.floor(patients_number*Param.rNet.test_split))-1]
 all_data_length = index_f[-1]
-custom_split = index_f[int(np.ceil(patients_number*Param.rData.custom_split_amount))]
+custom_split = index_f[int(np.ceil(patients_number*Param.rNet.custom_split_amount))-1]
 
 train_range = list(range(0,train_length))
 val_range = list(range(train_length,train_length+validation_length))
@@ -375,40 +354,14 @@ all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
 custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
 ##################################################################################################################################
 
-# this will only work in the case of the full unet example where there are a total of 155 images per scan, however in the reduced rano set that is being used at the moment the total number is actually significantly less than this :/ this is an issue then.
-
-# train_split = 0.7
-# validation_split = 0.1
-# test_split = 0.2
-
-# # percentage amount to split the training set by (in all data there are 200 patients within the training dataset)
-# # i.e 0.1 would output 10% of the dataset for a total of 20 patients; whereas 1 would output 100% of the total dataset.
-# custom_split_amount = 1
-
-# data_size = len(dataset)
-# patients_number = data_size / 155
-
-# train_length = int(155*(np.ceil(patients_number * train_split)))
-# validation_length = int(155*(np.floor(patients_number * validation_split)))
-# test_length = int(155*(np.floor(patients_number * test_split)))
-
-# # splits the dataset
-# split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
-
-# train_range = list(range(0,train_length))
-# val_range = list(range(train_length,train_length+validation_length))
-# #test_range = range(train_length+validation_length,train_length+validation_length+test_length)
-
-# train_data_m = torch.utils.data.RandomSampler(train_range,False)
-# validation_data_m = torch.utils.data.RandomSampler(val_range,False)
-# #test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
-
-# data_split_m = torch.utils.data.RandomSampler(split_1,False)
-
 # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
 print("Full_dataset: ", len(all_data_m))
 print("Training: ", len(train_data_m))
 print("validation: ", len(validation_data_m))
+
+print("Epochs: ", Param.rNet.n_epochs)
+print("Orthogonality Penalty:", Param.rNet.orth_penalty)
+print("Area Penalty: ", Param.rNet.area_penalty)
 
 Train_data=DataLoader(
     dataset=dataset,

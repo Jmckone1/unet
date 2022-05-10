@@ -1,3 +1,7 @@
+
+class Global:
+    Seed = 0
+
 ###########################################################
             # RANO Dataloader Parameters #
 ###########################################################
@@ -16,8 +20,10 @@ class rData:
 class rNet:
 
     # In the format "FileName/" - filepath to save the network resulting checkpoint files as
-    c_file = "Unet_H16_M13_O10/"
+    checkpoint = "Unet_H16_M13_O100_2/"
     dataset_path = "Brats_2018_data/Brats_2018_data"
+    # unet_h16_m13_o0_2 is reran with default as i think it was mimicing the results from the orth 100 penalty
+    # unet_h16_m13_o100_2 is reran using the orginal penalty measure for comparison with orth at 100x penalty
 
     # image interpolation multiplier
     # this does not work at this time for the RANO implementation
@@ -28,7 +34,7 @@ class rNet:
     input_dim = 4
     label_dim = 8
     hidden_dim = 16
-    orth_penalty = 10
+    orth_penalty = 100
     area_penalty = 0 
     # area penalty value is currently redundant and will not produce any impact for the penalty 2 model as it has not been implemented - this is purposeful until the point in time where we can test if there is any reasonable point or evidence in it working.
 
@@ -48,3 +54,6 @@ class rNet:
 # param file usage currently implemented in:
 # RANO_dataloader_2_scandir.py (can use different naming once completed)
 # UNet_RANO_Split_Mem.py
+
+# Files to add
+# Test_RANO_2.py

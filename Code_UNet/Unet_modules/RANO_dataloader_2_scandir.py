@@ -14,10 +14,10 @@ import random
 import torch
 import sys
 import os
-import Code_UNet.Parameters as Params
+import Unet_modules.Parameters as Param
 
-random.seed(0)
-torch.manual_seed(0)
+random.seed(Param.Global.Seed)
+torch.manual_seed(Param.Global.Seed)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -43,7 +43,9 @@ class BraTs_Dataset(Dataset):
                     if not files.name.startswith("."):
                         self.d.append(files.name)
             counter = len(self.d)
-            if not os.path.exists(path + Params.rData.index_file):
+            # if the index file does not exist then create a new one, else load the existing one.
+            # may have to implement an override in the case of a necessary deletion.
+            if not os.path.exists(path + Param.rData.index_file):
                 print("Creating index_file...")
                 for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
@@ -52,7 +54,7 @@ class BraTs_Dataset(Dataset):
                     if input_ == 1:
                         directory = directory + c_s
 
-                    file = self.d[directory] + '/' + self.d[directory] + "_" + Params.rData.image_in + '.nii.gz'
+                    file = self.d[directory] + '/' + self.d[directory] + "_" + Param.rData.image_in + '.nii.gz'
                     full_path = os.path.join(path + path_ext[input_], file)
                     img_a = nib.load(full_path)
                     img_data = img_a.get_fdata()
@@ -61,10 +63,10 @@ class BraTs_Dataset(Dataset):
                 
                 if input_ == len(self.path_ext):
                     print("Saving index file . . . ")
-                    np.save(path + Params.rData.index_file, self.index_max)
+                    np.save(path + Param.rData.index_file, self.index_max)
                     print("Index file complete")
             else:
-                self.index_max = np.load(path + Params.rData.index_file)
+                self.index_max = np.load(path + Param.rData.index_file)
 
                 # value for extension swapping
                 if input_ == 0:
@@ -93,7 +95,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + Params.rData.image_in + '.nii.gz'
+        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + Param.rData.image_in + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
@@ -106,7 +108,7 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + Params.rData.rano_in + '.npz'
+        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + Param.rData.rano_in + '.npz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_input = np.load(l_full_path)
