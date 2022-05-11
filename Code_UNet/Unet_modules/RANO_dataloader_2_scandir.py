@@ -33,6 +33,7 @@ class BraTs_Dataset(Dataset):
         self.HGG_len = 0
         
         c_s = 0
+        self.current_dir = 0
 
         # each extension - HGG or LGG
         for input_ in range(len(self.path_ext)):
@@ -45,7 +46,7 @@ class BraTs_Dataset(Dataset):
             counter = len(self.d)
             # if the index file does not exist then create a new one, else load the existing one.
             # may have to implement an override in the case of a necessary deletion.
-            if not os.path.exists(path + Param.rData.index_file):
+            if not os.path.exists(path + Param.rData_Test.index_file):
                 print("Creating index_file...")
                 for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
@@ -54,7 +55,7 @@ class BraTs_Dataset(Dataset):
                     if input_ == 1:
                         directory = directory + c_s
 
-                    file = self.d[directory] + '/' + self.d[directory] + "_" + Param.rData.image_in + '.nii.gz'
+                    file = self.d[directory] + '/' + self.d[directory] + "_" + Param.rData_Test.image_in + '.nii.gz'
                     full_path = os.path.join(path + path_ext[input_], file)
                     img_a = nib.load(full_path)
                     img_data = img_a.get_fdata()
@@ -63,10 +64,10 @@ class BraTs_Dataset(Dataset):
                 
                 if input_ == len(self.path_ext):
                     print("Saving index file . . . ")
-                    np.save(path + Param.rData.index_file, self.index_max)
+                    np.save(path + Param.rData_Test.index_file, self.index_max)
                     print("Index file complete")
             else:
-                self.index_max = np.load(path + Param.rData.index_file)
+                self.index_max = np.load(path + Param.rData_Test.index_file)
 
                 # value for extension swapping
                 if input_ == 0:
@@ -83,7 +84,7 @@ class BraTs_Dataset(Dataset):
             if index >= self.index_max[i]:
                 continue
             else:
-                current_dir = i-1
+                self.current_dir = i-1
                 break
                 
         # assign the correct extension - HGG or LGG
@@ -95,11 +96,11 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + Param.rData.image_in + '.nii.gz'
+        file_t = self.d[self.current_dir] + '/' + self.d[self.current_dir] + "_" + Param.rData_Test.image_in + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
-        img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
+        img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
         
         img = torch.from_numpy(img).unsqueeze(0)
         img = F.interpolate(img,(int(img.shape[2]*self.size),int(img.shape[3]*self.size)))
@@ -108,11 +109,11 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + Param.rData.rano_in + '.npz'
+        file_label = self.d[self.current_dir] + '/' + self.d[self.current_dir] + "_" + Param.rData_Test.rano_in + '.npz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_input = np.load(l_full_path)
-        label = l_input["RANO"][:,int(index - self.index_max[current_dir])-1]
+        label = l_input["RANO"][:,int(index - self.index_max[self.current_dir])-1]
 
         #                          labels return end                          #
         #######################################################################
