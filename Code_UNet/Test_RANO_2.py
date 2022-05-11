@@ -1,4 +1,4 @@
-import torch
+zmport torch
 from tqdm.auto import tqdm
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
