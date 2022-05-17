@@ -3,7 +3,7 @@
 ###########################################################
 class Global:
     Seed = 0
-    GPU = "1"
+    GPU = "2"
 
 ###########################################################
             # RANO Dataloader Parameters #
@@ -33,14 +33,15 @@ class rData:
 # training 70%, validation 10% and testing 20%
 class rNet:
     
-    checkpoint = "Unet_H16_M13_O100_3/"
-    dataset_path = "Brats_2018_data/Brats_2018_data"
+    checkpoint = "Unet_H16_M13_cosine_loss_3_lossinit/"
+    dataset_path = "Smaller_dataset/Brats_2018_data/Brats_2018_data"
     Extensions = ["/HGG","/LGG"]
     size = 1
-    n_epochs = 100
+    n_epochs = 15
     input_dim = 4
     label_dim = 8
     hidden_dim = 16
+    # the current application of cosine loss returns results within 0 - 1 range, the MSE loss produces results in excess of 15,000 - thus i should mutiply between 1000 and 10000 i think for this value for the time being.
     orth_penalty = 100
     area_penalty = 0 
 

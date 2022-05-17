@@ -9,8 +9,8 @@ class Penalty():
         self.area_weight = w2
 
     def unit_vector(self, vector):
-            return vector / np.linalg.norm(vector)
-        
+            return torch.FloatTensor(vector) / torch.norm(torch.FloatTensor(vector))
+
     def orthogonality_penalty(self, data_in):
 
         x_maj = [data_in[1],data_in[3]]
@@ -20,22 +20,24 @@ class Penalty():
 
         major = [y_maj[1] - y_maj[0], x_maj[1] - x_maj[0]]
         minor = [y_min[1] - y_min[0], x_min[1] - x_min[0]]
-
-        orthog = abs(np.dot(self.unit_vector(major), self.unit_vector(minor)))
+        
+        #np.abs
+        orthog = torch.abs(torch.dot(self.unit_vector(major), self.unit_vector(minor)))
 
         return orthog
-                
+
     def MSELossorthog(self, output, target):
 
         # convert prediction and truth to np data
-        output_val = output.data.cpu().numpy()
-        target_val = target.cpu().data.numpy()
+        output_val = output.data.cpu()
+        target_val = target.cpu().data
         batch_size = output_val.shape[0]
 
         loss = 0
 
         for i in range(batch_size):
-
+            #torchfromnumpy
+            print(self.orthogonality_penalty(output_val[i]))
             loss = loss + torch.mean((output[i] - target[i])**2) + (self.orthogonality_penalty(output_val[i]) * self.orth_weight)
 
         return loss / batch_size

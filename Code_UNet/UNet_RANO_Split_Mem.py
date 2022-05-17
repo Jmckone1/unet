@@ -6,7 +6,7 @@
 
 from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
-from Unet_modules.Penalty_2 import Penalty
+from Unet_modules.Penalty_3 import Penalty
 from sklearn.metrics import jaccard_score
 
 from torch.utils.data import DataLoader
@@ -25,11 +25,17 @@ import os
 
 import Unet_modules.Parameters as Param
 
-np.random.seed(Param.Global.Seed)
-torch.manual_seed(Param.Global.Seed)
+# np.random.seed(Param.Global.Seed)
+# torch.manual_seed(Param.Global.Seed)
+
+np.random.seed(1)
+torch.manual_seed(1)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=Param.Global.GPU
+
+print(torch.__version__)
+print("")
 
 # In the format "FileName/"
 # c_file = "Unet_H16_M13_O10/"
@@ -231,6 +237,12 @@ def train(Train_data,Val_data,load=False):
             label_input = label_input.float()
             label_input = label_input.squeeze()
             
+            # for some reason when implementing the updaated penalties it would crash unless helf was hard coded here
+            truth_input = truth_input.to(dtype=torch.half)
+            label_input = label_input.to(dtype=torch.half)
+#             print(truth_input.dtype)
+#             print(label_input.dtype)
+            
             # set accumilated gradients to 0 for param update
             unet_opt.zero_grad()
             with amp.autocast(enabled = True):
@@ -322,9 +334,9 @@ def train(Train_data,Val_data,load=False):
         valid_loss.append(epoch_val_loss)
         valid_jaccard.append(epoch_jaccard_valid)
 
-        print(Improvement)
-        print(np.nanmean(epoch_jaccard_valid))
-        print(epoch_jaccard_valid)
+        print("Improvement", Improvement)
+        print("nan mean jaccard validation over the epoch", np.nanmean(epoch_jaccard_valid))
+        print("mean jaccard over epoch with nan", epoch_jaccard_valid)
         print("")
               
         # save a checkpoint only if there has been an improvement in the total jaccard score for the model.
@@ -368,9 +380,9 @@ dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = Param.rNet.Extension
 index_f = np.load(Param.rNet.dataset_path + Param.rData.index_file)
 patients_number = len(index_f)
 
-train_length = index_f[int(np.ceil(patients_number*Param.rNet.train_split))-1]
-validation_length = index_f[int(np.floor(patients_number*Param.rNet.validation_split))-1]
-test_length = index_f[int(np.floor(patients_number*Param.rNet.test_split))-1]
+train_length = index_f[int(np.floor(patients_number*Param.rNet.train_split))-1]
+validation_length = index_f[int(np.ceil(patients_number*Param.rNet.validation_split))-1]
+test_length = index_f[int(np.ceil(patients_number*Param.rNet.test_split))-1]
 all_data_length = index_f[-1]
 custom_split = index_f[int(np.ceil(patients_number*Param.rNet.custom_split_amount))-1]
 
@@ -379,6 +391,10 @@ val_range = list(range(train_length,train_length+validation_length))
 test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
 all_data_range = list(range(0,all_data_length))
 custom_split_range = list(range(0,custom_split))
+
+print(train_length)
+print(validation_length)
+print(all_data_length)
 
 train_data_m = torch.utils.data.RandomSampler(train_range,False)
 validation_data_m = torch.utils.data.RandomSampler(val_range,False)
