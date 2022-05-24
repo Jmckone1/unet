@@ -1,9 +1,9 @@
-from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
+from Unet_modules.RANO_dataloader_2_scandir_Test import BraTs_Dataset
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
 
 # this was used for the official validation dataset - will need to check and confirm this
-from Unet_modules.dataloader_test import Test_Dataset
-from Unet_modules.Penalty_2 import Penalty
+#from Unet_modules.dataloader_test import Test_Dataset
+# from Unet_modules.Penalty_3 import Penalty
 #from Unet_modules.Penalty import Penalty
 from sklearn.metrics import jaccard_score
 from torch.utils.data import DataLoader
@@ -39,7 +39,7 @@ batch_size = Param.rNet.batch_size
 initial_shape = Param.rNet.initial_shape
 target_shape = Param.rNet.target_shape
 device = Param.rNet.device
-load_path = Param.rNet.dataset_path # "Brats_2018_data/Brats_2018_data"
+load_path = Param.test_rNet.dataset_path # "Brats_2018_data/Brats_2018_data"
 load_path_ext = Param.rNet.Extensions # ["/HGG","/LGG"]
 
 #############################################################
@@ -57,7 +57,7 @@ if not os.path.exists(Rano_save_path):
     os.makedirs(Rano_save_path)
     os.makedirs(image_save_path)
     
-criterion = Penalty.MSELossorthog
+# criterion, mse, cosine = Penalty.MSELossorthog
 
 ##############################################################
 ##############################################################
@@ -78,7 +78,7 @@ def input_value_count(path,path_ext):
         for files in os.scandir(path + path_ext[input_]):
             if files.is_dir() or files.is_file():
                 if not files.name.startswith("."):
-                    d.append(files.name)
+                    d.append(path_ext[input_] + "/" + files.name)
         counter = len(d)
         # if the index file does not exist then create a new one, else load the existing one.
         # may have to implement an override in the case of a necessary deletion.
@@ -114,6 +114,7 @@ def input_value_count(path,path_ext):
 def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_step=True):
     
     d, HGG_len = input_value_count(load_path, load_path_ext)
+    # print(d)
     
     unet = net.UNet(Param.rNet.input_dim, Param.rNet.label_dim, Param.rNet.hidden_dim).to(Param.rNet.device)
     
@@ -136,26 +137,28 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
         cur_batch_size = len(truth_input)
 
         # flatten ground truth and label masks
-        truth_input = truth_input.to(Param.rNet.device)
+        
+        # print(truth_input.shape)
+        truth_input = truth_input.to(device = 'cuda')
         truth_input = truth_input.float() 
         truth_input = truth_input.squeeze()
 
-        label_input = label_input.to(Param.rNet.device)
+        label_input = label_input.to(device = 'cuda')
         label_input = label_input.float()
         label_input = label_input.squeeze()
 
         # set accumilated gradients to 0 for param update
         unet_opt.zero_grad()
-        with amp.autocast(enabled = True):
-            pred = unet(truth_input)
-            pred = pred.squeeze()
+
+        pred = unet(truth_input)
+        pred = pred.squeeze()
 
         for input_val in range(cur_batch_size):
 
             corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
-            mask_truth = Jacc.mask((240,240),corners_truth)#*1
+            mask_truth = Jacc.mask((240,240),corners_truth)*1
             corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
-            mask_pred = Jacc.mask((240,240),corners_pred)#*1
+            mask_pred = Jacc.mask((240,240),corners_pred)*1
 
             if np.sum(np.sum(mask_pred)) > 2:
                 jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
@@ -192,16 +195,19 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                 
                 pred_out = np.append(pred_out, pred_output[i,:])
                 
-
                 if img_num == 155:
-
+                    
                     # assign the correct extension - HGG or LGG
                     if data_val < HGG_len:
                         ext = load_path_ext[0]
                     else:
                         ext = load_path_ext[1]
                         
-                    np.savez(Rano_save_path  + d[data_val], RANO=pred_out)
+                    print("RANO", Rano_save_path  + "/" + d[data_val] + "/")
+                    if not os.path.exists(Rano_save_path  + "/" + d[data_val] + "/"):
+                        os.makedirs(Rano_save_path  + "/" + d[data_val] + "/")
+                        
+                    np.savez(Rano_save_path  + "/" + d[data_val] + "/", RANO=pred_out)
                     print("Saving " + str(d[data_val]) + " RANO . . . ")
                     data_val += 1
                     pred_out = []
@@ -210,7 +216,7 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                     if not os.path.exists(image_save_path + "/" + d[data_val] + "/"):
                         os.makedirs(image_save_path + "/" + d[data_val] + "/")
                     plt.savefig(image_save_path + "/" + d[data_val] + "/" +'Slice_' +  str(img_num) + "_" + str(jaccard[-(16-i)]) +'.png')
-                
+                    
                     plt.show()
                     plt.clf()
                     plt.cla()
@@ -236,35 +242,36 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = ["/HGG","/LGG"], size=Param.rNet.size, apply_transform=False)
+dataset = BraTs_Dataset(Param.test_rNet.dataset_path, path_ext = ["/HGG","/LGG"], size=Param.rNet.size, apply_transform=False)
+
 ##################################################################################################################################
 # dataset length splitting ######################################################################## ##############################
 ##################################################################################################################################
-index_f = np.load(Param.rNet.dataset_path + Param.rData_Test.index_file)
+index_f = np.load(Param.test_rNet.dataset_path + Param.rData_Test.index_file)
 patients_number = len(index_f)
 
-train_length = index_f[int(np.ceil(patients_number*Param.rNet.train_split))-1]
-validation_length = index_f[int(np.floor(patients_number*Param.rNet.validation_split))-1]
-test_length = index_f[int(np.floor(patients_number*Param.rNet.test_split))-1]
-all_data_length = index_f[-1]
-custom_split = index_f[int(np.ceil(patients_number*Param.rNet.custom_split_amount))-1]
+train_length = index_f[int(np.floor(patients_number*Param.rNet.train_split))]
+validation_length = index_f[int(np.ceil(patients_number*Param.rNet.validation_split))]
+test_length = index_f[int(np.ceil(patients_number*Param.rNet.test_split))-1]
+# all_data_length = index_f[-1]
+# custom_split = index_f[int(np.ceil(patients_number*Param.rNet.custom_split_amount))-1]
 
-train_range = list(range(0,train_length))
+# train_range = list(range(0,train_length))
 val_range = list(range(train_length,train_length+validation_length))
-test_range = list(range(train_length+validation_length,train_length+validation_length+test_length -1))
-all_data_range = list(range(0,all_data_length))
-custom_split_range = list(range(0,custom_split))
+# test_range = list(range(train_length+validation_length,train_length+validation_length+test_length -1))
+# all_data_range = list(range(0,all_data_length))
+# custom_split_range = list(range(0,custom_split))
 
-train_data_m = torch.utils.data.RandomSampler(train_range,False)
-validation_data_m = torch.utils.data.RandomSampler(val_range,False)
-test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
-all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
-custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
+# train_data_m = torch.utils.data.RandomSampler(train_range,False)
+# validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+# test_data_m = torch.utils.data.SubsetRandomSampler(test_range)
+# all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
+# custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
 ##################################################################################################################################
 
 Test_data=DataLoader(
     dataset=dataset,
     batch_size=Param.rNet.batch_size,
-    sampler=test_range)
+    sampler=val_range)
 
-test_jaccard = test_main(Test_data, checkpoint_path, Param.rNet.dataset_path, load_path_ext)
+test_jaccard = test_main(Test_data, checkpoint_path, Param.test_rNet.dataset_path, load_path_ext)

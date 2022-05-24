@@ -28,8 +28,8 @@ import Unet_modules.Parameters as Param
 # np.random.seed(Param.Global.Seed)
 # torch.manual_seed(Param.Global.Seed)
 
-np.random.seed(1)
-torch.manual_seed(1)
+np.random.seed(Param.Global.Seed)
+torch.manual_seed(Param.Global.Seed)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=Param.Global.GPU
@@ -111,8 +111,15 @@ def Validate(unet, criterion, Val_data):
     print(" ")
     print("Validation...")
     unet.eval()
+    
+    mse_values = []
+    cosine_values = []
     losses = []
+    
     running_loss = 0.0
+    mse_run = 0.0
+    cosine_run = 0.0
+    
     cur_step = 0
     jaccard_val = []
     
@@ -128,48 +135,50 @@ def Validate(unet, criterion, Val_data):
         label_input = label_input.to(Param.rNet.device)
         label_input = label_input.float()
         label_input = label_input.squeeze()
-        
-        truth_input = truth_input.to(dtype=torch.half)
-        label_input = label_input.to(dtype=torch.half)
 
-        with amp.autocast(enabled = True):
-            pred = unet(truth_input)
-            pred = pred.squeeze()
+        pred = unet(truth_input)
+        pred = pred.squeeze()
 
         # forward
-        loss = criterion(pred, label_input)
-        print("v loss", loss)
+        loss, mse, cosine = criterion(pred, label_input)
+        # print("v loss", loss)
         
         loss.backward()
         
         running_loss =+ loss.item() * truth_input.size(0)
-        print("v run loss", running_loss)
-        losses.append(running_loss / len(Val_data))
+        mse_run =+ mse.item() * truth_input.size(0)
+        cosine_run =+ cosine.item() * truth_input.size(0)
+        # print("v run loss", running_loss)
         
-        print("v losses", losses)
+        losses.append(running_loss / len(Val_data))
+        mse_values.append(mse_run / len(Val_data))
+        cosine_values.append(cosine_run / len(Val_data))
+        
+        # print("v losses", losses)
 
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
 
         for input_val in range(cur_batch_size):
-                
+            
             corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
             mask_truth = Jacc.mask((240,240),corners_truth)*1
             corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
             mask_pred = Jacc.mask((240,240),corners_pred)*1
-
-            if np.sum(np.sum(mask_pred)) > 2:
+            
+            # print("Total sum of mask pixels", np.sum(np.sum(mask_truth)))
+            if np.sum(np.sum(mask_truth)) > 2:
                 jaccard_val.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
             else:
                 jaccard_val.append(float("NaN"))
         
         cur_step += 1
     
-    print("v j val", jaccard_val)
+    print("v j val",jaccard_val)
     print("Validation complete")
     print(" ")
     
-    return losses, jaccard_val
+    return losses, mse_values, cosine_values, jaccard_val
 
 #               Define validation end                    #
 #--------------------------------------------------------#
@@ -184,7 +193,11 @@ def train(Train_data,Val_data,load=False):
     if not os.path.exists("Checkpoints_RANO/" + Param.rNet.checkpoint):
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint)
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss_mse")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss_cosine")
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss_mse")
+        os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss_cosine")
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_Jaccard")
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_Jaccard")
     
@@ -222,6 +235,7 @@ def train(Train_data,Val_data,load=False):
 #                   Run model start                      #
     t = []
     v = []
+    total_loss = []
     
     scaler = amp.GradScaler(enabled = True)
 
@@ -235,16 +249,28 @@ def train(Train_data,Val_data,load=False):
         unet.train()
         
         running_loss = 0.0
+        mse_run = 0.0
+        cosine_run = 0.0
+        
         loss_values = []
+        mse_values = []
+        cosine_values = []
+        
         valid_loss = []
-        total_loss = []
+        valid_mse_values = []
+        valid_cosine_values = []
+        
         jaccard = []
         valid_jaccard = []
         
         for truth_input, label_input in tqdm(Train_data):
 
             cur_batch_size = len(truth_input)
-
+            
+#             print(truth_input.float().type())
+#             print(label_input.float().type())
+#             input(" ")
+            
             # flatten ground truth and label masks
             truth_input = truth_input.to(Param.rNet.device)
             truth_input = truth_input.float() 
@@ -252,21 +278,14 @@ def train(Train_data,Val_data,load=False):
             label_input = label_input.to(Param.rNet.device)
             label_input = label_input.float()
             label_input = label_input.squeeze()
-            
-            # for some reason when implementing the updaated penalties it would crash unless helf was hard coded here
-            truth_input = truth_input.to(dtype=torch.half)
-            label_input = label_input.to(dtype=torch.half)
-#             print(truth_input.dtype)
-#             print(label_input.dtype)
-            
+
             # set accumilated gradients to 0 for param update
             unet_opt.zero_grad()
-            with amp.autocast(enabled = True):
-                pred = unet(truth_input)
-                pred = pred.squeeze()
+            pred = unet(truth_input)
+            pred = pred.squeeze()
 
             # forward
-            unet_loss = criterion(pred, label_input)
+            unet_loss, mse, cosine = criterion(pred, label_input)
             
             for input_val in range(cur_batch_size):
                 
@@ -287,6 +306,9 @@ def train(Train_data,Val_data,load=False):
 
             running_loss =+ unet_loss.item() * truth_input.size(0)
             
+            mse_run =+ mse.item() * truth_input.size(0)
+            cosine_run =+ cosine.item() * truth_input.size(0)
+            
             cur_step += 1
 
 #                     Run model end                      #
@@ -296,19 +318,23 @@ def train(Train_data,Val_data,load=False):
             loss_values.append(running_loss / len(Train_data))
             total_loss.append(loss_values)
         
+            mse_values.append(mse_run/len(Train_data))
+            cosine_values.append(cosine_run/len(Train_data))
+            
+        
             if cur_step % Param.rNet.display_step == 0:
 
                 print("Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
                 print(label_input[0,:].shape)
                 
                 # Print jaccard for current output in the batch
-                print("index", jaccard[-cur_batch_size:]) 
-                print("")
+#                 print("index", jaccard[-cur_batch_size:]) 
+#                 print("")
                     
                 for i in range(cur_batch_size):
                     
-                    print("input", label_input[i,:].data.cpu().numpy())
-                    print("prediction",pred[i,:].data.cpu().numpy())
+#                     print("input", label_input[i,:].data.cpu().numpy())
+#                     print("prediction",pred[i,:].data.cpu().numpy())
                     
                     f, axarr = plt.subplots(1,2)
 
@@ -345,9 +371,12 @@ def train(Train_data,Val_data,load=False):
 #                    Display stage end                   #           
 #--------------------------------------------------------#
 #               step and loss output start   #
-        epoch_val_loss, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
+        epoch_val_loss, epoch_valid_mse, epoch_valid_cosine, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
         
         valid_loss.append(epoch_val_loss)
+        valid_mse_values.append(epoch_valid_mse)
+        valid_cosine_values.append(epoch_valid_cosine)
+        
         valid_jaccard.append(epoch_jaccard_valid)
 
         print("Improvement", Improvement)
@@ -370,10 +399,26 @@ def train(Train_data,Val_data,load=False):
         with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
+            
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss_mse/epoch_" + str(epoch) + "training_loss_mse.csv", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(mse_values)
+            
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_loss_cosine/epoch_" + str(epoch) + "training_loss_cosine.csv", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(cosine_values)
 
         with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
+            
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss_mse/epoch_" + str(epoch) + "validation_loss_mse.csv", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(valid_mse_values)
+            
+        with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_loss_cosine/epoch_" + str(epoch) + "validation_loss_cosine.csv", 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(valid_cosine_values)
 
         with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
             write = csv.writer(f) 
@@ -396,8 +441,8 @@ dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = Param.rNet.Extension
 index_f = np.load(Param.rNet.dataset_path + Param.rData.index_file)
 patients_number = len(index_f)
 
-train_length = index_f[int(np.floor(patients_number*Param.rNet.train_split))-1]
-validation_length = index_f[int(np.ceil(patients_number*Param.rNet.validation_split))-1]
+train_length = index_f[int(np.floor(patients_number*Param.rNet.train_split))]
+validation_length = index_f[int(np.ceil(patients_number*Param.rNet.validation_split))]
 test_length = index_f[int(np.ceil(patients_number*Param.rNet.test_split))-1]
 all_data_length = index_f[-1]
 custom_split = index_f[int(np.ceil(patients_number*Param.rNet.custom_split_amount))-1]
