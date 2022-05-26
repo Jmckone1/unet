@@ -26,19 +26,10 @@ os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU
 c_file = Param.SegNet.c_file
 size = Param.SegNet.size
 n_epochs = Param.SegNet.n_epochs
-input_dim = Param.SegNet.input_dim
-label_dim = Param.SegNet.label_dim
-hidden_dim = Param.SegNet.hidden_dim
 display_step = Param.SegNet.display_step
 batch_size = Param.SegNet.batch_size
 lr = Param.SegNet.lr
 device = Param.SegNet.device
-
-train_split = Param.SegNet.train_split
-validation_split = Param.SegNet.validation_split
-test_split = Param.SegNet.test_split
-
-weight_decay= Param.SegNet.weight_decay
 
 checkpoint_name = Param.SegNet.checkpoint_name
 
@@ -100,10 +91,19 @@ def train(Train_data,Val_data,load=False):
     
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
-    unet = net.UNet.load_weights(input_dim, label_dim, hidden_dim, checkpoint_name, allow_update=True).to(device)
     
-    # unet = net.UNet(input_dim, label_dim, hidden_dim).to(device)
-    unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, weight_decay=weight_decay)
+    if Param.SegNet.useWeights == True:
+        unet = net.UNet.load_weights(Param.SegNet.input_dim, 
+                                     Param.SegNet.label_dim, 
+                                     Param.SegNet.hidden_dim, 
+                                     Param.SegNet.checkpoint_name, 
+                                     Param.SegNet.allow_update).to(device)
+    else:
+        unet = net.UNet(Param.SegNet.input_dim, 
+                        Param.SegNet.label_dim, 
+                        Param.SegNet.hidden_dim).to(device)
+        
+    unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.SegNet.lr, weight_decay=Param.SegNet.weight_decay)
     
     with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
         write.write("left_path: " + checkpoint_name + "\n")
@@ -227,39 +227,87 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset("Brats_2018_data/Brats_2018_data",path_ext = ["/HGG","/LGG"],size=size,apply_transform=True)
 
-split_amount = 1
+# split_amount = 1
 
-data_size = len(dataset)
-patients_number = data_size / 155
+# data_size = len(dataset)
+# patients_number = data_size / 155
 
-train_length = int(155*(np.ceil(patients_number * train_split)))
-validation_length = int(155*(np.floor(patients_number * validation_split)))
-test_length = int(155*(np.floor(patients_number * test_split)))
+# train_length = int(155*(np.ceil(patients_number * train_split)))
+# validation_length = int(155*(np.floor(patients_number * validation_split)))
+# test_length = int(155*(np.floor(patients_number * test_split)))
 
-split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
+# split_1 = list(range(0,int(155*(np.ceil((train_length / 155) * split_amount)))))
+
+# train_range = list(range(0,train_length))
+# val_range = list(range(train_length,train_length+validation_length))
+
+# train_data_m = torch.utils.data.RandomSampler(train_range,False)
+# validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+
+# data_split_m = torch.utils.data.RandomSampler(split_1,False)
+
+# print("Training: ", len(train_data_m))
+# print("Actual_input: ", len(split_1))
+# print("validation: ", len(validation_data_m))
+
+# Train_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=batch_size,
+#     sampler=split_1)
+
+# Val_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=batch_size,
+#     sampler=validation_data_m)
+
+##################################################################################################################################
+# dataset length splitting - currently needs testing - the code below is the prior functioning code ##############################
+##################################################################################################################################
+
+dataset = BraTs_Dataset(Param.segNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
+
+index_f = np.load(Param.SegNet.dataset_path + Param.rData.index_file)
+patients_number = len(index_f)
+
+train_length = index_f[int(np.floor(patients_number*Param.SegNet.train_split))]
+validation_length = index_f[int(np.ceil(patients_number*Param.SegNet.validation_split))]
+test_length = index_f[int(np.ceil(patients_number*Param.SegNet.test_split))-1]
+all_data_length = index_f[-1]
+custom_split = index_f[int(np.ceil(patients_number*Param.SegNet.custom_split_amount))-1]
 
 train_range = list(range(0,train_length))
 val_range = list(range(train_length,train_length+validation_length))
+test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
+all_data_range = list(range(0,all_data_length))
+custom_split_range = list(range(0,custom_split))
+
+print(train_length)
+print(validation_length)
+print(all_data_length)
 
 train_data_m = torch.utils.data.RandomSampler(train_range,False)
 validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
+all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
+custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
+##################################################################################################################################
 
-data_split_m = torch.utils.data.RandomSampler(split_1,False)
-
+# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
+print("Full_dataset: ", len(all_data_m))
 print("Training: ", len(train_data_m))
-print("Actual_input: ", len(split_1))
 print("validation: ", len(validation_data_m))
+
+print("Epochs: ", Param.SegNet.n_epochs)
 
 Train_data=DataLoader(
     dataset=dataset,
-    batch_size=batch_size,
-    sampler=split_1)
+    batch_size=Param.SegNet.batch_size,
+    sampler=train_data_m)
 
 Val_data=DataLoader(
     dataset=dataset,
-    batch_size=batch_size,
+    batch_size=Param.SegNet.batch_size,
     sampler=validation_data_m)
 
 Train_loss,validation_loss = train(Train_data, Val_data, load=False)
