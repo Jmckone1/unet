@@ -27,36 +27,27 @@ sns.set_theme()
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU
 
-#############################################################
-# parameters from rNet
-#############################################################
-size = Param.rNet.size
-input_dim = Param.rNet.input_dim
-label_dim = Param.rNet.label_dim
-hidden_dim = Param.rNet.hidden_dim
-lr = Param.rNet.lr
-batch_size = Param.rNet.batch_size
-initial_shape = Param.rNet.initial_shape
-target_shape = Param.rNet.target_shape
-device = Param.rNet.device
-load_path = Param.test_rNet.dataset_path # "Brats_2018_data/Brats_2018_data"
-load_path_ext = Param.rNet.Extensions # ["/HGG","/LGG"]
+# these lines commented can be removed after testing if it runs without them.
 
-#############################################################
-# parameters from Test_rNet
-#############################################################
-display_step = Param.test_rNet.display_step
-outname = Param.test_rNet.output_path
-checkpoint_path = Param.test_rNet.checkpoint_path
-Rano_save_path = Param.test_rNet.Rano_save_path
-image_save_path = Param.test_rNet.image_save_path
-
-#############################################################
-
-if not os.path.exists(Rano_save_path):
-    os.makedirs(Rano_save_path)
-    os.makedirs(image_save_path)
-    
+# size = Param.rNet.size
+# input_dim = Param.rNet.input_dim
+# label_dim = Param.rNet.label_dim
+# hidden_dim = Param.rNet.hidden_dim
+# lr = Param.rNet.lr
+# batch_size = Param.rNet.batch_size
+# initial_shape = Param.rNet.initial_shape
+# target_shape = Param.rNet.target_shape
+# device = Param.rNet.device
+# load_path = Param.test_rNet.dataset_path # "Brats_2018_data/Brats_2018_data"
+# load_path_ext = Param.rNet.Extensions # ["/HGG","/LGG"]
+# display_step = Param.test_rNet.display_step
+# outname = Param.test_rNet.output_path
+# checkpoint_path = Param.test_rNet.checkpoint_path
+# Rano_save_path = Param.test_rNet.Rano_save_path
+# image_save_path = Param.test_rNet.image_save_path
+# if not os.path.exists(Param.test_rNet.Rano_save_path):
+#     os.makedirs(Param.test_rNet.Rano_save_path)
+#     os.makedirs(image_save_path)
 # criterion, mse, cosine = Penalty.MSELossorthog
 
 ##############################################################
@@ -119,7 +110,7 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
     unet = net.UNet(Param.rNet.input_dim, Param.rNet.label_dim, Param.rNet.hidden_dim).to(Param.rNet.device)
     
     #lr, weight decay, betas need to be inclued in the param file
-    unet_opt = torch.optim.Adam(unet.parameters(), lr=lr, betas=(0.9, 0.999), weight_decay=1e-8)
+    unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.rNet.lr, betas=Param.rNet.Betas, weight_decay=Param.rNet.Weight_Decay)
     
     # load model parameters for the testing
     checkpoint = torch.load(checkpoint_path)
@@ -139,11 +130,11 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
         # flatten ground truth and label masks
         
         # print(truth_input.shape)
-        truth_input = truth_input.to(device = 'cuda')
+        truth_input = truth_input.to(Param.rNet.device)
         truth_input = truth_input.float() 
         truth_input = truth_input.squeeze()
 
-        label_input = label_input.to(device = 'cuda')
+        label_input = label_input.to(Param.rNet.device)
         label_input = label_input.float()
         label_input = label_input.squeeze()
 
@@ -203,19 +194,20 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                     else:
                         ext = load_path_ext[1]
                         
-                    print("RANO", Rano_save_path  + "/" + d[data_val] + "/")
-                    if not os.path.exists(Rano_save_path  + "/" + d[data_val] + "/"):
-                        os.makedirs(Rano_save_path  + "/" + d[data_val] + "/")
+                    print("RANO", Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/")
+                    if not os.path.exists(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/"):
+                        os.makedirs(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/")
                         
                     np.savez(Rano_save_path  + "/" + d[data_val] + "/", RANO=pred_out)
+                    
                     print("Saving " + str(d[data_val]) + " RANO . . . ")
                     data_val += 1
                     pred_out = []
                     img_num = 0
                     
-                    if not os.path.exists(image_save_path + "/" + d[data_val] + "/"):
-                        os.makedirs(image_save_path + "/" + d[data_val] + "/")
-                    plt.savefig(image_save_path + "/" + d[data_val] + "/" +'Slice_' +  str(img_num) + "_" + str(jaccard[-(16-i)]) +'.png')
+                    if not os.path.exists(Param.test_rNet.image_save_path + "/" + d[data_val] + "/"):
+                        os.makedirs(Param.test_rNet.image_save_path + "/" + d[data_val] + "/")
+                    plt.savefig(Param.test_rNet.image_save_path + "/" + d[data_val] + "/" +'Slice_' +  str(img_num) + "_" + str(jaccard[-(16-i)]) +'.png')
                     
                     plt.show()
                     plt.clf()
@@ -225,10 +217,10 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                     
                     # here we need to make the d[data_val] a folder in the file to hold the images this would make it easier, maybe even zip it up? to save on space.
                     # if filename doesnt exist then make new one for /d[data_val]
-                    if not os.path.exists(image_save_path + "/" + d[data_val] + "/"):
-                        os.makedirs(image_save_path + "/" + d[data_val] + "/")
+                    if not os.path.exists(Param.test_rNet.image_save_path + "/" + d[data_val] + "/"):
+                        os.makedirs(Param.test_rNet.image_save_path + "/" + d[data_val] + "/")
 
-                    plt.savefig(image_save_path + "/" + d[data_val] + "/" +'Slice_' +  
+                    plt.savefig(Param.test_rNet.image_save_path + "/" + d[data_val] + "/" +'Slice_' +  
                                 str(img_num) + "_" + str(jaccard[-(16-i)]) +'.png')
                     plt.show()
                     plt.clf()
@@ -242,7 +234,7 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset(Param.test_rNet.dataset_path, path_ext = ["/HGG","/LGG"], size=Param.rNet.size, apply_transform=False)
+dataset = BraTs_Dataset(Param.test_rNet.dataset_path, path_ext = Param.rNet.Extensions, size=Param.rNet.size, apply_transform=False)
 
 ##################################################################################################################################
 # dataset length splitting ######################################################################## ##############################
@@ -274,4 +266,4 @@ Test_data=DataLoader(
     batch_size=Param.rNet.batch_size,
     sampler=val_range)
 
-test_jaccard = test_main(Test_data, checkpoint_path, Param.test_rNet.dataset_path, load_path_ext)
+test_jaccard = test_main(Test_data, Param.test_rNet.checkpoint_path, Param.test_rNet.dataset_path, Param.rNet.Extensions, Param.test_rNet.display_step)

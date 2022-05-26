@@ -31,7 +31,7 @@ class BraTs_Dataset(Dataset):
         
         self.path_ext = path_ext
         self.apply_transform = apply_transform
-        self.HGG_len = 0
+#        self.HGG_len = 0
         
         c_s = 0
         self.current_dir = 0
@@ -74,9 +74,9 @@ class BraTs_Dataset(Dataset):
             else:
                 self.index_max = np.load(path + Param.rData_Test.index_file)
 
-                # value for extension swapping
-                if input_ == 0:
-                    self.HGG_len = self.index_max[-1]  
+#                 # value for extension swapping
+#                 if input_ == 0:
+#                     self.HGG_len = self.index_max[-1]  
             
         # inputs to global
         self.count = self.index_max[-1]

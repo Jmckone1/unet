@@ -35,8 +35,8 @@ class rData:
 # training 70%, validation 10% and testing 20%
 class rNet:
     
-    checkpoint = "Unet_H16_M13_O10_cosine_loss_long_small_test/"
-    dataset_path = "Smaller_dataset/Brats_2018_data/Brats_2018_data"
+    checkpoint = "Unet_H16_M13_O10_cosine_loss_long/"
+    dataset_path = "Brats_2018_data/Brats_2018_data"
     Extensions = ["/HGG","/LGG"]
     
     n_epochs = 200

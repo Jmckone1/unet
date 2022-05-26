@@ -1,0 +1,51 @@
+Required Files for code running - 25/05/2022
+
+Misc
+    Setup_folders
+
+Preprocessing
+    data_norm_original.py
+    DeepNeuro_normalise.py
+    Reduce_data.py
+    Reduce_Data_Dimensions.py
+    
+Code_RANO
+    __init__.py
+    calc_RANO_2D_Main.py
+
+RANO
+    Checkpoints_RANO
+    Predictions_RANO_test
+    
+    Code_UNet
+        Test_RANO_Maindata.py
+        UNet_RANO_cosine.py
+        
+        Net
+            __init__.py
+            Unet_Rano_components.py
+            
+        Modules
+            __init__.py
+            Parameters.py
+            RANO_dataloader_2_scandir.py
+            RANO_dataloader_2_scandir_Test.py
+            Penalty_3.py
+            jaccard.py
+            Evaluation.py
+            
+Segmentation
+    Checkpoints
+    Code_UNet
+        UNet_main.py
+        Test_save_full.py
+        
+        Net
+            __init__.py
+            Unet_components_v2.py
+            
+        Modules
+            __init__.py
+            Full_model_dataloader_all_data.py
+            Parameters_seg.py
+    
