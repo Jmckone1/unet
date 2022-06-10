@@ -65,7 +65,7 @@ print("Epoch total number", Param.rNet.n_epochs)
 print("Batch Size number", Param.rNet.batch_size)
 print("Learning Rate", Param.rNet.lr)
 print("Orthogonality Penalty value", Param.rNet.orth_penalty)
-print("Area Penalty value", Param.rNet.area_penalty)
+# print("Area Penalty value", Param.rNet.area_penalty)
 print("Console Display step", Param.rNet.display_step)
 print("Dataset path", Param.rNet.dataset_path)
 print("Interpolation multiplier", Param.rNet.size)
@@ -78,33 +78,8 @@ print("###################################################")
 input("Press Enter to continue . . . ")
 
 #criterion = nn.MSELoss()
-loss_f = Penalty(Param.rNet.orth_penalty, Param.rNet.area_penalty)
+loss_f = Penalty(Param.rNet.orth_penalty)#, Param.rNet.area_penalty)
 criterion = loss_f.MSELossorthog
-
-###########################################################################################
-# ATTEMPT 1 AT LOGGING ERRORS (didnt work but going to leave for the time being)          #
-###########################################################################################
-# # Create a logging instance
-# logger = logging.getLogger('my_application')
-# logger.setLevel(logging.INFO) # you can set this to be DEBUG, INFO, ERROR
-
-# # Assign a file-handler to that instance
-# fh = logging.FileHandler("ERROR_UNET_1.txt")
-# fh.setLevel(logging.INFO) # again, you can set this differently
-
-# # Format your logs (optional)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# fh.setFormatter(formatter) # This will set the format to the file handler
-
-# # Add the handler to your logging instance
-# logger.addHandler(fh)
-
-# try:
-#     raise ValueError("Some error occurred")
-# except ValueError as e:
-#     logger.exception(e) # Will send the errors to the file
-###########################################################################################
-
 
 ### added a bunch of outputs for here to test when i get back!!!
 def Validate(unet, criterion, Val_data):
@@ -145,14 +120,14 @@ def Validate(unet, criterion, Val_data):
         
         loss.backward()
         
-        running_loss =+ loss.item() * truth_input.size(0)
-        mse_run =+ mse.item() * truth_input.size(0)
-        cosine_run =+ cosine.item() * truth_input.size(0)
+        running_loss =+ loss.item()
+        mse_run =+ mse.item()
+        cosine_run =+ cosine.item()
         # print("v run loss", running_loss)
         
-        losses.append(running_loss / len(Val_data))
-        mse_values.append(mse_run / len(Val_data))
-        cosine_values.append(cosine_run / len(Val_data))
+        losses.append(running_loss)
+        mse_values.append(mse_run)
+        cosine_values.append(cosine_run)
         
         # print("v losses", losses)
 
@@ -162,9 +137,9 @@ def Validate(unet, criterion, Val_data):
         for input_val in range(cur_batch_size):
             
             corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
-            mask_truth = Jacc.mask((240,240),corners_truth)*1
+            mask_truth = Jacc.mask((240,240),corners_truth)#*1
             corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
-            mask_pred = Jacc.mask((240,240),corners_pred)*1
+            mask_pred = Jacc.mask((240,240),corners_pred)#*1
             
             # print("Total sum of mask pixels", np.sum(np.sum(mask_truth)))
             if np.sum(np.sum(mask_truth)) > 2:
@@ -304,10 +279,19 @@ def train(Train_data,Val_data,load=False):
             scaler.step(unet_opt)
             scaler.update()
 
-            running_loss =+ unet_loss.item() * truth_input.size(0)
+            running_loss =+ unet_loss.item()
             
-            mse_run =+ mse.item() * truth_input.size(0)
-            cosine_run =+ cosine.item() * truth_input.size(0)
+            mse_run =+ mse.item()
+            cosine_run =+ cosine.item() 
+            
+            # removed the * truth_input.size(0) from all examples of the .item() 
+            # which would multiply the values by the batch size, not really needed in this case, 
+            # i can do this outside if necessary
+            
+#             print(cosine.item())
+#             print(truth_input.size(0))
+#             print(len(Train_data))
+#             input("")
             
             cur_step += 1
 
@@ -315,12 +299,16 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
-            loss_values.append(running_loss / len(Train_data))
-            total_loss.append(loss_values)
+#             loss_values.append(running_loss / len(Train_data))
+#             total_loss.append(loss_values)
         
-            mse_values.append(mse_run/len(Train_data))
-            cosine_values.append(cosine_run/len(Train_data))
-            
+#             mse_values.append(mse_run/len(Train_data))
+#             cosine_values.append(cosine_run/len(Train_data))
+
+            loss_values.append(running_loss)
+            mse_values.append(mse_run)
+            cosine_values.append(cosine_run)
+            total_loss.append(loss_values)
         
             if cur_step % Param.rNet.display_step == 0:
 

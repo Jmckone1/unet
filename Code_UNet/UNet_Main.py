@@ -1,15 +1,14 @@
-from Unet_modules.Full_model_dataloader_all_data import BraTs_Dataset
+from Unet_modules.Unet_Main_dataloader import BraTs_Dataset
 from Unet_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Unet_modules.Evaluation import DiceLoss
-from torchvision.utils import make_grid
 from torch.utils.data import DataLoader
 import Net.Unet_components_v2 as net
-import torch.nn.functional as F
+# import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 import nibabel as nib
 from torch import nn
-from os import walk
+# from os import walk
 import numpy as np
 import torch
 import csv
@@ -22,16 +21,6 @@ torch.manual_seed(Param.Global.Seed)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU
-
-c_file = Param.SegNet.c_file
-size = Param.SegNet.size
-n_epochs = Param.SegNet.n_epochs
-display_step = Param.SegNet.display_step
-batch_size = Param.SegNet.batch_size
-lr = Param.SegNet.lr
-device = Param.SegNet.device
-
-checkpoint_name = Param.SegNet.checkpoint_name
 
 criterion = nn.BCEWithLogitsLoss()
 
@@ -54,11 +43,11 @@ def Validate(unet, criterion, Val_data):
         cur_batch_size = len(truth_input)
 
         # flatten ground truth and label masks
-        truth_input = truth_input.to(device)
+        truth_input = truth_input.to(Param.SegNet.device)
         truth_input = truth_input.float() 
         truth_input = truth_input.squeeze()
 
-        label_input = label_input.to(device)
+        label_input = label_input.to(Param.SegNet.device)
         label_input = label_input.float()
         label_input = label_input.squeeze()
             
@@ -66,8 +55,8 @@ def Validate(unet, criterion, Val_data):
         pred = pred.squeeze()
 
         loss = criterion(pred, label_input)
-        running_loss =+ loss.item() * truth_input.size(0)
-        losses.append(running_loss / len(Val_data))
+        running_loss =+ loss.item()
+        losses.append(running_loss)
 
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
@@ -97,26 +86,26 @@ def train(Train_data,Val_data,load=False):
                                      Param.SegNet.label_dim, 
                                      Param.SegNet.hidden_dim, 
                                      Param.SegNet.checkpoint_name, 
-                                     Param.SegNet.allow_update).to(device)
+                                     Param.SegNet.allow_update).to(Param.SegNet.device)
     else:
         unet = net.UNet(Param.SegNet.input_dim, 
                         Param.SegNet.label_dim, 
-                        Param.SegNet.hidden_dim).to(device)
+                        Param.SegNet.hidden_dim).to(Param.SegNet.device)
         
     unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.SegNet.lr, weight_decay=Param.SegNet.weight_decay)
     
-    with open("Checkpoints/" + c_file + "Model_architecture", 'w') as write: 
-        write.write("left_path: " + checkpoint_name + "\n")
-        write.write("epochs: " + str(n_epochs) + "\n")
-        write.write("batch size: " + str(batch_size) + "\n")
-        write.write("learning rate: " + str(lr) + "\n")
+    with open("Checkpoints/" + Param.SegNet.c_file + "Model_architecture", 'w') as write: 
+        write.write("left_path: " + Param.SegNet.checkpoint_name + "\n")
+        write.write("epochs: " + str(Param.SegNet.size) + "\n")
+        write.write("batch size: " + str(Param.SegNet.batch_size) + "\n")
+        write.write("learning rate: " + str(Param.SegNet.lr) + "\n")
         write.write(str(unet))
 
 #                   Define model end                     #
 #--------------------------------------------------------#
 #                   Run model start                      #
 
-    for epoch in range(n_epochs):
+    for epoch in range(Param.SegNet.size):
         cur_step = 0
         
         print("Training...")
@@ -136,10 +125,10 @@ def train(Train_data,Val_data,load=False):
             cur_batch_size = len(truth_input)
 
             # flatten ground truth and label masks
-            truth_input = truth_input.to(device)
+            truth_input = truth_input.to(Param.SegNet.device)
             truth_input = truth_input.float() 
             truth_input = truth_input.squeeze()
-            label_input = label_input.to(device)
+            label_input = label_input.to(Param.SegNet.device)
             label_input = label_input.float()
             label_input = label_input.squeeze()
             
@@ -155,8 +144,8 @@ def train(Train_data,Val_data,load=False):
             unet_loss.backward()
             unet_opt.step()
 
-            running_loss =+ unet_loss.item() * truth_input.size(0)
-            loss_values.append(running_loss / len(Train_data))
+            running_loss =+ unet_loss.item()
+            loss_values.append(running_loss)
             cur_step += 1
             
             pred_output = pred.cpu().detach().numpy()
@@ -168,10 +157,10 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
-            if cur_step % display_step == 0:
+            if cur_step % Param.SegNet.display_step == 0:
 
                 checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-                out = "Checkpoints/" + c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
+                out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                 torch.save(checkpoint, out)
 
 #                    Display stage end                   #           
@@ -186,25 +175,25 @@ def train(Train_data,Val_data,load=False):
         
         print("saving epoch: ", epoch)
         checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-        out = "Checkpoints/" + c_file + "checkpoint_" + str(epoch) + ".pth"
+        out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + ".pth"
         torch.save(checkpoint, out)
         
         epoch_val_loss, val_dice = Validate(unet, criterion, Val_data)
         valid_loss.append(epoch_val_loss)
 
-        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
+        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
             
-        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "training_dice.csv", 'w') as f: 
+        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_dice.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(DS)
         
-        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
+        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
             
-        with open("Checkpoints/" + c_file + "epoch_" + str(epoch) + "validation_dice.csv", 'w') as f: 
+        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "validation_dice.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(val_dice)
             
@@ -231,7 +220,7 @@ def train(Train_data,Val_data,load=False):
 # split_amount = 1
 
 # data_size = len(dataset)
-# patients_number = data_size / 155
+# patients_number = data_size / 155 # this need to be changed to not include a hard coded 155
 
 # train_length = int(155*(np.ceil(patients_number * train_split)))
 # validation_length = int(155*(np.floor(patients_number * validation_split)))
@@ -262,20 +251,24 @@ def train(Train_data,Val_data,load=False):
 #     sampler=validation_data_m)
 
 ##################################################################################################################################
-# dataset length splitting - currently needs testing - the code below is the prior functioning code ##############################
+# dataset length splitting - currently needs testing - the code above is the prior functioning code ##############################
 ##################################################################################################################################
+print("starting model")
+dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
+print("initialised dataset")
 
-dataset = BraTs_Dataset(Param.segNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
-
-index_f = np.load(Param.SegNet.dataset_path + Param.rData.index_file)
+index_f = np.load(Param.SegNet.dataset_path + Param.sData.index_file)
+print("loaded index file")
 patients_number = len(index_f)
 
+print("length start")
 train_length = index_f[int(np.floor(patients_number*Param.SegNet.train_split))]
 validation_length = index_f[int(np.ceil(patients_number*Param.SegNet.validation_split))]
 test_length = index_f[int(np.ceil(patients_number*Param.SegNet.test_split))-1]
 all_data_length = index_f[-1]
 custom_split = index_f[int(np.ceil(patients_number*Param.SegNet.custom_split_amount))-1]
 
+print("range start")
 train_range = list(range(0,train_length))
 val_range = list(range(train_length,train_length+validation_length))
 test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
@@ -291,6 +284,8 @@ validation_data_m = torch.utils.data.RandomSampler(val_range,False)
 test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
 all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
 custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
+
+print("produced dataset split amounts")
 ##################################################################################################################################
 
 # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67

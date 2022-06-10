@@ -1,15 +1,21 @@
 class Global:
     Seed = 0
-    GPU = "1"
+    GPU = "2"
+    
+class sData:
+
+    image_in = "whimg_norm"
+    rano_in = "RANO_2"
+    index_file = "/index_max_original.npy"
     
 class SegNet:
     
-    
     dataset_path = "Brats_2018_data/Brats_2018_data" # In the format "FileName/"
-    c_file = "split_data_experiments/Full_model_MK5_H16_baseline_6_epochs_BCELoss_2/" # filepath to save model details within checkpoint file
-    checkpoint_name = "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
+    c_file = "split_data_experiments/Full_model_MK6_H16_PTE_1/" # filepath to save model details within checkpoint file
+    checkpoint_name = "Checkpoints_RANO/Unet_H16_M13_O10_cosine_orth_v2_main_half_v2/checkpoint_65.pth"
+    # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
 
-    n_epochs = 6
+    n_epochs = 10
     input_dim = 4
     label_dim = 1
     hidden_dim = 16

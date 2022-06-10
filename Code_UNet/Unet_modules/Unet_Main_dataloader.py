@@ -1,23 +1,23 @@
-####################################################################################################
-# The Primary dataloader used for rano regression after the 04/2022 dataset normaization rework.   #
-# RANO dataloader for the reduceed dataset, utilising the scandir file visulisation directive.     #
-####################################################################################################
-
-# check Test_RANO_2.py file for cleaning a improvement.
-
+import torchvision.transforms.functional as TF
 from torch.utils.data.dataset import Dataset
 import torch.nn.functional as F
-from tqdm import tqdm
 import nibabel as nib
+from os import walk
 import numpy as np
+import torchvision
 import random
 import torch
 import sys
 import os
-import Unet_modules.Parameters as Param
 
-random.seed(Param.Global.Seed)
-torch.manual_seed(Param.Global.Seed)
+from tqdm import tqdm
+
+import Unet_modules.Parameters_seg as Param
+
+# have a look at incorporating the scandir variant instead of walk here which would make it both cleaner and more consistant with the current RANO dataloader example. added torch manual seed here - may be worth adding this into the class or function that can be toggled but we shall see whether that is relevant or not - will save time having to delve into the code each time having to turn them on/ off or change them in any case.
+
+random.seed(0)
+torch.manual_seed(0)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -46,9 +46,9 @@ class BraTs_Dataset(Dataset):
             counter = len(self.d)
             # if the index file does not exist then create a new one, else load the existing one.
             # may have to implement an override in the case of a necessary deletion.
-            if not os.path.exists(path + Param.rData.index_file):
+            if not os.path.exists(path + Param.sData.index_file):
                 print("Creating index_file...")
-                print(path + Param.rData.index_file)
+                print(path + Param.sData.index_file)
                 for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
                         if input_ == 0:
@@ -56,7 +56,7 @@ class BraTs_Dataset(Dataset):
                     if input_ == 1:
                         directory = directory + c_s
 
-                    file = self.d[directory] + '/' + self.d[directory] + "_" + Param.rData.image_in + '.nii.gz'
+                    file = self.d[directory] + '/' + self.d[directory] + "_" + Param.sData.image_in + '.nii.gz'
                     full_path = os.path.join(path + path_ext[input_], file)
                     img_a = nib.load(full_path)
                     img_data = img_a.get_fdata()
@@ -66,10 +66,10 @@ class BraTs_Dataset(Dataset):
 #                 print(len(self.path_ext)-1)
                 if input_ == (len(self.path_ext)-1):
                     print("Saving index file . . . ")
-                    np.save(path + Param.rData.index_file, self.index_max)
+                    np.save(path + Param.sData.index_file, self.index_max)
                     print("Index file complete")
             else:
-                self.index_max = np.load(path + Param.rData.index_file)
+                self.index_max = np.load(path + Param.sData.index_file)
 
                 # value for extension swapping
                 if input_ == 0:
@@ -86,10 +86,11 @@ class BraTs_Dataset(Dataset):
             if index >= self.index_max[i]:
                 continue
             else:
-                self.current_dir = i-1
+                current_dir = i-1
                 break
-                
+
         # assign the correct extension - HGG or LGG
+        # im thinking overall this may be easier to append to d - the array for filenames - idk.
         if index < self.HGG_len:
             ext = self.path_ext[0]
         else:
@@ -98,12 +99,14 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[self.current_dir] + '/' + self.d[self.current_dir] + "_" + Param.rData.image_in + '.nii.gz'
+        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_norm" + '.nii.gz'
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
-        img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
         
+        img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
+        
+        # interpolate image 
         img = torch.from_numpy(img).unsqueeze(0)
         img = F.interpolate(img,(int(img.shape[2]*self.size),int(img.shape[3]*self.size)))
         
@@ -111,17 +114,60 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[self.current_dir] + '/' + self.d[self.current_dir] + "_" + Param.rData.rano_in + '.npz'
+        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whseg_norm" + '.nii.gz'
         l_full_path = os.path.join(self.path + ext, file_label)
         
-        l_input = np.load(l_full_path)
-        label = l_input["RANO"][int(index - self.index_max[self.current_dir])-1,:]
-
+        l_img = nib.load(l_full_path)
+        img_labels = l_img.get_fdata()
+        label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
+        
+        # interpolate label
+        label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
+        label = F.interpolate(label,(int(label.shape[2]*self.size),int(label.shape[3]*self.size)))
+        
         #                          labels return end                          #
         #######################################################################
         
+        if self.apply_transform == True:
+            img,label = self.Transform(img,label)
+            
+        img = img.squeeze().numpy()
+        label = label.squeeze().numpy()
+        
         return img,label
+    
+    def Transform(self, image, label):
+
+        # 25% horizontal flip 
+        if random.random() > 0.5:
+            image = TF.hflip(image)
+            label = TF.hflip(label)
+
+        # 25% vertical flip 
+        if random.random() > 0.5:
+            image = TF.vflip(image)
+            label = TF.vflip(label)
+
+        # rotation up to 30 degrees
+        if random.random() > 0.25:
+            rotation = random.randint(1,30)
+            image = TF.rotate(image,rotation)
+            label = TF.rotate(label,rotation)
+
+        # 10% - 20% zoom / scaling around the center
+        if random.random() > 0.25:
+            size = image.shape[3]
+            resize = random.randint(int(size*0.1),int(size*0.2))
+            crop = torchvision.transforms.Compose([torchvision.transforms.CenterCrop(size-resize)])
+            
+            image = crop(image)
+            image = TF.resize(image,size)
+
+            label = crop(label)
+            label = TF.resize(label,size)
+        
+        return image, label
         
     def __len__(self):
         x = self.index_max[-1]
-        return x
+        return x # of how many examples(images?) you have

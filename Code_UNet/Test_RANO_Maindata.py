@@ -198,7 +198,7 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                     if not os.path.exists(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/"):
                         os.makedirs(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/")
                         
-                    np.savez(Rano_save_path  + "/" + d[data_val] + "/", RANO=pred_out)
+                    np.savez(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/", RANO=pred_out)
                     
                     print("Saving " + str(d[data_val]) + " RANO . . . ")
                     data_val += 1
@@ -235,7 +235,7 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
 #--------------------------------------------------------#
 
 dataset = BraTs_Dataset(Param.test_rNet.dataset_path, path_ext = Param.rNet.Extensions, size=Param.rNet.size, apply_transform=False)
-
+print(Param.test_rNet.output_path)
 ##################################################################################################################################
 # dataset length splitting ######################################################################## ##############################
 ##################################################################################################################################
