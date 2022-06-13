@@ -5,7 +5,7 @@
 ###########################################################
 class Global:
     Seed = 0
-    GPU = "2"
+    GPU = "3"
 
 ###########################################################
             # RANO Dataloader Parameters #
@@ -20,6 +20,10 @@ class rData_Test:
     
 class rData:
 
+#     image_in = "flair"
+#     rano_in = "RANO_2"
+#     index_file = "/index_max_original.npy"
+    
     image_in = "whimg_reduced"
     rano_in = "RANO_reduced_2"
     index_file = "/index_max_reduced.npy"
@@ -29,23 +33,23 @@ class rData:
 ###########################################################
 # area penalty value is currently redundant and will not produce any impact for the penalty 2 model as it has not been implemented 
 # this is purposeful until the point in time where we can test if there is any reasonable point or evidence in it working.
-#
+
 # checkpoint path in the format "FileName/" - filepath to save the network resulting checkpoint files
 # size is the image interpolation multiplier
 # training 70%, validation 10% and testing 20%
 class rNet:
     
-    checkpoint = "Unet_H16_M13_O1000_cosine_orth_v2_small_half_v2_lr4/"
-    dataset_path = "Smaller_dataset/Brats_2018_data/Brats_2018_data"
+    checkpoint = "Unet_H16_M14_CO100_R1_main_data_input_4/"
+    dataset_path = "Brats_2018_data/Brats_2018_data"
     Extensions = ["/HGG","/LGG"]
     
-    n_epochs = 100
-    orth_penalty = 1000
+    n_epochs = 50
+    orth_penalty = 100# 000
     area_penalty = 0 
     
     display_step = 100
     batch_size = 16
-    lr = 0.0004
+    lr = 0.0001
     Weight_Decay = 1e-8
     Betas = (0.9, 0.999) # not sure what this is but will look into it.
     

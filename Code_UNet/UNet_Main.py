@@ -14,6 +14,8 @@ import torch
 import csv
 import os
 
+import shutil
+
 import Unet_modules.Parameters_seg as Param
 
 np.random.seed(Param.Global.Seed)
@@ -21,6 +23,39 @@ torch.manual_seed(Param.Global.Seed)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU
+
+np.set_printoptions(precision=4)
+
+print("###################################################")
+print("Parameter file values")
+print("###################################################")
+print("Current Seed value",Param.Global.Seed)
+print("Current GPU allocated",Param.Global.GPU)
+print("Dataloader input path, IMAGE",Param.sData.image_in)
+print("Dataloader input path, RANO",Param.sData.rano_in)
+print("Dataloader index path",Param.sData.index_file)
+print("Dataset path",Param.SegNet.dataset_path)
+print("Checkpoint save path",Param.SegNet.c_file)
+print("Encode checkpoint load path",Param.SegNet.checkpoint_name)
+print("Total epochs",Param.SegNet.n_epochs)
+print("Input layer dimensions",Param.SegNet.input_dim)
+print("Label dimensions",Param.SegNet.label_dim)
+print("Hidden layer dimensions",Param.SegNet.hidden_dim)
+print("Current Learning rate",Param.SegNet.lr)
+print("Current interpolation size",Param.SegNet.size)
+print("Current console output step",Param.SegNet.display_step)
+print("Current batch size",Param.SegNet.batch_size)
+print("Device",Param.SegNet.device)
+print("Training set split percent",Param.SegNet.train_split)
+print("Validation set split percent",Param.SegNet.validation_split)
+print("testing set split percent",Param.SegNet.test_split)
+print("Custom splitting percent",Param.SegNet.custom_split_amount)
+print("Weight decay",Param.SegNet.weight_decay)
+print("File path extension",Param.SegNet.extensions)
+print("Apply encoder weights",Param.SegNet.useWeights)
+print("Allow encoder update",Param.SegNet.allow_update)
+print("###################################################")
+input("Press Enter to continue . . . ")
 
 criterion = nn.BCEWithLogitsLoss()
 
@@ -94,12 +129,21 @@ def train(Train_data,Val_data,load=False):
         
     unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.SegNet.lr, weight_decay=Param.SegNet.weight_decay)
     
+    if not os.path.exists("Checkpoints/" + Param.SegNet.c_file + "Model_architecture.txt"):
+        os.makedirs("Checkpoints/" + Param.SegNet.c_file + "Model_architecture.txt")
+        os.makedirs('Checkpoints/' + Param.SegNet.c_file)
+        
+        
     with open("Checkpoints/" + Param.SegNet.c_file + "Model_architecture", 'w') as write: 
         write.write("left_path: " + Param.SegNet.checkpoint_name + "\n")
         write.write("epochs: " + str(Param.SegNet.size) + "\n")
         write.write("batch size: " + str(Param.SegNet.batch_size) + "\n")
         write.write("learning rate: " + str(Param.SegNet.lr) + "\n")
         write.write(str(unet))
+        
+    original = r'Code_UNet/Unet_modules/Parameters_seg.py'
+    target = r'Checkpoints/' + Param.SegNet.c_file + 'Parameters_seg.py'
+    shutil.copyfile(original, target)
 
 #                   Define model end                     #
 #--------------------------------------------------------#

@@ -37,5 +37,3 @@ class SegNet:
 
     useWeights = True # false if with no pre-training, True with Pretraining
     allow_update = True # false if Frozen model, True if Unfrozen model
-    
-    

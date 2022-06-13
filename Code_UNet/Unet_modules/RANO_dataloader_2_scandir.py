@@ -102,6 +102,10 @@ class BraTs_Dataset(Dataset):
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
+        
+        if(img_data.ndim == 3):
+            img_data = img_data[np.newaxis,:,:,:]
+        
         img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
         
         img = torch.from_numpy(img).unsqueeze(0)
@@ -119,6 +123,8 @@ class BraTs_Dataset(Dataset):
 
         #                          labels return end                          #
         #######################################################################
+        
+        
         
         return img,label
         

@@ -32,6 +32,7 @@ def dataread(path):
     return d
 
 name = ["HGG/","LGG/"]
+input_path = "Brats_2018_data/Brats_2018_data/"
 
 for i in range(len(name)):
     path = "Brats_2018_data/Brats_2018_data/" + name[i]

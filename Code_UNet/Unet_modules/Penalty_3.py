@@ -90,52 +90,52 @@ class Penalty():
 
         return torch.mean(loss), torch.mean(mse), torch.mean(cosine_mult)
     
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     import Parameters as Param
+    import Parameters as Param
 
-#     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-#     os.environ["CUDA_VISIBLE_DEVICES"]=Param.Global.GPU
+    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"]=Param.Global.GPU
 
-#     penalty = Penalty(1)
+    penalty = Penalty(1)
 
-#     truth = torch.ones(8,8)
-#     pred = torch.ones(8,8)
+    truth = torch.ones(8,8)
+    pred = torch.ones(8,8)
     
-#     #pred[0] = torch.tensor([84, 86, 86, 94, 92, 95, 92, 96])
-#     pred[0] = torch.tensor([0, 1, 1, 0, 0, 0, 1, 1])
-#     pred[1] = torch.tensor([0, 1, 1.5, 0, 0, 0, 1, 1])
-#     pred[2] = torch.tensor([0, 1, 1, 0, -1, 0, 1, 1.1])
-#     #pred[2] = torch.tensor([55, 54, 87, 87, 70, 68, 59, 69])
-#     pred[3] = torch.tensor([55, 44, 87, 87, 55, 54, 97, 87])
-#     pred[4] = torch.tensor([55, 44, 87, 87, 55, 44, 87, 87])
-#     pred[5] = torch.tensor([55, 44, 87, 87, 55, 34, 87, 87])
-#     pred[6] = torch.tensor([95, 44, 87, 87, 68, 98, 97, 37])
+    #pred[0] = torch.tensor([84, 86, 86, 94, 92, 95, 92, 96])
+    pred[0] = torch.tensor([0, 1, 1, 0, 0, 0, 1, 1])
+    pred[1] = torch.tensor([46,48,46,72,52,52,41,60])
+    pred[2] = torch.tensor([0, 1, 1, 0, -1, 0, 1, 1.1])
+    #pred[2] = torch.tensor([55, 54, 87, 87, 70, 68, 59, 69])
+    pred[3] = torch.tensor([55, 44, 87, 87, 55, 54, 97, 87])
+    pred[4] = torch.tensor([55, 44, 87, 87, 55, 44, 87, 87])
+    pred[5] = torch.tensor([55, 44, 87, 87, 55, 34, 87, 87])
+    pred[6] = torch.tensor([95, 44, 87, 87, 68, 98, 97, 37])
 
-#     print(pred)
+    print(pred)
 
-#     x,y,z = penalty.MSELossorthog(pred,truth)
+    x,y,z = penalty.MSELossorthog(pred,truth)
     
-#     print("output", z)
+    print("output", z)
     
-#     for i in range(len(pred)):
-#         x_maj = [pred[i][1],pred[i][3]]
-#         x_min = [pred[i][0],pred[i][2]]
-#         y_maj = [pred[i][5],pred[i][7]]
-#         y_min = [pred[i][4],pred[i][6]]
+    for i in range(len(pred)):
+        x_maj = [pred[i][1],pred[i][3]]
+        x_min = [pred[i][0],pred[i][2]]
+        y_maj = [pred[i][5],pred[i][7]]
+        y_min = [pred[i][4],pred[i][6]]
         
-#         plt.plot(x_maj,y_min)
-#         plt.plot(y_maj,x_min)
-#         plt.show()
+        plt.plot(x_maj,y_min)
+        plt.plot(y_maj,x_min)
+        plt.show()
         
-#         print("what?", z)
-#         print("input", pred[i])
-#         #print("output",z[i])
+        print("what?", z)
+        print("input", pred[i])
+        #print("output",z[i])
 
-# #         stage_1 = z[i] # cosine output
-# #         stage_2 = torch.sub(stage_1,0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
-# #         stage_3 = torch.mul(stage_2,2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
-# #         stage_4 = torch.abs(stage_3) # set bounds to between 0 and 1
-# #         stage_5 = torch.mul(stage_4,orth_W) # apply orthogonality weight
+#         stage_1 = z[i] # cosine output
+#         stage_2 = torch.sub(stage_1,0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
+#         stage_3 = torch.mul(stage_2,2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
+#         stage_4 = torch.abs(stage_3) # set bounds to between 0 and 1
+#         stage_5 = torch.mul(stage_4,orth_W) # apply orthogonality weight
         
-# #         print("output_split -- ", stage_5)
+#         print("output_split -- ", stage_5)

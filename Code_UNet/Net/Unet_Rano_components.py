@@ -66,6 +66,7 @@ import torch
 from torch import nn
 from tqdm.auto import tqdm
 import torch.nn.functional as F
+import numpy as np
 
 class Contract(nn.Module):
     def __init__(self, input_channels):
@@ -120,6 +121,10 @@ class UNet(nn.Module):
 
     def forward(self, data_in):
         
+        
+        if(data_in.ndim == 3):
+            data_in = data_in[:,np.newaxis,:,:]
+            
 #         print(data_in.shape)
         contract_0 = self.upfeature(data_in)
 #         print(contract_0.shape)
