@@ -65,14 +65,17 @@ criterion = nn.BCEWithLogitsLoss()
 #--------------------------------------------------------#
 #              Define validation start                   #
 
+# for some reason this started taking up to 10x as long per batch to run validation over training - not really ure why, cleaned it up as much as i can but. . . . . . . . . . . .
 def Validate(unet, criterion, Val_data):
     print(" ")
     print("Validation...")
+    
     unet.eval()
     losses = []
     DS = []
     running_loss = 0.0
     cur_step = 0
+    
     for truth_input, label_input in tqdm(Val_data):
 
         cur_batch_size = len(truth_input)
@@ -92,20 +95,18 @@ def Validate(unet, criterion, Val_data):
         loss = criterion(pred, label_input)
         running_loss =+ loss.item()
         losses.append(running_loss)
-
+        cur_step += 1
+        
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
         
         for i in range(cur_batch_size):
             DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
-        #print("Validation Dice Score: ", DS)
-        
-        cur_step += 1
-    metrics = losses
+
     print("Validation complete")
     print(" ")
-    
-    return metrics, DS
+
+    return losses, DS
 
 #               Define validation end                    #
 #--------------------------------------------------------#
@@ -129,12 +130,10 @@ def train(Train_data,Val_data,load=False):
         
     unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.SegNet.lr, weight_decay=Param.SegNet.weight_decay)
     
-    if not os.path.exists("Checkpoints/" + Param.SegNet.c_file + "Model_architecture.txt"):
-        os.makedirs("Checkpoints/" + Param.SegNet.c_file + "Model_architecture.txt")
-        os.makedirs('Checkpoints/' + Param.SegNet.c_file)
-        
-        
-    with open("Checkpoints/" + Param.SegNet.c_file + "Model_architecture", 'w') as write: 
+    if not os.path.exists("Checkpoints/" + Param.SegNet.c_file + "Model_architecture"):
+        os.makedirs("Checkpoints/" + Param.SegNet.c_file + "Model_architecture")
+    
+    with open("Checkpoints/" + Param.SegNet.c_file + "Model_architecture.txt", 'w') as write: 
         write.write("left_path: " + Param.SegNet.checkpoint_name + "\n")
         write.write("epochs: " + str(Param.SegNet.size) + "\n")
         write.write("batch size: " + str(Param.SegNet.batch_size) + "\n")
@@ -149,7 +148,7 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#
 #                   Run model start                      #
 
-    for epoch in range(Param.SegNet.size):
+    for epoch in range(Param.SegNet.n_epochs):
         cur_step = 0
         
         print("Training...")
@@ -206,7 +205,38 @@ def train(Train_data,Val_data,load=False):
                 checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
                 out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                 torch.save(checkpoint, out)
+                
+                # save the loss and dice score - then run validation and save the same for each of the display 
+                # checkpoint values in the defined epoch (this case epoch 0)
+                
+                # This should also serve to check if the validation code is working before we get the end of the epoch
+                checkpoint_eval = True # this will need to be moved to the param file if functional
+                if checkpoint_eval == True:
+                    if epoch == 0:
 
+                        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" 
+                                  + str(epoch) + "_" + str(cur_step) +  "_" + "training_loss.csv", 'w') as f: 
+                            write = csv.writer(f) 
+                            write.writerow(loss_values)
+
+                        with open("Checkpoints/" + Param.SegNet.c_file 
+                                  + "epoch_" + "_" + str(cur_step) +  "_"+ str(epoch) + "training_dice.csv", 'w') as f: 
+                            write = csv.writer(f) 
+                            write.writerow(DS)
+
+                        epoch_val_loss, val_dice = Validate(unet, criterion, Val_data)
+                        valid_loss.append(epoch_val_loss)
+
+                        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" 
+                                  + str(epoch) + "_" + str(cur_step) +  "_"+ "validation_loss.csv", 'w') as f: 
+                            write = csv.writer(f) 
+                            write.writerow(valid_loss)
+
+                        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" 
+                                  + str(epoch) + "_" + str(cur_step) +  "_"+ "validation_dice.csv", 'w') as f: 
+                            write = csv.writer(f) 
+                            write.writerow(val_dice)
+                        epoch_val_loss, val_dice
 #                    Display stage end                   #           
 #--------------------------------------------------------#
 #               step and loss output start               #
@@ -222,9 +252,6 @@ def train(Train_data,Val_data,load=False):
         out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + ".pth"
         torch.save(checkpoint, out)
         
-        epoch_val_loss, val_dice = Validate(unet, criterion, Val_data)
-        valid_loss.append(epoch_val_loss)
-
         with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(loss_values)
@@ -232,7 +259,10 @@ def train(Train_data,Val_data,load=False):
         with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_dice.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(DS)
-        
+            
+        epoch_val_loss, val_dice = Validate(unet, criterion, Val_data)
+        valid_loss.append(epoch_val_loss)
+
         with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_loss)
@@ -260,7 +290,6 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-
 # split_amount = 1
 
 # data_size = len(dataset)
@@ -281,7 +310,7 @@ def train(Train_data,Val_data,load=False):
 # data_split_m = torch.utils.data.RandomSampler(split_1,False)
 
 # print("Training: ", len(train_data_m))
-# print("Actual_input: ", len(split_1))
+# print("Actual_input: ", len(split_1))f
 # print("validation: ", len(validation_data_m))
 
 # Train_data=DataLoader(

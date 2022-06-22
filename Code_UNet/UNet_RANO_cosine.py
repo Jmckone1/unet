@@ -315,36 +315,38 @@ def train(Train_data,Val_data,load=False):
                 print("Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
                 print(label_input[0,:].shape)
                 
+                # this section of code doesnt work due to the 4 channel indexing for the ssingle channel data that is out of range, wasnt really being sued anyways
+                
                 # Print jaccard for current output in the batch
 #                 print("index", jaccard[-cur_batch_size:]) 
 #                 print("")
                     
-                for i in range(cur_batch_size):
+#                 for i in range(cur_batch_size):
                     
-#                     print("input", label_input[i,:].data.cpu().numpy())
-#                     print("prediction",pred[i,:].data.cpu().numpy())
+# #                     print("input", label_input[i,:].data.cpu().numpy())
+# #                     print("prediction",pred[i,:].data.cpu().numpy())
                     
-                    f, axarr = plt.subplots(1,2)
+#                     f, axarr = plt.subplots(1,2)
 
-                    data_in = label_input[i,:].data.cpu().numpy()
-                    D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
-                    D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
+#                     data_in = label_input[i,:].data.cpu().numpy()
+#                     D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
+#                     D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
                     
-                    axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
-                    axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
-                    axarr[0].set_title('Truth')
+#                     axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+#                     axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
+#                     axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
+#                     axarr[0].set_title('Truth')
                     
-                    data_out = pred[i,:].data.cpu().numpy()
-                    D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
-                    D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
+#                     data_out = pred[i,:].data.cpu().numpy()
+#                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
+#                     D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
 
-                    axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
-                    axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
-                    axarr[1].set_title('Prediction')
+#                     axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+#                     axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
+#                     axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
+#                     axarr[1].set_title('Prediction')
                     
-                    plt.show()
+#                     plt.show()
                    
                 # kaggle 2017 2nd place
                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017

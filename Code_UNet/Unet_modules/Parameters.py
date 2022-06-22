@@ -5,7 +5,7 @@
 ###########################################################
 class Global:
     Seed = 0
-    GPU = "3"
+    GPU = "2"
 
 ###########################################################
             # RANO Dataloader Parameters #
@@ -20,9 +20,9 @@ class rData_Test:
     
 class rData:
 
-#     image_in = "flair"
-#     rano_in = "RANO_2"
-#     index_file = "/index_max_original.npy"
+#     image_in = "flair_reduced"
+#     rano_in = "RANO_reduced_2"
+#     index_file = "/index_max_reduced.npy"
     
     image_in = "whimg_reduced"
     rano_in = "RANO_reduced_2"
@@ -39,17 +39,17 @@ class rData:
 # training 70%, validation 10% and testing 20%
 class rNet:
     
-    checkpoint = "Unet_H16_M14_CO100_R1_main_data_input_4/"
+    checkpoint = "Unet_H16_M14_CO0_R3_main_data_input_4/"
     dataset_path = "Brats_2018_data/Brats_2018_data"
     Extensions = ["/HGG","/LGG"]
     
     n_epochs = 50
-    orth_penalty = 100# 000
+    orth_penalty = 0
     area_penalty = 0 
     
     display_step = 100
     batch_size = 16
-    lr = 0.0001
+    lr = 0.0003
     Weight_Decay = 1e-8
     Betas = (0.9, 0.999) # not sure what this is but will look into it.
     
@@ -72,37 +72,36 @@ class test_rNet:
     dataset_path = "Brats_2018_data/Brats_2018_data"
     
     display_step = True # this is responsible for confirming whether the files are saved or not
-    output_path = "Unet_H16_M13_O10_cosine_orth_v2_main_half_v2"
-    checkpoint_path = "Checkpoints_RANO/" + output_path + "/checkpoint_47.pth"
+    output_path = "Unet_H16_M14_CO100_R3_main_data_input_4"
+    checkpoint_path = "Checkpoints_RANO/" + output_path + "/checkpoint_49.pth"
     Rano_save_path = "Predictions_RANO_test/newtest_maintest/"+output_path+"/RANO/"
     image_save_path = "Predictions_RANO_test/newtest_maintest/"+output_path+"/IMAGE/"
 
-###########################################################
-# param file usage currently implemented in:
-# RANO_dataloader_2_scandir.py (can use different naming once completed)
-# UNet_RANO_Split_Mem.py
-# Test_RANO_Maindata.py 
-#
-# Files to add
-# 
+# # ##########################################################
+# # param file usage currently implemented in:
+# # RANO_dataloader_2_scandir.py (can use different naming once completed)
+# # UNet_RANO_Split_Mem.py
+# # Test_RANO_Maindata.py 
 
+# # Files to add
 
+# # what do i need to be doing next - 06/06/22
+# # i need to check the penalty for cosine on more examples to see what its doing
+# # i need to run the model cosine at a much higher weighting to see what the difference is
+# # - ran the smaller dataset at 100 and 1000 cosine multilier to see the impact of this. in theory we should see it minimising more and the mse minimising less in extreme cases.
 
-# what do i need to be doing next - 06/06/22
-# i need to check the penalty for cosine on more examples to see what its doing
-# i need to run the model cosine at a much higher weighting to see what the difference is
-# - ran the smaller dataset at 100 and 1000 cosine multilier to see the impact of this. in theory we should see it minimising more and the mse minimising less in extreme cases.
+# # hopefully this will work or at least show something in the next day or so
 
-# hopefully this will work or at least show something in the next day or so
+# # im going to pick one of the example checkpoints that i have so far and run the segmentation code to test that the update fucntions correctly.
 
-# im going to pick one of the example checkpoints that i have so far and run the segmentation code to test that the update fucntions correctly.
+# # i want to have a look at reducing the dimesions of the input data to just the flair channel and seeing what impact that makes - can also look at each of the pother channel variations - will have to make a second version of all the code bases to test this - can from there also work on the 2 channels and comboniations and then 3 channel combinations - will have to write down all permutations
 
-# i want to have a look at reducing the dimesions of the input data to just the flair channel and seeing what impact that makes - can also look at each of the pother channel variations - will have to make a second version of all the code bases to test this - can from there also work on the 2 channels and comboniations and then 3 channel combinations - will have to write down all permutations
+# # increasing the value of the cosine weighting provides very little improvement if any change at all.
 
-# increasing the value of the cosine weighting provides very little improvement if any change at all.
+# # there is currently a Failed to initialize NVML: Unknown Error error that is preventing my docker cotainer from detecting the GPU so i cannot run any further models until i restrt it at the very least. not sure why this has occured.
 
-# there is currently a Failed to initialize NVML: Unknown Error error that is preventing my docker cotainer from detecting the GPU so i cannot run any further models until i restrt it at the very least. not sure why this has occured.
+# # the next thing i want to try is to increase the learning rate - since the model takes a long time to converge i am hoping this will help.
 
-# the next thing i want to try is to increase the learning rate - since the model takes a long time to converge i am hoping this will help.
+# # again, check that the segemntation is functional - even in a terrible manner - this section does not need to be fully complete at this stage i just need to see if it is functional in general and that my therories still do what i think they should be doing.
 
-# again, check that the segemntation is functional - even in a terrible manner - this section does not need to be fully complete at this stage i just need to see if it is functional in general and that my therories still do what i think they should be doing.
+# All of the above has been completed as of 15/06/22

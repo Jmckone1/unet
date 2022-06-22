@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "2"
+    GPU = "1"
     
 class sData:
 
@@ -11,8 +11,8 @@ class sData:
 class SegNet:
     
     dataset_path = "Brats_2018_data/Brats_2018_data" # In the format "FileName/"
-    c_file = "split_data_experiments/Full_model_MK6_H16_PTE_1/" # filepath to save model details within checkpoint file
-    checkpoint_name = "Checkpoints_RANO/Unet_H16_M13_O10_cosine_orth_v2_main_half_v2/checkpoint_65.pth"
+    c_file = "split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_v2/" # filepath to save model details within checkpoint file
+    checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
     # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
 
     n_epochs = 10
@@ -36,4 +36,4 @@ class SegNet:
     extensions = ["/HGG","/LGG"]
 
     useWeights = True # false if with no pre-training, True with Pretraining
-    allow_update = True # false if Frozen model, True if Unfrozen model
+    allow_update = False # false if Frozen model, True if Unfrozen model
