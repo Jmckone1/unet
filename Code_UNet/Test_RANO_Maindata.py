@@ -21,38 +21,9 @@ import torch
 import os
 import Unet_modules.Parameters as Param
 
-# this code uses a fixed 155 value for each of the images which might need fixing at some point, for the time being it suits the purpose with being ran on the full non reduced dataset.
-
 sns.set_theme()
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU
-
-# these lines commented can be removed after testing if it runs without them.
-
-# size = Param.rNet.size
-# input_dim = Param.rNet.input_dim
-# label_dim = Param.rNet.label_dim
-# hidden_dim = Param.rNet.hidden_dim
-# lr = Param.rNet.lr
-# batch_size = Param.rNet.batch_size
-# initial_shape = Param.rNet.initial_shape
-# target_shape = Param.rNet.target_shape
-# device = Param.rNet.device
-# load_path = Param.test_rNet.dataset_path # "Brats_2018_data/Brats_2018_data"
-# load_path_ext = Param.rNet.Extensions # ["/HGG","/LGG"]
-# display_step = Param.test_rNet.display_step
-# outname = Param.test_rNet.output_path
-# checkpoint_path = Param.test_rNet.checkpoint_path
-# Rano_save_path = Param.test_rNet.Rano_save_path
-# image_save_path = Param.test_rNet.image_save_path
-# if not os.path.exists(Param.test_rNet.Rano_save_path):
-#     os.makedirs(Param.test_rNet.Rano_save_path)
-#     os.makedirs(image_save_path)
-# criterion, mse, cosine = Penalty.MSELossorthog
-
-##############################################################
-##############################################################
-##############################################################
 
 def input_value_count(path,path_ext):
     d = []
@@ -194,11 +165,11 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                     else:
                         ext = load_path_ext[1]
                         
-                    print("RANO", Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/")
-                    if not os.path.exists(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/"):
-                        os.makedirs(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/")
+                    print("RANO", Param.test_rNet.Rano_save_path  + "/" + d[data_val].npz)
+                    if not os.path.exists(Param.test_rNet.Rano_save_path  + "/"):
+                        os.makedirs(Param.test_rNet.Rano_save_path  + "/")
                         
-                    np.savez(Param.test_rNet.Rano_save_path  + "/" + d[data_val] + "/", RANO=pred_out)
+                    np.savez(Param.test_rNet.Rano_save_path  + "/" + d[data_val], RANO=pred_out)
                     
                     print("Saving " + str(d[data_val]) + " RANO . . . ")
                     data_val += 1
