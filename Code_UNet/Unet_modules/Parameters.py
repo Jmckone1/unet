@@ -105,3 +105,13 @@ class test_rNet:
 # # again, check that the segemntation is functional - even in a terrible manner - this section does not need to be fully complete at this stage i just need to see if it is functional in general and that my therories still do what i think they should be doing.
 
 # All of the above has been completed as of 15/06/22
+
+# 22/06/22
+# for some reason the predicted NPZ files for RANO measurements are not appearing and whilst the folder remains visibly empty the file cannot be deleted because it contains something, possible error with .filename? will need to check ls to find out.
+# also there is no prediction of the LGG examples in the files which is also an issue that needs to be checked to see if it is a problem or not, ergo finding out if the randomised fiel contain both LGG and HGG or just HGG (which is unlikely but possible)
+
+# there also is a potential memory leak within the segmentaion code, its only minor at this point and may be related to the files that track the output that is subsequently saved to the output - im thinking that i will append the vlaues straight into the save folder and then remove reference to it from the running code instead of keeping one large array that is appended to as we run, this makes the code take longer and longer to run as we go on. i will solve this and see if the problem is still in place. if it is then i will look at both the optimisation code that andy suggested and wills ee what else i can find in the code that may be causing this issue.
+
+# need to make sure to have a look at and ask about conferences before and during the meeting on friday. both in terms of submitting the work that i am currently doing and for purposes of attending. i feel like ive lost track alot of what ive been doing and lost touch in where to be going next, instead of being stuck down the rabbit hoel with my current work tog et it out there. i did attend the research showcase which is good but could be better.
+
+# people having been asking how loing it takes to run the model and what resources. so this is something that im going to need to add to the logging file i think, start-runtime and end-runtime. plus make sure to minus one from the other and take validation into account.
