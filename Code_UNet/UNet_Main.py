@@ -219,8 +219,8 @@ def train(Train_data,Val_data,load=False):
                             write = csv.writer(f) 
                             write.writerow(loss_values)
 
-                        with open("Checkpoints/" + Param.SegNet.c_file 
-                                  + "epoch_" + "_" + str(cur_step) +  "_"+ str(epoch) + "training_dice.csv", 'w') as f: 
+                        with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" 
+                                  + str(epoch) + "_" + str(cur_step) +  "_" + "training_dice.csv", 'w') as f: 
                             write = csv.writer(f) 
                             write.writerow(DS)
 
@@ -261,6 +261,7 @@ def train(Train_data,Val_data,load=False):
             write.writerow(DS)
             
         epoch_val_loss, val_dice = Validate(unet, criterion, Val_data)
+        
         valid_loss.append(epoch_val_loss)
 
         with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 

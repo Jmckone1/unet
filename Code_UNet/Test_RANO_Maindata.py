@@ -93,6 +93,9 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
     jaccard = []
     data_val = 0
     img_num = 0
+    
+    print(Train_data)
+    input("")
 
     for truth_input, label_input in tqdm(Train_data):
 
@@ -157,24 +160,17 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                 
                 pred_out = np.append(pred_out, pred_output[i,:])
                 
-                if img_num == 155:
-                    
-                    # assign the correct extension - HGG or LGG
-                    if data_val < HGG_len:
-                        ext = load_path_ext[0]
-                    else:
-                        ext = load_path_ext[1]
+                print(img_num)
+                if img_num == 154:
                         
-                    print("RANO", Param.test_rNet.Rano_save_path  + "/" + d[data_val].npz)
-                    if not os.path.exists(Param.test_rNet.Rano_save_path  + "/"):
-                        os.makedirs(Param.test_rNet.Rano_save_path  + "/")
+                    print("RANO", Param.test_rNet.Rano_save_path  + "/" + d[data_val][:4])
+                    if not os.path.exists(Param.test_rNet.Rano_save_path  + "/" + d[data_val][:4]):
+                        os.makedirs(Param.test_rNet.Rano_save_path  + "/"  + d[data_val][:4])
                         
                     np.savez(Param.test_rNet.Rano_save_path  + "/" + d[data_val], RANO=pred_out)
                     
                     print("Saving " + str(d[data_val]) + " RANO . . . ")
-                    data_val += 1
-                    pred_out = []
-                    img_num = 0
+                    
                     
                     if not os.path.exists(Param.test_rNet.image_save_path + "/" + d[data_val] + "/"):
                         os.makedirs(Param.test_rNet.image_save_path + "/" + d[data_val] + "/")
@@ -183,6 +179,10 @@ def test_main(Train_data, checkpoint_path, load_path, load_path_ext, display_ste
                     plt.show()
                     plt.clf()
                     plt.cla()
+                    
+                    data_val += 1
+                    pred_out = []
+                    img_num = 0
                 
                 else:
                     
