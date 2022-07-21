@@ -1,6 +1,6 @@
 from Unet_modules.Unet_Main_dataloader import BraTs_Dataset
 from Unet_modules.Evaluation import Dice_Evaluation as Dice_Eval
-from Unet_modules.Evaluation import DiceLoss
+# from Unet_modules.Evaluation import DiceLoss
 from torch.utils.data import DataLoader
 import Net.Unet_components_v2 as net
 # import torch.nn.functional as F
@@ -17,6 +17,7 @@ import os
 import shutil
 
 import Unet_modules.Parameters_seg as Param
+import Unet_modules.Dice_Loss as Eval
 
 np.random.seed(Param.Global.Seed)
 torch.manual_seed(Param.Global.Seed)
@@ -57,8 +58,8 @@ print("Allow encoder update",Param.SegNet.allow_update)
 print("###################################################")
 input("Press Enter to continue . . . ")
 
-criterion = nn.BCEWithLogitsLoss()
-
+# criterion = nn.BCEWithLogitsLoss()
+criterion = Eval.DiceLoss()
 #update file read in counter based on the UNet_RANO_cosine code
 #update dataloader based on the code_UNet_RANO dataloaders
 
@@ -88,6 +89,11 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         label_input = label_input.to(Param.SegNet.device)
         label_input = label_input.float()
         label_input = label_input.squeeze()
+        
+        # edgecase handling in regard to a single image being left in a batch at the end of training. otherwise causing a crash before validation.
+        if(truth_input.ndim == 3):
+            truth_input = truth_input[np.newaxis,:,:,:]
+            label_input = label_input[np.newaxis,:,:]
             
         pred = unet(truth_input)
         pred = pred.squeeze()
@@ -99,6 +105,11 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
+        
+        # edgecase handling in regard to a single image being left in a batch at the end of training. otherwise causing a crash before evaluation.
+        if(pred_output.ndim == 2):
+            pred_output = pred_output[np.newaxis,:,:]
+            truth_output = truth_output[np.newaxis,:,:]
         
         for i in range(cur_batch_size):
             DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
@@ -177,8 +188,12 @@ def train(Train_data,Val_data,load=False):
             label_input = label_input.to(Param.SegNet.device)
             label_input = label_input.float()
             label_input = label_input.squeeze()
-            
+
             # set accumilated gradients to 0 for param update
+            if(truth_input.ndim == 3):
+                truth_input = truth_input[np.newaxis,:,:,:]
+                label_input = label_input[np.newaxis,:,:]
+            
             unet_opt.zero_grad()
             pred = unet(truth_input)
             pred = pred.squeeze()
@@ -196,7 +211,10 @@ def train(Train_data,Val_data,load=False):
             
             pred_output = pred.cpu().detach().numpy()
             truth_output = label_input.cpu().detach().numpy()
-            
+            if(pred_output.ndim == 2):
+                pred_output = pred_output[np.newaxis,:,:]
+                truth_output = truth_output[np.newaxis,:,:]
+                
             for i in range(cur_batch_size):
                 DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
             
@@ -216,8 +234,8 @@ def train(Train_data,Val_data,load=False):
                 torch.save(checkpoint, out)
 
                 # if enabled this will validate the model during every *DISPLAY STEP* (default 50 batches) during the first epoch
-                checkpoint_eval = False # this will need to be moved to the param file if functional
-                if checkpoint_eval == True:
+                
+                if Param.SegNet.checkpoint_eval == True:
                     if epoch == 0:
 
                         Validate(unet, criterion, Val_data, epoch, step = "_" + str(cur_step))

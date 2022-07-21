@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "1"
+    GPU = "2"
     
 class sData:
 
@@ -10,16 +10,16 @@ class sData:
     
 class SegNet:
     
-    dataset_path = "Smaller_dataset/Brats_2018_data/Brats_2018_data" # In the format "FileName/"
-    c_file = "split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_v2_small_08072022/" # filepath to save model details within checkpoint file
+    dataset_path = "mini_test/mini_test"#Brats_2018_data/Brats_2018_data" # In the format "FileName/"
+    c_file = "test_01" #"split_data_experiments/Full_model_MK6_H16_PTE_CO100_R3_lr_003_dice_main_20072022/" # filepath to save model details within checkpoint file
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
     # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
 
-    n_epochs = 10
+    n_epochs = 3
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
-    lr = 0.0002
+    lr = 0.003
     
     size = 1
     display_step = 50
@@ -36,4 +36,6 @@ class SegNet:
     extensions = ["/HGG","/LGG"]
 
     useWeights = True # false if with no pre-training, True with Pretraining
-    allow_update = False # false if Frozen model, True if Unfrozen model
+    allow_update = True # false if Frozen model, True if Unfrozen model
+    
+    checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch

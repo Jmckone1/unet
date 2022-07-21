@@ -24,13 +24,14 @@ np.set_printoptions(threshold=sys.maxsize)
 class BraTs_Dataset(Dataset):
     def __init__(self, path, path_ext, size, apply_transform, **kwargs):
         
+        print("Init dataloader")
         self.d = []
         self.index_max = []
         self.index_max.extend([0])
         
         self.path_ext = path_ext
         self.apply_transform = apply_transform
-        self.HGG_len = 0
+        # self.HGG_len = 0
         
         c_s = 0
         self.current_dir = 0
@@ -39,10 +40,12 @@ class BraTs_Dataset(Dataset):
         for input_ in range(len(self.path_ext)):
             counter = 0
             # each folder in extension
+            print(path)
             for files in os.scandir(path + self.path_ext[input_]):
                 if files.is_dir() or files.is_file():
                     if not files.name.startswith("."):
-                        self.d.append(files.name)
+                        print(self.path_ext[input_] + "/" + files.name)
+                        self.d.append(self.path_ext[input_] + "/" + files.name)
             counter = len(self.d)
             # if the index file does not exist then create a new one, else load the existing one.
             # may have to implement an override in the case of a necessary deletion.
@@ -71,14 +74,16 @@ class BraTs_Dataset(Dataset):
             else:
                 self.index_max = np.load(path + Param.sData.index_file)
 
-                # value for extension swapping
-                if input_ == 0:
-                    self.HGG_len = self.index_max[-1]  
+#                 # value for extension swapping
+#                 if input_ == 0:
+#                     self.HGG_len = self.index_max[-1]  
             
         # inputs to global
         self.count = self.index_max[-1]
         self.path = path
         self.size = size
+        
+        print("File_paths from dataloader", self.d)
 
     def __getitem__(self,index):
 
@@ -90,17 +95,17 @@ class BraTs_Dataset(Dataset):
                 break
 
         # assign the correct extension - HGG or LGG
-        # im thinking overall this may be easier to append to d - the array for filenames - idk.
-        if index < self.HGG_len:
-            ext = self.path_ext[0]
-        else:
-            ext = self.path_ext[1]
+#         # im thinking overall this may be easier to append to d - the array for filenames - idk.
+#         if index < self.HGG_len:
+#             ext = self.path_ext[0]
+#         else:
+#             ext = self.path_ext[1]
 
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whimg_norm" + '.nii.gz'
-        full_path = os.path.join(self.path + ext, file_t)
+        file_t = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
+        full_path = self.path + file_t
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
@@ -114,8 +119,8 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir] + "_" + "whseg_norm" + '.nii.gz'
-        l_full_path = os.path.join(self.path + ext, file_label)
+        file_label = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whseg_norm" + '.nii.gz'
+        l_full_path = self.path + file_label
         
         l_img = nib.load(l_full_path)
         img_labels = l_img.get_fdata()
