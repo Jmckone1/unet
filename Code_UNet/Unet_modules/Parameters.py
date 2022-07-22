@@ -3,40 +3,33 @@
 ###########################################################
                 # Global Parameters #
 ###########################################################
+
 class Global:
     Seed = 0
-    GPU = "1"
 
 ###########################################################
             # RANO Dataloader Parameters #
-###########################################################    
-# Index filepath to save to for moving through the current non-standard sized image slices
-# will create a new if the file doesnt currently exist.
-class rData_Test:
-    
-    image_in = "whimg_norm"
-    rano_in = "RANO"
-    index_file = "/index_max_original.npy"
-    
+###########################################################
 class rData:
 
-#     image_in = "flair_reduced"
-#     rano_in = "RANO_reduced_2"
-#     index_file = "/index_max_reduced.npy"
-    
+    # Input filepaths for the dataloader
     image_in = "whimg_reduced"
-    rano_in = "RANO_reduced_2"
+    rano_in = "RANO_reduced"
+    # Index filepath to save to for moving through the current non-standard sized image slices - will create a new if the file doesnt currently exist.
+
     index_file = "/index_max_reduced.npy"
 
 ###########################################################
          # RANO Unet Model Parameters #
 ###########################################################
+
 # area penalty value is currently redundant and will not produce any impact for the penalty 2 model as it has not been implemented 
 # this is purposeful until the point in time where we can test if there is any reasonable point or evidence in it working.
 
 # checkpoint path in the format "FileName/" - filepath to save the network resulting checkpoint files
 # size is the image interpolation multiplier
 # training 70%, validation 10% and testing 20%
+
 class rNet:
     
     checkpoint = "Unet_H16_M14_CO0_R3_main_data_input_4/"
@@ -60,8 +53,8 @@ class rNet:
     size = 1
     initial_shape = int(240 * size)
     target_shape = int(8)
-    device = 'cuda' #this may be better in global
-    
+    device = 'cuda'
+
     train_split = 0.7
     validation_split = 0.1
     test_split = 0.2
@@ -115,3 +108,11 @@ class test_rNet:
 # # need to make sure to have a look at and ask about conferences before and during the meeting on friday. both in terms of submitting the work that i am currently doing and for purposes of attending. i feel like ive lost track alot of what ive been doing and lost touch in where to be going next, instead of being stuck down the rabbit hoel with my current work tog et it out there. i did attend the research showcase which is good but could be better.
 
 # people having been asking how loing it takes to run the model and what resources. so this is something that im going to need to add to the logging file i think, start-runtime and end-runtime. plus make sure to minus one from the other and take validation into account.
+=======
+###########################################################
+# param file usage currently implemented in:
+# RANO_dataloader_2_scandir.py (can use different naming once completed)
+# UNet_RANO_Split_Mem.py
+
+# Files to add
+# Test_RANO_2.py

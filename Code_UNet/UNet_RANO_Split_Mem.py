@@ -18,21 +18,17 @@ import matplotlib.pyplot as plt
 import torch.cuda.amp as amp
 import numpy as np
 import logging
-import shutil
 import torch
 import csv
 import os
 
 import Unet_modules.Parameters as Param
 
-# np.random.seed(Param.Global.Seed)
-# torch.manual_seed(Param.Global.Seed)
-
-np.random.seed(1)
-torch.manual_seed(1)
+np.random.seed(Param.Global.Seed)
+torch.manual_seed(0Param.Global.Seed)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]=Param.Global.GPU
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 print(torch.__version__)
 print("")
@@ -44,6 +40,7 @@ print("")
 # (although there is an issue with the ground truth dataset being incorrect for the dataset in this case).
 # model 13 makes use of the new updated ground truth so make sure you get it right this time
 # going to have a rethink on the naming conventions used for the models here - currently rerunning the dataset aquisition code for the rano part of the model.
+
 # unet_h16_m13_o0_2 is reran with default as i think it was mimicing the results from the orth 100 penalty
 # unet_h16_m13_o100_2 is reran using the orginal penalty measure for comparison with orth at 100x penalty
 # these models prodcued no meaningful difference in results - good from an overall point of view with up to 0.4 jaccard after 50 eposchs whihc is up from the previous, but no change at all in jaccard otherwise which is worrying
@@ -51,31 +48,6 @@ print("")
 # models with cosine similarity loss now (18052022) which im printing out the scores for each of the loss measures (MSE = (COSINE + w))
 
 np.set_printoptions(precision=4)
-
-print("###################################################")
-print("Parameter file values")
-print("###################################################")
-print("Current Seed value", Param.Global.Seed)
-print("Device", Param.rNet.device)
-print("Input Dimension", Param.rNet.input_dim)
-print("Label Dimension", Param.rNet.label_dim)
-print("Hidden Layer Dimension", Param.rNet.hidden_dim)
-print("Checkpoint Path", Param.rNet.checkpoint)
-print("Epoch total number", Param.rNet.n_epochs)
-print("Batch Size number", Param.rNet.batch_size)
-print("Learning Rate", Param.rNet.lr)
-print("Orthogonality Penalty value", Param.rNet.orth_penalty)
-print("Area Penalty value", Param.rNet.area_penalty)
-print("Console Display step", Param.rNet.display_step)
-print("Dataset path", Param.rNet.dataset_path)
-print("Interpolation multiplier", Param.rNet.size)
-print("Index counter filepath", Param.rData.index_file)
-print("Training Split value", Param.rNet.train_split)
-print("Validation Split value", Param.rNet.validation_split)
-print("Testing Split value", Param.rNet.test_split)
-print("Custom Split value", Param.rNet.custom_split_amount)
-print("###################################################")
-input("Press Enter to continue . . . ")
 
 #criterion = nn.MSELoss()
 loss_f = Penalty(Param.rNet.orth_penalty, Param.rNet.area_penalty)
@@ -188,7 +160,6 @@ def train(Train_data,Val_data,load=False):
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Training_Jaccard")
         os.makedirs("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_Jaccard")
     
-    ## may get rid of this section in the future as we now save the parameter file, though the architecture is potentially useful.
     with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Model_architecture", 'w') as write: 
         write.write("epochs: " + str(Param.rNet.n_epochs) + "\n")
         write.write("batch size: " + str(Param.rNet.batch_size) + "\n")
@@ -197,19 +168,8 @@ def train(Train_data,Val_data,load=False):
         write.write("area weight: " + str(Param.rNet.area_penalty) + "\n")
 
         write.write(str(unet))
-        
-    ################################################################################################################
-    # saves a copy of the current parameter file to the checkpoint file for future reference and reproducability
-    # Implemented 11/05/2022 for code files H16_M13 and above
-    ################################################################################################################
-
-    original = r'Code_UNet/Unet_modules/Parameters.py'
-    target = r'Checkpoints_RANO/' + Param.rNet.checkpoint + 'Parameters.py'
-    shutil.copyfile(original, target)
-
-    ################################################################################################################
-
-    unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.rNet.lr, betas=Param.rNet.Betas, weight_decay=Param.rNet.Weight_Decay)
+    
+    unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.rNet.lr, betas=(0.9, 0.999), weight_decay=1e-8)
 
     if load == True:
         checkpoint = torch.load("Checkpoints_RANO/" + Param.rNet.checkpoint + "checkpoint_0_step_1900.pth")
@@ -349,6 +309,8 @@ def train(Train_data,Val_data,load=False):
         
         valid_loss.append(epoch_val_loss)
         valid_jaccard.append(epoch_jaccard_valid)
+      
+ ####################################################################################################################
 
         print("Improvement", Improvement)
         print("nan mean jaccard validation over the epoch", np.nanmean(epoch_jaccard_valid))
@@ -382,6 +344,11 @@ def train(Train_data,Val_data,load=False):
         with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_jaccard)
+            
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        # save a copy of the current parameters fil in the location of : ("Checkpoints_RANO/" + Param.rNet.checkpoint + "parameters_used.py") #
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+            #################################################################################################################################
 
     print('Finished Training Dataset')
     return total_loss, valid_loss
@@ -389,7 +356,7 @@ def train(Train_data,Val_data,load=False):
 #               step and loss output start               #
 #--------------------------------------------------------#
 
-dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = Param.rNet.Extensions, size=Param.rNet.size, apply_transform=False)
+dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = ["/HGG","/LGG"], size=Param.rNet.size, apply_transform=False)
 ##################################################################################################################################
 # dataset length splitting - currently needs testing - the code below is the prior functioning code ##############################
 ##################################################################################################################################
