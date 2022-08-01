@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "2"
+    GPU = "1"
     
 class sData:
 
@@ -9,12 +9,15 @@ class sData:
     index_file = "/index_max_original.npy"
     
 class SegNet:
+    # In the format "FileName/"
+    dataset_path = "Brats_2018_data/Brats_2018_data" 
     
-    dataset_path = "mini_test/mini_test"#Brats_2018_data/Brats_2018_data" # In the format "FileName/"
-    c_file = "test_01" #"split_data_experiments/Full_model_MK6_H16_PTE_CO100_R3_lr_003_dice_main_20072022/" # filepath to save model details within checkpoint file
-    checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
+    # filepath to save model details within checkpoint file
+    c_file = "split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022/" 
+    
     # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
-
+    checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
+    
     n_epochs = 3
     input_dim = 4
     label_dim = 1
@@ -36,6 +39,32 @@ class SegNet:
     extensions = ["/HGG","/LGG"]
 
     useWeights = True # false if with no pre-training, True with Pretraining
-    allow_update = True # false if Frozen model, True if Unfrozen model
+    allow_update = False # false if Frozen model, True if Unfrozen model
     
     checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch
+    
+    # i need to change or rerun the code without the additional sigmoid function for dice loss to see if that works.
+    # i need to try the alternatives for the learning rate so that i can check that.
+    # i want to but cannot check the impact of batch size at this time due to the pretrained part of the model not having the same batch size.
+    # i will need to test the model outputs on the data that doesnt include tumour slices versus those that do - for comparison
+    # i want to test more epochs depending on the output
+    # i need to check the progressive;y smaller dataset chunks to see what impact is made
+    # i need to look into the prospect of appying cross validation and methods that this can be done by
+    # i need to test this on whole tumour scale rather than a per slice (random) scale that i have been doing so far
+    # maabe have a play with the weight decay for the models and see what impact that has
+    
+class testNet:
+    
+    dataset_path = "Brats_2018_data/Brats_2018_data"
+    extensions = ["/HGG","/LGG"]
+
+    size = 1
+    batch_size = 16
+    device = 'cuda'
+    load_path = "Checkpoints/split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_21072022"
+    save_path = "Predictions/MK_6_model_predictions/PFE_dice_0822"
+    input_dim = 4
+    label_dim = 1
+    hidden_dim = 16
+    lr = 0.0003
+    weight_decay = 1e-8
