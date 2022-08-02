@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "1"
+    GPU = "2"
     
 class sData:
 
@@ -13,7 +13,9 @@ class SegNet:
     dataset_path = "Brats_2018_data/Brats_2018_data" 
     
     # filepath to save model details within checkpoint file
-    c_file = "split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022/" 
+    c_file = "split_data_experiments/Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_01082022/" 
+    
+
     
     # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
@@ -22,7 +24,7 @@ class SegNet:
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
-    lr = 0.003
+    lr = 0.0003
     
     size = 1
     display_step = 50
@@ -38,7 +40,7 @@ class SegNet:
     
     extensions = ["/HGG","/LGG"]
 
-    useWeights = True # false if with no pre-training, True with Pretraining
+    useWeights = False # false if with no pre-training, True with Pretraining
     allow_update = False # false if Frozen model, True if Unfrozen model
     
     checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch
@@ -55,16 +57,22 @@ class SegNet:
     
 class testNet:
     
+#     Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022
+#     Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_01082022
+    
     dataset_path = "Brats_2018_data/Brats_2018_data"
     extensions = ["/HGG","/LGG"]
 
     size = 1
     batch_size = 16
     device = 'cuda'
-    load_path = "Checkpoints/split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_21072022"
-    save_path = "Predictions/MK_6_model_predictions/PFE_dice_0822"
+    load_path = "Checkpoints/split_data_experiments/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_bce_main_22072022"
+    save_path = "Predictions/MK_6_model_predictions/PTE_dice_0822"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
     lr = 0.0003
     weight_decay = 1e-8
+    
+    intermediate_checkpoints = False
+    end_epoch_checkpoints = True

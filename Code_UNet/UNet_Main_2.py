@@ -31,36 +31,58 @@ np.set_printoptions(precision=4)
 print("###################################################")
 print("Parameter file values")
 print("###################################################")
-print("Current Seed value",Param.Global.Seed)
-print("Current GPU allocated",Param.Global.GPU)
-print("Dataloader input path, IMAGE",Param.sData.image_in)
-print("Dataloader input path, RANO",Param.sData.rano_in)
-print("Dataloader index path",Param.sData.index_file)
-print("Dataset path",Param.SegNet.dataset_path)
-print("Checkpoint save path",Param.SegNet.c_file)
-print("Encode checkpoint load path",Param.SegNet.checkpoint_name)
-print("Total epochs",Param.SegNet.n_epochs)
-print("Input layer dimensions",Param.SegNet.input_dim)
-print("Label dimensions",Param.SegNet.label_dim)
-print("Hidden layer dimensions",Param.SegNet.hidden_dim)
-print("Current Learning rate",Param.SegNet.lr)
-print("Current interpolation size",Param.SegNet.size)
-print("Current console output step",Param.SegNet.display_step)
-print("Current batch size",Param.SegNet.batch_size)
-print("Device",Param.SegNet.device)
-print("Training set split percent",Param.SegNet.train_split)
-print("Validation set split percent",Param.SegNet.validation_split)
-print("testing set split percent",Param.SegNet.test_split)
-print("Custom splitting percent",Param.SegNet.custom_split_amount)
-print("Weight decay",Param.SegNet.weight_decay)
-print("File path extension",Param.SegNet.extensions)
-print("Apply encoder weights",Param.SegNet.useWeights)
-print("Allow encoder update",Param.SegNet.allow_update)
-print("###################################################")
+# print("Current Seed value",Param.Global.Seed)
+# print("Current GPU allocated",Param.Global.GPU)
+# print("Dataloader input path, IMAGE",Param.sData.image_in)
+# print("Dataloader input path, RANO",Param.sData.rano_in)
+# print("Dataloader index path",Param.sData.index_file)
+# print("Dataset path",Param.SegNet.dataset_path)
+# print("Checkpoint save path",Param.SegNet.c_file)
+# print("Encode checkpoint load path",Param.SegNet.checkpoint_name)
+# print("Total epochs",Param.SegNet.n_epochs)
+# print("Input layer dimensions",Param.SegNet.input_dim)
+# print("Label dimensions",Param.SegNet.label_dim)
+# print("Hidden layer dimensions",Param.SegNet.hidden_dim)
+# print("Current Learning rate",Param.SegNet.lr)
+# print("Current interpolation size",Param.SegNet.size)
+# print("Current console output step",Param.SegNet.display_step)
+# print("Current batch size",Param.SegNet.batch_size)
+# print("Device",Param.SegNet.device)
+# print("Training set split percent",Param.SegNet.train_split)
+# print("Validation set split percent",Param.SegNet.validation_split)
+# print("testing set split percent",Param.SegNet.test_split)
+# print("Custom splitting percent",Param.SegNet.custom_split_amount)
+# print("Weight decay",Param.SegNet.weight_decay)
+# print("File path extension",Param.SegNet.extensions)
+# print("Apply encoder weights",Param.SegNet.useWeights)
+# print("Allow encoder update",Param.SegNet.allow_update)
+# print("###################################################")
+
+for val, var in enumerate(vars(Param.Global)):
+    if val == len(vars(Param.Global)) - 3:
+        print("")
+        break
+    else:
+        print(var, getattr(Param.Global, var))
+
+for val, var in enumerate(vars(Param.sData)):
+    if val == len(vars(Param.sData)) - 3:
+        print("")
+        break
+    else:
+        print(var, getattr(Param.sData, var))
+        
+for val, var in enumerate(vars(Param.SegNet)):
+    if val == len(vars(Param.SegNet)) - 3:
+        print("")
+        break
+    else:
+        print(var, getattr(Param.SegNet, var))
+
 input("Press Enter to continue . . . ")
 
-criterion = nn.BCEWithLogitsLoss()
-#criterion = DiceLoss()
+# criterion = nn.BCEWithLogitsLoss()
+criterion = DiceLoss()
 #update file read in counter based on the UNet_RANO_cosine code
 #update dataloader based on the code_UNet_RANO dataloaders
 
@@ -73,7 +95,6 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
     print("Validation...")
     
     unet.eval()
-    #losses = []
     
     running_loss = 0.0
     cur_step = 0

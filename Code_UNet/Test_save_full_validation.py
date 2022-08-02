@@ -300,6 +300,25 @@ print("Full_dataset: ", len(all_data_m))
 print("Training: ", len(train_data_m))
 print("validation: ", len(validation_data_m))
 
+print("")
+print("Param values")
+
+for val, var in enumerate(vars(Param.Global)):
+    if val == len(vars(Param.Global)) - 3:
+        print("")
+        break
+    else:
+        print(var, getattr(Param.Global, var))
+
+for val, var in enumerate(vars(Param.testNet)):
+    if val == len(vars(Param.testNet)) - 3:
+        print("")
+        break
+    else:
+        print(var, getattr(Param.testNet, var))
+
+input("Press enter to continue . . . . . .")
+
 Train_data=DataLoader(
     dataset=dataset,
     batch_size=Param.testNet.batch_size,
@@ -310,25 +329,37 @@ Val_data=DataLoader(
     batch_size=Param.testNet.batch_size,
     sampler=validation_data_m)
 
-values = np.linspace(50, 550, num=11)
 
 unet = net.UNet(Param.testNet.input_dim, 
                 Param.testNet.label_dim, 
                 Param.testNet.hidden_dim).to(Param.testNet.device)
 unet_opt = torch.optim.Adam(unet.parameters(), lr=Param.testNet.lr, weight_decay=Param.testNet.weight_decay)
 
-# for i in range(3):
-for j in range(len(values)):
+values = np.linspace(50, 550, num=11)
 
-    load_path = Param.testNet.load_path + "/checkpoint_0" + "_" + str(int(values[j])) + ".pth"
-    save_path = Param.testNet.save_path + "/MK_5_base_step_0" + '_' + str(int(values[j])) + '/'
+if Param.testNet.intermediate_checkpoints == True:
+    for j in range(len(values)):
 
-#         load_path = Param.testNet.load_path + "/checkpoint_" + str(i) + "_" + str(int(values[j])) + ".pth"
-#         save_path = Param.testNet.save_path + "/MK_5_base_step_" + str(i) + '_' + str(int(values[j])) + '/'
+        load_path = Param.testNet.load_path + "/checkpoint_0" + "_" + str(int(values[j])) + ".pth"
+        save_path = Param.testNet.save_path + "/MK_5_base_step_0" + '_' + str(int(values[j])) + "/"
 
-    checkpoint = torch.load(load_path)
+        checkpoint = torch.load(load_path)
 
-    unet.load_state_dict(checkpoint['state_dict'])
-    unet_opt.load_state_dict(checkpoint['optimizer'])
+        unet.load_state_dict(checkpoint['state_dict'])
+        unet_opt.load_state_dict(checkpoint['optimizer'])
 
-    Test_save(Val_data, unet, unet_opt, Param.testNet.dataset_path, Param.testNet.extensions, save_path, load_path, save=True)
+        Test_save(Val_data, unet, unet_opt, Param.testNet.dataset_path, Param.testNet.extensions, save_path, load_path, save=True)
+if Param.testNet.end_epoch_checkpoints == True:
+    for i in range(3):
+        load_path = Param.testNet.load_path + "/checkpoint_" + str(i) + ".pth"
+        save_path = Param.testNet.save_path + "/MK_5_base_step_" + str(i) + "/"
+
+        checkpoint = torch.load(load_path)
+
+        unet.load_state_dict(checkpoint['state_dict'])
+        unet_opt.load_state_dict(checkpoint['optimizer'])
+
+        Test_save(Val_data, unet, unet_opt, Param.testNet.dataset_path, Param.testNet.extensions, save_path, load_path, save=True)
+        
+        
+print("END")
