@@ -66,8 +66,8 @@ class testNet:
     size = 1
     batch_size = 16
     device = 'cuda'
-    load_path = "Checkpoints/split_data_experiments/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_bce_main_22072022"
-    save_path = "Predictions/MK_6_model_predictions/PTE_dice_0822"
+    load_path = "Checkpoints/split_data_experiments/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022"
+    save_path = "Predictions/MK_6_model_predictions/PFE_dice_0822"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
