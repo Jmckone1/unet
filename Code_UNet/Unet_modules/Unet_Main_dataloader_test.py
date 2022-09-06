@@ -37,18 +37,18 @@ class BraTs_Dataset(Dataset):
         for input_ in range(len(self.path_ext)):
             counter = 0
             # each folder in extension
-            print(path)
+            # print(path)
             for files in os.scandir(path + self.path_ext[input_]):
                 if files.is_dir() or files.is_file():
                     if not files.name.startswith("."):
-                        print(self.path_ext[input_] + "/" + files.name)
+                        # print(self.path_ext[input_] + "/" + files.name)
                         self.d.append(self.path_ext[input_] + "/" + files.name)
             counter = len(self.d)
             # if the index file does not exist then create a new one, else load the existing one.
             # may have to implement an override in the case of a necessary deletion.
             if not os.path.exists(path + Param.sData.index_file):
                 print("Creating index_file...")
-                print(path + Param.sData.index_file)
+                # print(path + Param.sData.index_file)
                 for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
                         if input_ == 0:
@@ -78,23 +78,29 @@ class BraTs_Dataset(Dataset):
         print("File_paths from dataloader", self.d)
 
     def __getitem__(self,index):
-
+        
+        self.current_dir = 0
+        
         for i in range(len(self.index_max)):
             if index >= self.index_max[i]:
                 continue
             else:
-                current_dir = i-1
+                self.current_dir = i-1
                 break
 
+        print(self.current_dir)
+                
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
+        file_t = self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
         full_path = self.path + file_t
+        # print(full_path)
+        
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
-        img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
+        img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
         
         # interpolate image 
         img = torch.from_numpy(img).unsqueeze(0)
@@ -104,12 +110,12 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whseg_norm" + '.nii.gz'
+        file_label = self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whseg_norm" + '.nii.gz'
         l_full_path = self.path + file_label
         
         l_img = nib.load(l_full_path)
         img_labels = l_img.get_fdata()
-        label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
+        label = img_labels[:,:,int(index - self.index_max[self.current_dir])-1]
         
         # interpolate label
         label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)
@@ -124,7 +130,7 @@ class BraTs_Dataset(Dataset):
         img = img.squeeze().numpy()
         label = label.squeeze().numpy()
         
-        return img,label
+        return img,label,self.d[self.current_dir]
     
     def Transform(self, image, label):
 

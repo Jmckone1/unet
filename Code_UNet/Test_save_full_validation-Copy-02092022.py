@@ -48,23 +48,192 @@ def dice_score(prediction, truth):
         score = 0
         
     return score
-  
-def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, save=False, save_image = False, save_val =""):
 
-    # dice score array outputs
-    DS, DS_mean = [], []
-    DS_all, DS_mean_all = [], []
-    DS_none, DS_mean_none = [], []
+# change the import values here to remove the need for HGG and LGG switching- this is important and the code will crash otherwise - with the values not lining up since the dataset rework.
+
+# def Test_save_oval(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, save=False, save_image = False, save_val =""):
+    
+#     d = []
+#     index_max = []
+#     index_max.extend([0])
+#     HGG_len = 0
+#     c_s = 0
+#     current_dir = 0
+    
+#     DS_mean = []
+#     DS_mean_all = []
+#     DS_mean_none = []
+    
+#     if not os.path.exists(save_path) and save == True:
+#         # Create a new directory because it does not exist 
+#         os.makedirs(save_path)
+        
+#     # each extension - HGG or LGG
+#     for input_ in range(len(path_ext)):
+#         counter = 0
+#         # each folder in extension
+#         for files in os.scandir(path + self.path_ext[input_]):
+#             if files.is_dir() or files.is_file():
+#                 if not files.name.startswith("."):
+#                     d.append(files.name)
+#         counter = len(d)
+#         print(d)
+
+#         if not os.path.exists(path + Param.rData.index_file):
+#             print("Creating index_file...")
+#             print(path + Param.rData.index_file)
+#             for directory in tqdm(range(counter-c_s)):
+#                 if directory == 0:
+#                     if input_ == 0:
+#                         c_s = counter
+#                 if input_ == 1:
+#                     directory = directory + c_s
+                    
+#                     file = self.d[directory] + '/' + self.d[directory] + "_" + Param.rData.image_in + '.nii.gz'
+#                     full_path = os.path.join(path + path_ext[input_], file)
+#                     img_a = nib.load(full_path)
+#                     img_data = img_a.get_fdata()
+
+#                     self.index_max.extend([img_data.shape[3] + self.index_max[-1]])
+# #                 print(input_)
+# #                 print(len(self.path_ext)-1)
+#                 if input_ == (len(self.path_ext)-1):
+#                     print("Saving index file . . . ")
+#                     np.save(path + Param.rData.index_file, self.index_max)
+#                     print("Index file complete")
+#             else:
+#                 self.index_max = np.load(path + Param.rData.index_file)
+
+#                 # value for extension swapping
+#                 if input_ == 0:
+#                     self.HGG_len = self.index_max[-1]
+#     input("")
+#     count = self.index_max[-1]
+            
+#     unet.eval()
+    
+#     img_num = 0 # file size output
+#     pred_img = np.empty((240,240,155)) # prediction array output
+#     DS = [] # dice score total array output
+#     DS_all = []
+#     DS_none = []
+# #     data_val = 0 # number for file output naming
+    
+#     for truth_input in tqdm(Test_data):
+
+#         cur_batch_size = len(truth_input)
+
+#         # flatten ground truth and label masks
+#         truth_input = truth_input.to(Param.testNet.device)
+#         truth_input = truth_input.float() 
+#         truth_input = truth_input.squeeze()
+
+#         # set accumilated gradients to 0 for param update
+#         unet_opt.zero_grad()
+#         pred = unet(truth_input)
+#         pred = pred.squeeze()
+
+#         plt.show()
+
+#         pred_output = pred.cpu().detach().numpy()
+
+#         if save == True:
+#             for i in range(cur_batch_size):
+#                 pred_1 = np.clip(pred_output[i,:,:], 0, 1.0)
+#                 pred_1 = np.where(pred_1 > 0.5, 1, 0)
+#                 pred_img[:,:,img_num] = pred_1
+
+#                 img_num += 1
+
+#                 if img_num == 155:
+#                     print("image 155 slice")
+
+# #                     if data_val < HGG_len:
+# #                         ext = path_ext[0]
+# #                     else:
+# #                         ext = path_ext[1]
+
+#                     if save == True:
+#                         print("saving: ", save_path + ext + "_" + d[data_val] + '.nii.gz')
+#                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
+#                         nib.save(pred_img_save, os.path.join(save_path + ext + "_" + d[data_val] + '.nii.gz'))  
+
+#                     data_val += 1
+#                     pred_img = np.empty((240,240,155))
+#                     img_num = 0
+                    
+                    
+def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, save=False, save_image = False, save_val =""):
+    
+    d = []
+    index_max = []
+    index_max.extend([0])
+    HGG_len = 0
+    c_s = 0
+    current_dir = 0
+    
+    DS_mean = []
+    DS_mean_all = []
+    DS_mean_none = []
+    
+    if not os.path.exists(save_path) and save == True:
+        # Create a new directory because it does not exist 
+        os.makedirs(save_path)
+#         os.makedirs(save_path + "/HGG")
+#         os.makedirs(save_path + "/LGG")
+        
+#     # each extension - HGG or LGG
+#     for input_ in range(len(path_ext)):
+#         counter = 0
+#         # each folder in extension
+#         for files in os.scandir(path + path_ext[input_]):
+#             if files.is_dir() or files.is_file():
+#                 if not files.name.startswith("."):
+#                     print(path_ext[input_] + "/" + files.name)
+#                     d.append(path_ext[input_] + "/" + files.name)
+#         counter = len(d)
+
+#         if not os.path.exists(path + Param.sData.index_file )and Param.sData.refresh_index == True:
+#             print("Creating index_file...")
+#             print(path + Param.sData.index_file)
+#             for directory in tqdm(range(counter-c_s)):
+#                 if directory == 0:
+#                     if input_ == 0:
+#                         c_s = counter
+#                 if input_ == 1:
+#                     directory = directory + c_s
+                    
+#                     file = d[directory] + '/' + d[directory][5:] + "_" + Param.sData.image_in + '.nii.gz'
+#                     full_path = os.path.join(path + path_ext[input_], file)
+                    
+#                     img_a = nib.load(full_path)
+#                     img_data = img_a.get_fdata()
+
+#                     index_max.extend([img_data.shape[3] + index_max[-1]])
+
+#                 if input_ == (len(path_ext)-1):
+#                     print("Saving index file . . . ")
+#                     np.save(path + Param.sData.index_file, index_max)
+#                     print("Index file complete")
+#             else:
+#                 index_max = np.load(path + Param.sData.index_file)
+
+#                 # value for extension swapping
+#                 if input_ == 0:
+#                     HGG_len = index_max[-1]
+                    
+#     print("file name aquisition complete, press Enter to continue . . . ")
+# #     input("")
+#     count = index_max[-1]
+            
+    unet.eval()
     
     img_num = 0 # file size output
     pred_img = np.empty((240,240,155)) # prediction array output
-
+    DS = [] # dice score total array output
+    DS_all = []
+    DS_none = []
     data_val = 0 # number for file output naming
-    
-    if not os.path.exists(save_path) and save == True:
-        os.makedirs(save_path)
-     
-    unet.eval()
     
     for truth_input, label_input, dataloader_path in tqdm(Test_data):
 
@@ -106,9 +275,16 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                 DS_all.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
 
                 img_num += 1
+                #print(img_num)
 
                 if img_num == 155:
+                    print("image 155 slice")
 
+#                     if data_val < HGG_len:
+#                         ext = path_ext[0]
+#                     else:
+#                         ext = path_ext[1]
+                        
                     mean_val = np.mean(DS)
                     mean_val_all = np.mean(DS_all)
                     mean_val_none = np.mean(DS_none)
@@ -119,7 +295,14 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                     DS = []
                     DS_all = []
                     DS_none = []
-
+                    
+#                     print("save_path", save_path)
+#                     print("#################################")
+#                     print("data_path", dataloader_path[i])
+#                     print("#################################")
+#                     print("addition [4:]", save_path + dataloader_path[i][4:] + '.nii.gz')
+#                     input("#################################")
+                    
                     if save == True:
                         print("saving: ", save_path + dataloader_path[i][4:] + '.nii.gz')
                         pred_img_save = nib.Nifti1Image(pred_img, np.eye(4))
@@ -134,16 +317,16 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                     img_num = 0
                                                              
     if save == True:
-        # there was an additional 0 in the string before the underscore here, causing save values to output as 500 instead of 50 and 1000 instead of 100 ect. (artefact from prior code versions - now fixed but still present in predcition file PFE_dice_0822_3_3_small)
-        with open(os.path.join(save_path + "_Tumour_slice_validation_dice.csv"), 'w') as f:
+        with open(os.path.join(save_path + "0_Tumour_slice_validation_dice.csv"), 'w') as f:
             write = csv.writer(f) 
             write.writerow(DS_mean)
-        with open(os.path.join(save_path + "_All_slice_validation_dice.csv"), 'w') as f:
+        with open(os.path.join(save_path + "0_All_slice_validation_dice.csv"), 'w') as f:
             write = csv.writer(f) 
             write.writerow(DS_mean_all)
-        with open(os.path.join(save_path + "_None_slice_validation_dice.csv"), 'w') as f:
+        with open(os.path.join(save_path + "0_None_slice_validation_dice.csv"), 'w') as f:
             write = csv.writer(f) 
             write.writerow(DS_mean_none)
+
 
 ##################################################################################################################################
 # dataset length splitting - currently needs testing - the code above is the prior functioning code ##############################
@@ -156,7 +339,7 @@ print("starting model")
 dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.testNet.size, apply_transform=False)
 print("initialised dataset")
 
-index_f = np.load(Param.testNet.dataset_path + Param.sData.index_file)
+index_f = np.load(Param.SegNet.dataset_path + Param.sData.index_file)
 print("loaded index file")
 patients_number = len(index_f)
 
@@ -184,12 +367,13 @@ test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
 all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
 custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
 
-test_data_us = torch.utils.data.SubsetRandomSampler(test_range,False)
-# print(test_data_us)
-# print(test_range)
-# input("")
-print("produced dataset split amounts")
 
+
+test_data_us = torch.utils.data.SubsetRandomSampler(test_range,False)
+print(test_data_us)
+print(test_range)
+input("")
+print("produced dataset split amounts")
 ##################################################################################################################################
 
 # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
@@ -246,10 +430,7 @@ values = np.linspace(50, 550, num=11)
 
 if Param.testNet.intermediate_checkpoints == True:
     for j in range(len(values)):
-        
-        print(" ")
-        print("Starting prediction of qualitative outputs for batch ", values[j])
-        
+
         load_path = Param.testNet.load_path + "/checkpoint_0" + "_" + str(int(values[j])) + ".pth"
         save_path = Param.testNet.save_path + "/step_0_" + str(int(values[j]))
 
@@ -262,9 +443,6 @@ if Param.testNet.intermediate_checkpoints == True:
 
 if Param.testNet.end_epoch_checkpoints == True:
     for i in range(3):
-        
-        print(" ")
-        print("Starting prediction of qualitative outputs for end of Epoch ", i + 1)
 
         load_path = Param.testNet.load_path + "/checkpoint_" + str(i) + ".pth"
         save_path = Param.testNet.save_path + "/step_" + str(i)

@@ -31,8 +31,7 @@ class BraTs_Dataset(Dataset):
         
         self.path_ext = path_ext
         self.apply_transform = apply_transform
-        # self.HGG_len = 0
-        
+
         c_s = 0
         self.current_dir = 0
 
@@ -65,18 +64,13 @@ class BraTs_Dataset(Dataset):
                     img_data = img_a.get_fdata()
 
                     self.index_max.extend([img_data.shape[3] + self.index_max[-1]])
-#                 print(input_)
-#                 print(len(self.path_ext)-1)
+
                 if input_ == (len(self.path_ext)-1):
                     print("Saving index file . . . ")
                     np.save(path + Param.sData.index_file, self.index_max)
                     print("Index file complete")
             else:
-                self.index_max = np.load(path + Param.sData.index_file)
-
-#                 # value for extension swapping
-#                 if input_ == 0:
-#                     self.HGG_len = self.index_max[-1]  
+                self.index_max = np.load(path + Param.sData.index_file) 
             
         # inputs to global
         self.count = self.index_max[-1]
@@ -91,7 +85,7 @@ class BraTs_Dataset(Dataset):
             if index >= self.index_max[i]:
                 continue
             else:
-                current_dir = i-1
+                self.current_dir = i-1
                 break
 
         # assign the correct extension - HGG or LGG
@@ -104,12 +98,12 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
-        file_t = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
+        file_t = self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
         full_path = self.path + file_t
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
-        img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
+        img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
         
         # interpolate image 
         img = torch.from_numpy(img).unsqueeze(0)
@@ -119,12 +113,12 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                         labels return start                         #
 
-        file_label = self.d[current_dir] + '/' + self.d[current_dir][5:] + "_" + "whseg_norm" + '.nii.gz'
+        file_label = self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whseg_norm" + '.nii.gz'
         l_full_path = self.path + file_label
         
         l_img = nib.load(l_full_path)
         img_labels = l_img.get_fdata()
-        label = img_labels[:,:,int(index - self.index_max[current_dir])-1]
+        label = img_labels[:,:,int(index - self.index_max[self.current_dir])-1]
         
         # interpolate label
         label = torch.from_numpy(label).unsqueeze(0).unsqueeze(0)

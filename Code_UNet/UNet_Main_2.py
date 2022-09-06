@@ -285,6 +285,8 @@ print(train_length)
 print(validation_length)
 print(all_data_length)
 
+print("Custom_split length", len(custom_split_range))
+
 train_data_m = torch.utils.data.RandomSampler(train_range,False)
 validation_data_m = torch.utils.data.RandomSampler(val_range,False)
 test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
@@ -301,14 +303,27 @@ print("validation: ", len(validation_data_m))
 
 print("Epochs: ", Param.SegNet.n_epochs)
 
+# Train_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=Param.SegNet.batch_size,
+#     sampler=train_data_m)
+
+# Val_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=Param.SegNet.batch_size,
+#     sampler=validation_data_m)
+
 Train_data=DataLoader(
     dataset=dataset,
     batch_size=Param.SegNet.batch_size,
-    sampler=train_data_m)
+    sampler=custom_split_m)
 
 Val_data=DataLoader(
     dataset=dataset,
     batch_size=Param.SegNet.batch_size,
     sampler=validation_data_m)
+
+print("Actual train length", len(Train_data.sampler))
+print("actual validation length", len(Val_data.sampler))
 
 train(Train_data, Val_data, load=False)
