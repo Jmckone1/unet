@@ -6,7 +6,7 @@ class sData:
 
     image_in = "whimg_norm"
     rano_in = "RANO_2"
-    index_file = "/index_max_original.npy"
+    index_file = "/index_max_original_2_small.npy"
     refresh_index = False
 
 class SegNet:
@@ -14,7 +14,7 @@ class SegNet:
     dataset_path = "Brats_2018_data/Brats_2018_data" 
 
     # filepath to save model details within checkpoint file
-    c_file = "split_data_experiments/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_30_percent/" 
+    c_file = "split_data_experiments/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_50_percent/" 
 
     # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
@@ -33,7 +33,7 @@ class SegNet:
     train_split = 0.7
     validation_split = 0.1
     test_split = 0.2
-    custom_split_amount = 0.3
+    custom_split_amount = 0.5
     
     weight_decay = 1e-8
     
@@ -56,9 +56,12 @@ class SegNet:
     
 class testNet:
     
+    # 1:53:00 per 543 slices
+    
 #     Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022
 #     Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_01082022
     
+    # dataset_path = "Smaller_dataset/Brats_2018_data/Brats_2018_data"
     dataset_path = "Brats_2018_data/Brats_2018_data"
     extensions = ["/HGG","/LGG"]
 
@@ -71,12 +74,17 @@ class testNet:
     # Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_21072022
     
     load_path = "Checkpoints/split_data_experiments/1_Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main"
-    save_path = "Predictions/MK_6_model_predictions/RI_dice_0822_3_3_2"
+    save_path = "Predictions/MK_6_model_predictions/RI_dice_0922_23_testmain"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
     lr = 0.0003
     weight_decay = 1e-8
+    
+    train_split = 0.7
+    validation_split = 0.1
+    test_split = 0.2
+    custom_split_amount = 1
     
     intermediate_checkpoints = True
     end_epoch_checkpoints = True

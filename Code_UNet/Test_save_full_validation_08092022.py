@@ -1,5 +1,5 @@
 # from Unet_modules.Full_model_dataloader_main_Copy import BraTs_Dataset
-from Unet_modules.Unet_Main_dataloader_test_02 import BraTs_Dataset
+from Unet_modules.Unet_Main_dataloader_test import BraTs_Dataset
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 import Net.Unet_components_v2 as net
@@ -159,10 +159,7 @@ print("initialised dataset")
 index_f = np.load(Param.testNet.dataset_path + Param.sData.index_file)
 
 print("loaded index file")
-patients_number = len(dataset) # len(index_f)
-print("Patients",patients_number)
-print("data",len(dataset))
-input("")
+patients_number = len(index_f)
 
 print("length start")
 train_length = index_f[int(np.floor(patients_number*Param.testNet.train_split))]
