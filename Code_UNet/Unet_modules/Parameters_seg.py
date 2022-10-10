@@ -56,11 +56,14 @@ class SegNet:
     
 class testNet:
     
-    # 1:53:00 per 543 slices
-    
+    # 1:53:00 per 543 batches of slices (543*16 = 8688) 
+    # (113*60) / 8688 = 0.7803 (8688 / (113*60) = 1.2814)
+    # 1.2814 * 155 = 120.9599 seconds per volume. 
+    # 2 mins and 1 second
+
 #     Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022
 #     Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_01082022
-    
+
     # dataset_path = "Smaller_dataset/Brats_2018_data/Brats_2018_data"
     dataset_path = "Brats_2018_data/Brats_2018_data"
     extensions = ["/HGG","/LGG"]
@@ -73,8 +76,8 @@ class testNet:
     # Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022
     # Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_21072022
     
-    load_path = "Checkpoints/split_data_experiments/1_Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main"
-    save_path = "Predictions/MK_6_model_predictions/RI_dice_0922_23_testmain"
+    load_path = "Checkpoints/split_data_experiments/1_Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main"
+    save_path = "Predictions/MK_6_model_predictions/10_10_2022/PTE_Test_set_progression"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16

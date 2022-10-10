@@ -39,7 +39,7 @@ class rData:
 # training 70%, validation 10% and testing 20%
 class rNet:
     
-    checkpoint = "Unet_H16_M14_CO0_R3_main_data_input_4/"
+    checkpoint = "Unet_H16_M14_CO0_R3_main_data_0_000003/"
     dataset_path = "Brats_2018_data/Brats_2018_data"
     Extensions = ["/HGG","/LGG"]
     
@@ -49,7 +49,7 @@ class rNet:
     
     display_step = 100
     batch_size = 16
-    lr = 0.0003
+    lr = 0.000003
     Weight_Decay = 1e-8
     Betas = (0.9, 0.999) # not sure what this is but will look into it.
     
