@@ -77,7 +77,7 @@ class testNet:
     # Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_21072022
     
     load_path = "Checkpoints/split_data_experiments/1_Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main"
-    save_path = "Predictions/MK_6_model_predictions/10_10_2022/PTE_Test_set_progression"
+    save_path = "Predictions/MK_6_model_predictions/17_10_2022/newDice_Test_1_PTE"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16

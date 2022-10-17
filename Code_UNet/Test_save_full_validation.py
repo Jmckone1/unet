@@ -29,6 +29,7 @@ criterion = DiceLoss()
 # this has been written as an external file function and should be called from there instead of here
 def dice_score(prediction, truth):
     # clip changes negative vals to 0 and those above 1 to 1
+    # check sigmoid activation
     pred_1 = np.clip(prediction, 0, 1.0)
     truth_1 = np.clip(truth, 0, 1.0)
 
@@ -48,6 +49,13 @@ def dice_score(prediction, truth):
         score = 0
         
     return score
+
+def calculate_dice(pred_seg, gt_lbl):
+    union_correct = pred_seg * gt_lbl
+    tp_num = np.sum(union_correct)
+    gt_pos_num = np.sum(gt_lbl)
+    dice = (2.0 * tp_num) / (np.sum(pred_seg) + gt_pos_num) if gt_pos_num != 0 else -1
+    return dice
   
 def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, save=False, save_image = False, save_val =""):
 
@@ -99,11 +107,11 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                 # DS_all calculates the dice for all slices including those that are empty in truth and prediction
                 # DS_none calulates the dice only for slices with no tumour region in the ground truth
                 if np.where(truth_output[i,:,:] > 0.5, 1, 0).sum() != 0:
-                    DS.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+                    DS.append(calculate_dice(pred_output[i,:,:],truth_output[i,:,:]))
                 else:
-                    DS_none.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+                    DS_none.append(calculate_dice(pred_output[i,:,:],truth_output[i,:,:]))
 
-                DS_all.append(dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+                DS_all.append(calculate_dice(pred_output[i,:,:],truth_output[i,:,:]))
 
                 img_num += 1
 
