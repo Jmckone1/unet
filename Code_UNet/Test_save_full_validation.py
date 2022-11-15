@@ -1,4 +1,9 @@
-# from Unet_modules.Full_model_dataloader_main_Copy import BraTs_Dataset
+# This files import requirements : 
+# Unet_modules/Unet_Main_dataloader_test_02
+# Unet_modules/Evaluation
+# Unet_modules/Parameters_seg
+# Net/Unet_components_v2
+
 from Unet_modules.Unet_Main_dataloader_test_02 import BraTs_Dataset
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
@@ -30,6 +35,13 @@ criterion = DiceLoss()
 def dice_score(prediction, truth):
     # clip changes negative vals to 0 and those above 1 to 1
     # check sigmoid activation
+    print(prediction)
+    print(np.max(prediction))
+    print(truth)
+    print(np.max(truth))
+    
+    input("")
+    
     pred_1 = np.clip(prediction, 0, 1.0)
     truth_1 = np.clip(truth, 0, 1.0)
 
@@ -153,21 +165,16 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
             write = csv.writer(f) 
             write.writerow(DS_mean_none)
 
-##################################################################################################################################
-# dataset length splitting - currently needs testing - the code above is the prior functioning code ##############################
-##################################################################################################################################
 print("starting model")
 
-# implement the parameter file funtions for this to work, you dont have a cchoice now mwahahahahahaha
-
-# apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring.
+# apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring. - Important info for the paper / report / journal article.
 dataset = BraTs_Dataset(Param.testNet.dataset_path, path_ext = Param.testNet.extensions, size=Param.testNet.size, apply_transform=False)
 print("initialised dataset")
 
 index_f = np.load(Param.testNet.dataset_path + Param.sData.index_file)
 
 print("loaded index file")
-patients_number = len(dataset) # len(index_f)
+patients_number = len(dataset)
 print("Patients",patients_number)
 print("data",len(dataset))
 input("")
@@ -197,14 +204,10 @@ all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
 custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
 
 test_data_us = torch.utils.data.SubsetRandomSampler(test_range,False)
-# print(test_data_us)
-# print(test_range)
-# input("")
 print("produced dataset split amounts")
 
 ##################################################################################################################################
 
-# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
 print("Full_dataset: ", len(all_data_m))
 print("Training: ", len(train_data_m))
 print("validation: ", len(validation_data_m))

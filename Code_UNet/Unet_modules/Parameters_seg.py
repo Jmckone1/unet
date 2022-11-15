@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "3"
+    GPU = "1"
 
 class sData:
 
@@ -59,7 +59,7 @@ class testNet:
     # 1:53:00 per 543 batches of slices (543*16 = 8688) 
     # (113*60) / 8688 = 0.7803 (8688 / (113*60) = 1.2814)
     # 1.2814 * 155 = 120.9599 seconds per volume. 
-    # 2 mins and 1 second
+    # 2 mins and 1 second per volume
 
 #     Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022
 #     Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_01082022
@@ -71,13 +71,9 @@ class testNet:
     size = 1
     batch_size = 16
     device = 'cuda'
-    
-    #  Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_01082022
-    # Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_01082022
-    # Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_21072022
-    
-    load_path = "Checkpoints/split_data_experiments/1_Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main"
-    save_path = "Predictions/MK_6_model_predictions/17_10_2022/newDice_Test_1_PTE"
+
+    load_path = "Checkpoints/split_data_experiments/RI_division/Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_30_percent"
+    save_path = "Predictions/MK_6_model_predictions/Division/newDice_RI_30%_NB"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
@@ -87,7 +83,7 @@ class testNet:
     train_split = 0.7
     validation_split = 0.1
     test_split = 0.2
-    custom_split_amount = 1
+    custom_split_amount = 0.1
     
-    intermediate_checkpoints = True
+    intermediate_checkpoints = False
     end_epoch_checkpoints = True
