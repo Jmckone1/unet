@@ -102,7 +102,12 @@ class BraTs_Dataset(Dataset):
         full_path = os.path.join(self.path + ext, file_t)
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
-        img = img_data[:,:,:,int(index - self.index_max[current_dir])-1]
+        
+        if(img_data.ndim == 3):
+            img_data = img_data[np.newaxis,:,:,:]
+        
+        img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
+
         
         img = torch.from_numpy(img).unsqueeze(0)
         img = F.interpolate(img,(int(img.shape[2]*self.size),int(img.shape[3]*self.size)))
@@ -116,10 +121,13 @@ class BraTs_Dataset(Dataset):
         l_full_path = os.path.join(self.path + ext, file_label)
         
         l_input = np.load(l_full_path)
-        label = l_input["RANO"][:,int(index - self.index_max[current_dir])-1]
+
+        label = l_input["RANO"][int(index - self.index_max[self.current_dir])-1,:]
 
         #                          labels return end                          #
         #######################################################################
+        
+        
         
         return img,label
         

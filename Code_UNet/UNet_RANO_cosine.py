@@ -65,7 +65,7 @@ print("Epoch total number", Param.rNet.n_epochs)
 print("Batch Size number", Param.rNet.batch_size)
 print("Learning Rate", Param.rNet.lr)
 print("Orthogonality Penalty value", Param.rNet.orth_penalty)
-print("Area Penalty value", Param.rNet.area_penalty)
+# print("Area Penalty value", Param.rNet.area_penalty)
 print("Console Display step", Param.rNet.display_step)
 print("Dataset path", Param.rNet.dataset_path)
 print("Interpolation multiplier", Param.rNet.size)
@@ -78,33 +78,8 @@ print("###################################################")
 input("Press Enter to continue . . . ")
 
 #criterion = nn.MSELoss()
-loss_f = Penalty(Param.rNet.orth_penalty, Param.rNet.area_penalty)
+loss_f = Penalty(Param.rNet.orth_penalty)#, Param.rNet.area_penalty)
 criterion = loss_f.MSELossorthog
-
-###########################################################################################
-# ATTEMPT 1 AT LOGGING ERRORS (didnt work but going to leave for the time being)          #
-###########################################################################################
-# # Create a logging instance
-# logger = logging.getLogger('my_application')
-# logger.setLevel(logging.INFO) # you can set this to be DEBUG, INFO, ERROR
-
-# # Assign a file-handler to that instance
-# fh = logging.FileHandler("ERROR_UNET_1.txt")
-# fh.setLevel(logging.INFO) # again, you can set this differently
-
-# # Format your logs (optional)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# fh.setFormatter(formatter) # This will set the format to the file handler
-
-# # Add the handler to your logging instance
-# logger.addHandler(fh)
-
-# try:
-#     raise ValueError("Some error occurred")
-# except ValueError as e:
-#     logger.exception(e) # Will send the errors to the file
-###########################################################################################
-
 
 ### added a bunch of outputs for here to test when i get back!!!
 def Validate(unet, criterion, Val_data):
@@ -145,14 +120,14 @@ def Validate(unet, criterion, Val_data):
         
         loss.backward()
         
-        running_loss =+ loss.item() * truth_input.size(0)
-        mse_run =+ mse.item() * truth_input.size(0)
-        cosine_run =+ cosine.item() * truth_input.size(0)
+        running_loss =+ loss.item()
+        mse_run =+ mse.item()
+        cosine_run =+ cosine.item()
         # print("v run loss", running_loss)
         
-        losses.append(running_loss / len(Val_data))
-        mse_values.append(mse_run / len(Val_data))
-        cosine_values.append(cosine_run / len(Val_data))
+        losses.append(running_loss)
+        mse_values.append(mse_run)
+        cosine_values.append(cosine_run)
         
         # print("v losses", losses)
 
@@ -162,9 +137,9 @@ def Validate(unet, criterion, Val_data):
         for input_val in range(cur_batch_size):
             
             corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
-            mask_truth = Jacc.mask((240,240),corners_truth)*1
+            mask_truth = Jacc.mask((240,240),corners_truth)#*1
             corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
-            mask_pred = Jacc.mask((240,240),corners_pred)*1
+            mask_pred = Jacc.mask((240,240),corners_pred)#*1
             
             # print("Total sum of mask pixels", np.sum(np.sum(mask_truth)))
             if np.sum(np.sum(mask_truth)) > 2:
@@ -304,10 +279,19 @@ def train(Train_data,Val_data,load=False):
             scaler.step(unet_opt)
             scaler.update()
 
-            running_loss =+ unet_loss.item() * truth_input.size(0)
+            running_loss =+ unet_loss.item()
             
-            mse_run =+ mse.item() * truth_input.size(0)
-            cosine_run =+ cosine.item() * truth_input.size(0)
+            mse_run =+ mse.item()
+            cosine_run =+ cosine.item() 
+            
+            # removed the * truth_input.size(0) from all examples of the .item() 
+            # which would multiply the values by the batch size, not really needed in this case, 
+            # i can do this outside if necessary
+            
+#             print(cosine.item())
+#             print(truth_input.size(0))
+#             print(len(Train_data))
+#             input("")
             
             cur_step += 1
 
@@ -315,48 +299,54 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
-            loss_values.append(running_loss / len(Train_data))
-            total_loss.append(loss_values)
+#             loss_values.append(running_loss / len(Train_data))
+#             total_loss.append(loss_values)
         
-            mse_values.append(mse_run/len(Train_data))
-            cosine_values.append(cosine_run/len(Train_data))
-            
+#             mse_values.append(mse_run/len(Train_data))
+#             cosine_values.append(cosine_run/len(Train_data))
+
+            loss_values.append(running_loss)
+            mse_values.append(mse_run)
+            cosine_values.append(cosine_run)
+            total_loss.append(loss_values)
         
             if cur_step % Param.rNet.display_step == 0:
 
                 print("Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
                 print(label_input[0,:].shape)
                 
+                # this section of code doesnt work due to the 4 channel indexing for the ssingle channel data that is out of range, wasnt really being sued anyways
+                
                 # Print jaccard for current output in the batch
 #                 print("index", jaccard[-cur_batch_size:]) 
 #                 print("")
                     
-                for i in range(cur_batch_size):
+#                 for i in range(cur_batch_size):
                     
-#                     print("input", label_input[i,:].data.cpu().numpy())
-#                     print("prediction",pred[i,:].data.cpu().numpy())
+# #                     print("input", label_input[i,:].data.cpu().numpy())
+# #                     print("prediction",pred[i,:].data.cpu().numpy())
                     
-                    f, axarr = plt.subplots(1,2)
+#                     f, axarr = plt.subplots(1,2)
 
-                    data_in = label_input[i,:].data.cpu().numpy()
-                    D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
-                    D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
+#                     data_in = label_input[i,:].data.cpu().numpy()
+#                     D1 = np.asarray([[data_in[1],data_in[3]],[data_in[0],data_in[2]]]) 
+#                     D2 = np.asarray([[data_in[5],data_in[7]],[data_in[4],data_in[6]]]) 
                     
-                    axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
-                    axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
-                    axarr[0].set_title('Truth')
+#                     axarr[0].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+#                     axarr[0].plot(D1[0, :], D1[1, :], lw=2, c='r')
+#                     axarr[0].plot(D2[0, :], D2[1, :], lw=2, c='b')
+#                     axarr[0].set_title('Truth')
                     
-                    data_out = pred[i,:].data.cpu().numpy()
-                    D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
-                    D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
+#                     data_out = pred[i,:].data.cpu().numpy()
+#                     D1 = np.asarray([[data_out[1],data_out[3]],[data_out[0],data_out[2]]]) 
+#                     D2 = np.asarray([[data_out[5],data_out[7]],[data_out[4],data_out[6]]]) 
 
-                    axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
-                    axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
-                    axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
-                    axarr[1].set_title('Prediction')
+#                     axarr[1].imshow(truth_input[i,1,:,:].data.cpu().numpy(),cmap='gray')
+#                     axarr[1].plot(D1[0, :], D1[1, :], lw=2, c='r')
+#                     axarr[1].plot(D2[0, :], D2[1, :], lw=2, c='b')
+#                     axarr[1].set_title('Prediction')
                     
-                    plt.show()
+#                     plt.show()
                    
                 # kaggle 2017 2nd place
                 # https://www.programcreek.com/python/?project_name=juliandewit%2Fkaggle_ndsb2017

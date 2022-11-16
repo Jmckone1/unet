@@ -5,6 +5,7 @@ from os import walk
 import os
 import torch
 import time
+from tqdm import tqdm
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
@@ -51,19 +52,62 @@ class Normalization():
             segOutput[:,:,slice_num] = imageData[:,:,slice_num]
         if Log_output == True:
             print("Unified mask")
+            
+    def Single_norm(path, path_ext, data_out, filetype, save = True, Log_output = False):
+        #use tqdm here!!
 
-    def RunDataset(save = True, Log_output = False, remove = False):
-        
-        path_ext = ["/HGG", "/LGG"]
-        output_path = ["/HGG", "/LGG"]
-        path = "Brats_2018_data/Brats_2018_data"
-        filetype = ["t1","flair","t1ce","t2","seg"]
+        d = []
+        for input_ in range(len(path_ext)):
+            for (dir_path, dir_names, file_names) in walk(path + path_ext[input_]):
+                for name in range(len(dir_names)):
+                    if not dir_names[name].startswith("."):
+                        d.append(path_ext[input_] + "/" + dir_names[name])
+
+        for num, name in tqdm(enumerate(d)):
+            for file_ in range(len(filetype)):
+
+                full_path = path + name + '/' + name[5:] + "_" + filetype[file_] + '.nii.gz'
+                #print(full_path)
+
+                img = nib.load(full_path)
+                img_input = Normalization.LoadNumpy(img)
+
+                # check if slope and intercept exist in the header file
+                if img.header.get_slope_inter() == (None,None):
+                    img.header.set_slope_inter(1,0)
+
+                # apply the equation for slope and intercept
+                b = img.header.get_slope_inter()[0]
+                m = img.header.get_slope_inter()[1]
+                img_input = b * img.get_fdata() + m
+
+                #print("Normalising")
+                img_output = Normalization.ZeroMeanNormalization(img_input, Log_output)
+
+                #print("Allocating header")
+                empty_header = nib.Nifti1Header()
+                empty_header.get_data_shape()
+                output2 = nib.Nifti1Image(img_output, img.affine, empty_header)
+                new_img = output2.__class__(output2.dataobj[:], img.affine, img.header)
+                new_img.header.set_slope_inter(1,0)
+                new_img.header.set_data_dtype(img_input.dtype)
+
+                if save == True:
+                    #print("Saving")
+                    if not os.path.exists(path + name + '/'):
+                        print("Making new directory")
+                        os.makedirs(path + name + '/')
+                    img_output_save = new_img
+                    nib.save(img_output_save, path + name + '/' + name[5:] + "_" + data_out[file_] + '.nii.gz')
+                    #print("Save complete")
+                    #print("")
+
+
+    def RunDataset(path, path_ext, data_out, filetype, save = True, Log_output = False, remove = False):
         
         img_output = np.empty((4,240,240,155))
         img_out = np.empty((240,240,155))
         seg_output = np.zeros((240,240,155))
-        
-        data_out = ["whimg_norm", "whseg_norm"]
 
         d = []
         for input_ in range(len(path_ext)):
@@ -83,10 +127,10 @@ class Normalization():
         for num, name in enumerate(d):
             if num < HGG_len:
                 ext = path_ext[0]
-                out = output_path[0]
+#                 out = output_path[0]
             else:
                 ext = path_ext[1]
-                out = output_path[1]
+#                 out = output_path[1]
 
             t = time.time()
             for file_ in range(4):
@@ -94,8 +138,8 @@ class Normalization():
                 if file_ == 0:
                     Normalization.UnifyMask(os.path.join(path + ext, name + '/' + name + "_" + filetype[4] + '.nii.gz'), seg_output, Log_output)
                     if remove == True:
-                        Normalization.RemoveDeprecated(os.path.join(path + out, name + '/' + name + '_' + 'whimg_n'  + '.nii.gz'))
-                        Normalization.RemoveDeprecated(os.path.join(path + out, name + '/' + name + '_' + 'whseg'  + '.nii.gz'))
+                        Normalization.RemoveDeprecated(os.path.join(path + ext, name + '/' + name + '_' + 'whimg_n'  + '.nii.gz'))
+                        Normalization.RemoveDeprecated(os.path.join(path + ext, name + '/' + name + '_' + 'whseg'  + '.nii.gz'))
                                                        
                 file_t = name + '/' + name + "_" + filetype[file_] + '.nii.gz'
                 full_path = os.path.join(path + ext, file_t)
@@ -131,18 +175,24 @@ class Normalization():
 
             print(num , " : " , os.path.join(path + ext, name), " : ", img_output.shape)
             if save == True:
-                if not os.path.exists(os.path.join(path + out, name + '/')):
-                    os.makedirs(os.path.join(path + out, name + '/'))
+                if not os.path.exists(os.path.join(path + ext, name + '/')):
+                    os.makedirs(os.path.join(path + ext, name + '/'))
                 img_output_save = new_img
-                nib.save(img_output_save, os.path.join(path + out, name + '/' + name + "_" + data_out[0] + '.nii.gz')) 
+                nib.save(img_output_save, os.path.join(path + ext, name + '/' + name + "_" + data_out[0] + '.nii.gz')) 
 
-                nib.save(seg_output_ni, os.path.join(path + out, name + '/' + name + "_" + data_out[1] + '.nii.gz'))
+                nib.save(seg_output_ni, os.path.join(path + ext, name + '/' + name + "_" + data_out[1] + '.nii.gz'))
             elapsed = time.time() - t
             print(elapsed)
             print(" ")
             
-def main():
-    Normalization.RunDataset(save = True, Log_output = True, remove = True)
+# def main():
+    
+#     path_ext = ["/HGG", "/LGG"]
+#     path = "Brats_2018_data/Brats_2018_data"
+#     data_out = ["whimg_norm", "whseg_norm"]
+#     filetype = ["t1","flair","t1ce","t2","seg"]
+    
+#     Normalization.RunDataset(path, path_ext, data_out, filetype, save = True, Log_output = True, remove = True)
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
