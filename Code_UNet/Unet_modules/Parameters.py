@@ -106,4 +106,3 @@ class test_rNet:
 # # need to make sure to have a look at and ask about conferences before and during the meeting on friday. both in terms of submitting the work that i am currently doing and for purposes of attending. i feel like ive lost track alot of what ive been doing and lost touch in where to be going next, instead of being stuck down the rabbit hoel with my current work tog et it out there. i did attend the research showcase which is good but could be better.
 
 # people having been asking how loing it takes to run the model and what resources. so this is something that im going to need to add to the logging file i think, start-runtime and end-runtime. plus make sure to minus one from the other and take validation into account.
->>>>>>> Param
