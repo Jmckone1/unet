@@ -17,13 +17,12 @@ import shutil
 import torch
 import csv
 import os
-
 import Unet_modules.Parameters_seg as Param
-# import Unet_modules.Dice_Loss as Eval
-
 np.random.seed(Param.Global.Seed)
 torch.manual_seed(Param.Global.Seed)
 
+# added a sigmoid activation straight for use with predictions
+# defined as a post-inference sigmoid to make the predicted values more reasonable
 sigmoid_act = nn.Sigmoid()
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -219,6 +218,8 @@ def train(Train_data,Val_data,load=False):
             # loss_values.append(running_loss)
             cur_step += 1
             
+            # post inference sigmoid added here, hopefully works will check the outputs
+            # also in validation
             pred_output = sigmoid_act(pred).cpu().detach().numpy()
             truth_output = label_input.cpu().detach().numpy()
             
