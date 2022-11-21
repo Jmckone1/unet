@@ -1,14 +1,17 @@
-from Unet_modules.Unet_Main_dataloader import BraTs_Dataset
+# the dataloaders are read in further down for the time being this will require changing depending on the method of loading to be done whether it is in the newer shuffled format (Unet_Main_dataloader_test_02) or the older slightly less shuffled format (Unet_Main_dataloader)
+
+# from Unet_modules.Unet_Main_dataloader_test_02 import BraTs_Dataset
+# from Unet_modules.Unet_Main_dataloader import BraTs_Dataset
+
 from Unet_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Unet_modules.Evaluation import DiceLoss
 from torch.utils.data import DataLoader
 import Net.Unet_components_v2 as net
-# import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import torch.cuda.amp as amp
 from tqdm.auto import tqdm
 import nibabel as nib
 from torch import nn
-# from os import walk
 import numpy as np
 import shutil
 import torch
@@ -20,6 +23,8 @@ import Unet_modules.Parameters_seg as Param
 
 np.random.seed(Param.Global.Seed)
 torch.manual_seed(Param.Global.Seed)
+
+sigmoid_act = nn.Sigmoid()
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU
@@ -100,7 +105,7 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         #losses.append(running_loss)
         cur_step += 1
         
-        pred_output = pred.cpu().detach().numpy()
+        pred_output = sigmoid_act(pred).cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
         
         # edgecase handling in regard to a single image being left in a batch at the end of training. otherwise causing a crash before evaluation.
@@ -160,7 +165,8 @@ def train(Train_data,Val_data,load=False):
 #                   Define model end                     #
 #--------------------------------------------------------#
 #                   Run model start                      #
-
+    scaler = amp.GradScaler(enabled = True)
+    
     for epoch in range(Param.SegNet.n_epochs):
         cur_step = 0
         
@@ -173,6 +179,7 @@ def train(Train_data,Val_data,load=False):
         running_loss = 0.0
 
         for truth_input, label_input in tqdm(Train_data):
+        # for truth_input, label_input, dataloader_path in tqdm(Train_data):
             
             DS = []
             
@@ -192,25 +199,27 @@ def train(Train_data,Val_data,load=False):
                 label_input = label_input[np.newaxis,:,:]
                 
             # set accumilated gradients to 0 for param update
-            unet_opt.zero_grad()
-            pred = unet(truth_input)
-            pred = pred.squeeze()
+            unet_opt.zero_grad(set_to_none=True)
+            with amp.autocast(enabled = True):
+                pred = unet(truth_input)
+                pred = pred.squeeze()
             
-            if(pred.ndim == 2):
-                pred = pred[np.newaxis,:,:]
-            
-            # forward
-            unet_loss = criterion(pred, label_input)
+                if(pred.ndim == 2):
+                    pred = pred[np.newaxis,:,:]
+
+                # forward
+                unet_loss = criterion(pred, label_input)
             
             # backward
-            unet_loss.backward()
-            unet_opt.step()
+            scaler.scale(unet_loss).backward()
+            scaler.step(unet_opt)
+            scaler.update()
 
             running_loss =+ unet_loss.item()
             # loss_values.append(running_loss)
             cur_step += 1
             
-            pred_output = pred.cpu().detach().numpy()
+            pred_output = sigmoid_act(pred).cpu().detach().numpy()
             truth_output = label_input.cpu().detach().numpy()
             
             # edgecase handling in regard to a single image being left in a batch at the end of training. otherwise causing a crash before evaluation.
@@ -230,12 +239,12 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#         
 #                  Display stage start                   #
 
-            # for each display step in the epoch (each 50 by default)
             if cur_step % Param.SegNet.display_step == 0:
                 # only for the first epoch and only before step 550
                 # this is primarily for the memory concerns of the project, 
                 # 550 itself is a arbitrary value chosen becuase of plotting sizes.
                 if epoch == 0 and cur_step <= 550:
+
                     checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
                     out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                     torch.save(checkpoint, out)
@@ -255,12 +264,18 @@ def train(Train_data,Val_data,load=False):
 
     print('Finished Training Dataset')
 
-#####################################################################################################
-# dataset length splitting - currently needs testing - the code above is the prior functioning code #
-#####################################################################################################
-print("starting model")
+###########################################################################################
+# dataset length splitting #
+###########################################################################################
+print("Starting model")
 
 # apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring.
+
+###########################################################################################
+# original dataset split code #
+###########################################################################################
+
+from Unet_modules.Unet_Main_dataloader import BraTs_Dataset
 dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
 print("initialised dataset")
 
@@ -294,25 +309,11 @@ test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
 all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
 custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
 
-print("produced dataset split amounts")
-#################################################################################################
-
-# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
 print("Full_dataset: ", len(all_data_m))
 print("Training: ", len(train_data_m))
 print("validation: ", len(validation_data_m))
 
 print("Epochs: ", Param.SegNet.n_epochs)
-
-# Train_data=DataLoader(
-#     dataset=dataset,
-#     batch_size=Param.SegNet.batch_size,
-#     sampler=train_data_m)
-
-# Val_data=DataLoader(
-#     dataset=dataset,
-#     batch_size=Param.SegNet.batch_size,
-#     sampler=validation_data_m)
 
 Train_data=DataLoader(
     dataset=dataset,
@@ -323,6 +324,71 @@ Val_data=DataLoader(
     dataset=dataset,
     batch_size=Param.SegNet.batch_size,
     sampler=validation_data_m)
+
+###########################################################################################
+# updated dataset split code #
+###########################################################################################
+
+# from Unet_modules.Unet_Main_dataloader_test_02 import BraTs_Dataset
+# dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
+# print("initialised dataset")
+
+# patients_number = len(dataset)
+# print("Patients Number: ", patients_number)
+
+# index_f = np.dot(list(range(0,len(dataset)-1)),155)
+# dataset_shuffle = np.dot(list(range(0,len(dataset)-1)),155)
+# np.random.shuffle(dataset_shuffle)
+# dataset_output = []
+
+# print("creating shuffled index", len(dataset_shuffle))
+# for i in tqdm(range(len(dataset_shuffle))):
+#     dataset_output = dataset_output + list(range(dataset_shuffle[i], dataset_shuffle[i] + 155))
+
+# print("Length Start")
+# train_length = index_f[int(np.floor(patients_number*Param.SegNet.train_split))]
+# validation_length = index_f[int(np.ceil(patients_number*Param.SegNet.validation_split))]
+# test_length = index_f[int(np.ceil(patients_number*Param.SegNet.test_split))-1]
+# all_data_length = index_f[-1]
+# custom_split = index_f[int(np.floor(patients_number*Param.SegNet.custom_split_amount))-2]
+
+# train_range_shuffle = dataset_output[0:train_length]
+# val_range_shuffle = dataset_output[train_length:train_length+validation_length]
+# test_range_shuffle = dataset_output[train_length+validation_length:train_length+validation_length+test_length]
+# all_data_range_shuffle = dataset_output[0:all_data_length]
+# custom_split_range_shuffle = dataset_output[0:custom_split]
+
+# print(train_length)
+# print(validation_length)
+# print(all_data_length)
+
+# train_data_m = torch.utils.data.RandomSampler(train_range_shuffle,False)
+# validation_data_m = torch.utils.data.RandomSampler(val_range_shuffle,False)
+# all_data_m = torch.utils.data.RandomSampler(all_data_range_shuffle,False)
+# custom_split_m = torch.utils.data.RandomSampler(custom_split_range_shuffle,False)
+
+# test_data_m = test_range_shuffle
+# print("produced dataset split amounts")
+
+# print("Full_dataset: ", len(all_data_m))
+# print("Training: ", len(train_data_m))
+# print("validation: ", len(validation_data_m))
+
+# print("Epochs: ", Param.SegNet.n_epochs)
+
+# Train_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=Param.SegNet.batch_size,
+#     sampler=custom_split_m)
+
+# Val_data=DataLoader(
+#     dataset=dataset,
+#     batch_size=Param.SegNet.batch_size,
+#     sampler=validation_data_m)
+
+###########################################################################################
+print("produced dataset split amounts")
+###########################################################################################
 
 print("Actual train length", len(Train_data.sampler))
 print("actual validation length", len(Val_data.sampler))

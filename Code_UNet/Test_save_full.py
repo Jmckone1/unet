@@ -51,7 +51,7 @@ class Define_dictionary(dict):
     def add(self, key, value):
         self[key] = value
         
-# Function to define the dice score of a volume - taken and adapted from the deepmind project.
+# Function to define the dice score of a volume - taken and adapted from the deepmind project code by recommendation of project supervisor.
 def calculate_dice(pred_seg, gt_lbl):
     union_correct = pred_seg * gt_lbl
     tp_num = np.sum(union_correct)
@@ -181,16 +181,20 @@ dataset_output = []
 for i in range(len(dataset_shuffle)):
     dataset_output = dataset_output + list(range(dataset_shuffle[i],dataset_shuffle[i]+155))
 
+##################
+# original values #
+###################
+
 print("Length Start")
+
+index_f = np.dot(list(range(0,len(dataset)-1)),155)
+
 train_length = index_f[int(np.floor(patients_number*Param.testNet.train_split))]
 validation_length = index_f[int(np.ceil(patients_number*Param.testNet.validation_split))]
 test_length = index_f[int(np.ceil(patients_number*Param.testNet.test_split))-1]
 all_data_length = index_f[-1]
 custom_split = index_f[int(np.floor(patients_number*Param.testNet.custom_split_amount))-2]
 
-###################
-# original values #
-###################
 print("Range Start")
 train_range = list(range(0,train_length))
 val_range = list(range(train_length,train_length+validation_length))
@@ -198,32 +202,49 @@ test_range = list(range(train_length+validation_length,train_length+validation_l
 all_data_range = list(range(0,all_data_length))
 custom_split_range = list(range(0,custom_split))
 
+print("input stop here")
 ###################
 # better shuffles #
 ###################
-train_range_shuffle = dataset_output[0:train_length]
-val_range_shuffle = dataset_output[train_length:train_length+validation_length]
-test_range_shuffle = dataset_output[train_length+validation_length:train_length+validation_length+test_length]
-all_data_range_shuffle = dataset_output[0:all_data_length]
-custom_split_range_shuffle = dataset_output[0:custom_split]
 
-print(train_length)
-print(validation_length)
-print(all_data_length)
+# index_f = np.dot(list(range(0,len(dataset)-1)),155)
+# dataset_shuffle = np.dot(list(range(0,len(dataset)-1)),155)
+# np.random.shuffle(dataset_shuffle)
+# dataset_output = []
 
-train_data_m = torch.utils.data.RandomSampler(train_range_shuffle,False)
-validation_data_m = torch.utils.data.RandomSampler(val_range_shuffle,False)
-all_data_m = torch.utils.data.RandomSampler(all_data_range_shuffle,False)
-custom_split_m = torch.utils.data.RandomSampler(custom_split_range_shuffle,False)
+# for i in range(len(dataset_shuffle)):
+#     dataset_output = dataset_output + list(range(dataset_shuffle[i],dataset_shuffle[i]+155))
 
-test_data_m = test_range_shuffle
-print("produced dataset split amounts")
+# print("Length Start")
+# train_length = index_f[int(np.floor(patients_number*Param.testNet.train_split))]
+# validation_length = index_f[int(np.ceil(patients_number*Param.testNet.validation_split))]
+# test_length = index_f[int(np.ceil(patients_number*Param.testNet.test_split))-1]
+# all_data_length = index_f[-1]
+# custom_split = index_f[int(np.floor(patients_number*Param.testNet.custom_split_amount))-2]
+
+# train_range_shuffle = dataset_output[0:train_length]
+# val_range_shuffle = dataset_output[train_length:train_length+validation_length]
+# test_range_shuffle = dataset_output[train_length+validation_length:train_length+validation_length+test_length]
+# all_data_range_shuffle = dataset_output[0:all_data_length]
+# custom_split_range_shuffle = dataset_output[0:custom_split]
+
+# print(train_length)
+# print(validation_length)
+# print(all_data_length)
+
+# train_data_m = torch.utils.data.RandomSampler(train_range_shuffle,False)
+# validation_data_m = torch.utils.data.RandomSampler(val_range_shuffle,False)
+# all_data_m = torch.utils.data.RandomSampler(all_data_range_shuffle,False)
+# custom_split_m = torch.utils.data.RandomSampler(custom_split_range_shuffle,False)
+
+# test_data_m = test_range_shuffle
+# print("produced dataset split amounts")
 
 ##################################################################################################################################
 
-print("Full_dataset: ", len(all_data_m))
-print("Training: ", len(train_data_m))
-print("validation: ", len(validation_data_m))
+# print("Full_dataset: ", len(all_data_m))
+# print("Training: ", len(train_data_m))
+# print("validation: ", len(validation_data_m))
 
 print("")
 print("Param values")

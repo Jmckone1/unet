@@ -1,8 +1,8 @@
-####################################################################################################
+###########################################################################################
 # The primary folder used for runngin the networks aafter the 04/2022 dataset normailsation rework #
 # Unet running RANO regression, Splitting the dataset into train, val and test automatically while #
-# utilising some memory improvement functions hence the file naming conventions.                   #
-####################################################################################################
+# utilising some memory improvement functions hence the file naming conventions.
+##########################################################################################
 
 from Unet_modules.RANO_dataloader_2_scandir import BraTs_Dataset
 from Unet_modules.Evaluation import Jaccard_Evaluation as Jacc
@@ -310,7 +310,7 @@ def train(Train_data,Val_data,load=False):
         valid_loss.append(epoch_val_loss)
         valid_jaccard.append(epoch_jaccard_valid)
       
- ####################################################################################################################
+ ###########################################################################################
 
         print("Improvement", Improvement)
         print("nan mean jaccard validation over the epoch", np.nanmean(epoch_jaccard_valid))
@@ -344,11 +344,7 @@ def train(Train_data,Val_data,load=False):
         with open("Checkpoints_RANO/" + Param.rNet.checkpoint + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
             write = csv.writer(f) 
             write.writerow(valid_jaccard)
-            
-        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-        # save a copy of the current parameters fil in the location of : ("Checkpoints_RANO/" + Param.rNet.checkpoint + "parameters_used.py") #
-        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-            #################################################################################################################################
+            ##########################################################################################
 
     print('Finished Training Dataset')
     return total_loss, valid_loss
@@ -357,9 +353,9 @@ def train(Train_data,Val_data,load=False):
 #--------------------------------------------------------#
 
 dataset = BraTs_Dataset(Param.rNet.dataset_path, path_ext = ["/HGG","/LGG"], size=Param.rNet.size, apply_transform=False)
-##################################################################################################################################
-# dataset length splitting - currently needs testing - the code below is the prior functioning code ##############################
-##################################################################################################################################
+###########################################################################################
+# dataset length splitting - currently needs testing - the code below is the prior functioning code
+###########################################################################################
 index_f = np.load(Param.rNet.dataset_path + Param.rData.index_file)
 patients_number = len(index_f)
 
@@ -384,8 +380,7 @@ validation_data_m = torch.utils.data.RandomSampler(val_range,False)
 test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
 all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
 custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
-##################################################################################################################################
-
+###########################################################################################
 # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
 print("Full_dataset: ", len(all_data_m))
 print("Training: ", len(train_data_m))
