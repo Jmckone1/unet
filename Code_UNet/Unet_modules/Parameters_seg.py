@@ -14,7 +14,7 @@ class SegNet:
     dataset_path = "Brats_2018_data/Brats_2018_data" 
 
     # filepath to save model details within checkpoint file
-    c_file = "split_data_experiments/RI_division_3/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_50_percent/"
+    c_file = "split_data_experiments/PTE_division_AS_BN_S_1/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_30_percent/"
 
     # "Checkpoints_RANO/Unet_H16_M9_O10A0/checkpoint_99.pth" # checkpoint load path
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
@@ -33,14 +33,14 @@ class SegNet:
     train_split = 0.7
     validation_split = 0.1
     test_split = 0.2
-    custom_split_amount = 0.5
+    custom_split_amount = 0.3
     
     weight_decay = 1e-8
     
     extensions = ["/HGG","/LGG"]
 
     useWeights = True # false if with no pre-training, True with Pretraining
-    allow_update = False # false if Frozen model, True if Unfrozen model
+    allow_update = True # false if Frozen model, True if Unfrozen model
     
     checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch
     
@@ -72,8 +72,8 @@ class testNet:
     batch_size = 16
     device = 'cuda'
 
-    load_path = "Checkpoints/split_data_experiments/PFE_division_2/Full_model_MK6_H16_PFE_CO100_R3_lr_0003_dice_main_40_percent"
-    save_path = "Predictions/MK_6_model_predictions/Division/newDice_RI_40%_retrain"
+    load_path = "Checkpoints/split_data_experiments/RI_division_3/Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_10_percent"
+    save_path = "Predictions/MK_6_model_predictions/Division_2/RI_10%"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16

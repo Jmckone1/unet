@@ -63,8 +63,10 @@ def calculate_dice(pred_seg, gt_lbl):
 def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, save=False, save_image = False, save_val =""):
     
     Dice_output = Define_dictionary()
+    Dice_output_sigmoid = Define_dictionary()
     volume_predi = np.empty((240,240,155))
     volume_predi_nonbinary = np.empty((240,240,155))
+    volume_predi_sig = np.empty((240,240,155))
     volume_truth = np.empty((240,240,155))
     
     # number for file output naming (data_val) and file size output (img_num)
@@ -77,6 +79,9 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
         
     if not os.path.exists(save_path + "/nb") and save == True:
         os.makedirs(save_path + "/nb")
+        
+    if not os.path.exists(save_path + "/sig") and save == True:
+        os.makedirs(save_path + "/sig")
         
     # start test 
     unet.eval()
@@ -96,11 +101,13 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
         # set accumilated gradients to 0 for param update
         unet_opt.zero_grad()
         
-        # prodcue predictions
+        # produce predictions
         pred = unet(truth_input)
+        pred_2 = torch.sigmoid(pred).squeeze()
         pred = pred.squeeze()
 
         pred_output = pred.cpu().detach().numpy()
+        pred_output_2 = pred_2.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
 
         if save == True:
@@ -111,12 +118,17 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                 
                 # appy sigmoid to the predictions which isnt already done
                 # check if this is an issue when training.
+                
+                print(np.min(pred_output), np.max(pred_output))
+                print(np.min(pred_output_2), np.max(pred_output_2))
+
                 prediction_sigmoid = np.clip(pred_output[i,:,:], 0, 1.0)
                 prediction_sigmoid = np.where(prediction_sigmoid > 0.5, 1, 0)
                 
                 # convert from batch format to volume format
                 volume_predi[:,:,img_num] = prediction_sigmoid[:,:]
                 volume_predi_nonbinary[:,:,img_num] = pred_output[i,:,:]
+                volume_predi_sig[:,:,img_num] = pred_output_2[i,:,:]
                 volume_truth[:,:,img_num] = truth_output[i,:,:]
                 
                 img_num += 1
@@ -129,10 +141,13 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                     print("Concat: ", dataloader_path[i][5:])
                     print(dataloader_path[i][1:4])
                     volume_dice_output = calculate_dice(volume_predi,volume_truth)
+                    
+                    volume_dice_output_sigmoid = calculate_dice(volume_predi_sig, volume_truth)
                     print(volume_dice_output)
 
                     # Add the volume path and the volume dice score to the dictionary
                     Dice_output.add(dataloader_path[i], volume_dice_output)
+                    Dice_output_sigmoid.add(dataloader_path[i],volume_dice_output_sigmoid)
                     
                     # save image prediction
                     if save == True:
@@ -142,6 +157,9 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
                         
                         pred_img_save_nonbinary = nib.Nifti1Image(volume_predi_nonbinary, np.eye(4))
                         nib.save(pred_img_save_nonbinary, os.path.join(save_path + "/nb" + dataloader_path[i][4:] + '.nii.gz')) 
+                        
+                        pred_img_save_sigmoided = nib.Nifti1Image(volume_predi_sig, np.eye(4))
+                        nib.save(pred_img_save_sigmoided, os.path.join(save_path + "/sig" + dataloader_path[i][4:] + '.nii.gz')) 
                                          
                     volume_predi = np.empty((240,240,155))
                     volume_predi_nonbinary = np.empty((240,240,155))
@@ -152,6 +170,11 @@ def Test_save(Test_data, unet, unet_opt, path, path_ext, save_path, load_path, s
             # saving the volume name alongside the volume output dice scores for the predictions
             with open(os.path.join(save_path + "_Dice_predictions.csv"), 'w', encoding='UTF8') as f:
                 for key, val in Dice_output.items():
+                    writer = csv.writer(f)
+                    writer.writerow([key, val])
+                    
+            with open(os.path.join(save_path + "_Dice_predictions_sigmoid.csv"), 'w', encoding='UTF8') as f:
+                for key, val in Dice_output_sigmoid.items():
                     writer = csv.writer(f)
                     writer.writerow([key, val])  
     
