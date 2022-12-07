@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "1"
+    GPU = "3"
 
 class sData:
 
@@ -12,7 +12,7 @@ class sData:
 class SegNet:
     
     dataset_path = "Brats_2018_data/Brats_2018_data" 
-    c_file = "split_data_experiments/RI_division_AS_BN_S_1/Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_40_percent/"
+    c_file = "split_data_experiments/PTE_division_AS_BN_S_1/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_100_percent/"
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
 
     n_epochs = 3
@@ -29,14 +29,14 @@ class SegNet:
     train_split = 0.7
     validation_split = 0.1
     test_split = 0.2
-    custom_split_amount = 0.4
+    custom_split_amount = 1
     
     weight_decay = 1e-8
     
     extensions = ["/HGG","/LGG"]
 
-    useWeights = False # false if with no pre-training, True with Pretraining
-    allow_update = False # false if Frozen model, True if Unfrozen model
+    useWeights = True # false if with no pre-training, True with Pretraining
+    allow_update = True # false if Frozen model, True if Unfrozen model
     
     checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch
 
