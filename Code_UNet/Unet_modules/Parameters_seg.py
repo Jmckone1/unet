@@ -35,7 +35,7 @@ class SegNet:
     
     extensions = ["/HGG","/LGG"]
 
-    useWeights = True # false if with no pre-training, True with Pretraining
+    useWeights = False # false if with no pre-training, True with Pretraining
     allow_update = True # false if Frozen model, True if Unfrozen model
     
     checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch
