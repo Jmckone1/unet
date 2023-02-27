@@ -1,7 +1,10 @@
 from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
 import Net_modules.Parameters_PRANO as Param
 from Unet_PRANO_Validate import Validate
-import Net.UNet_components as net
+
+import Net.pytorch_dcsaunet.DCSAU_Net as net
+
+# import Net.UNet_components as net
 import torch.cuda.amp as amp
 from tqdm import tqdm
 from torch import nn
@@ -14,7 +17,7 @@ sigmoid_act = nn.Sigmoid()
 
 class UNet_train(): 
     def __init__(self, criterion):
-        print("Init")
+        print("Initilising Network . . .")
         
         self.criterion = criterion
         
@@ -34,9 +37,7 @@ class UNet_train():
         criterion = self.criterion
         scaler = amp.GradScaler(enabled = True)
         
-        unet = net.UNet(Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"], 
-                        Param.Parameters.PRANO_Net["Hyperparameters"]["Label_dim"], 
-                        Param.Parameters.PRANO_Net["Hyperparameters"]["Hidden_dim"]).to(
+        unet = net.Model(1,1).to(
                             Param.Parameters.PRANO_Net["Global"]["device"])
         
         print(unet)
@@ -81,8 +82,8 @@ class UNet_train():
                 label_input = label_input.squeeze()
                 
                 if(truth_input.ndim == 3):
-                    truth_input = truth_input[np.newaxis,:,:,:]
-                    label_input = label_input[np.newaxis,:,:]
+                    truth_input = truth_input[:,np.newaxis,:,:]
+                    label_input = label_input[:,np.newaxis,:,:]
                 
                 # set accumilated gradients to 0 for param update
                 unet_opt.zero_grad(set_to_none=True)
@@ -112,30 +113,33 @@ class UNet_train():
                     pred_output = pred_output[np.newaxis,:,:]
                     truth_output = truth_output[np.newaxis,:,:]
                     
+                np.squeeze(pred_output).shape
+                np.squeeze(truth_output).shape
+                    
                 for i in range(cur_batch_size):
                     DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
                 
-                with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_loss.csv", 'a') as f: 
+                with open(Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "_Epoch_" + str(epoch) + "_Training_Loss.csv", 'a') as f: 
                     np.savetxt(f, [running_loss], delimiter=',')
-                with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_dice.csv", 'a') as f: 
+                with open(Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "_Epoch_" + str(epoch) + "_Training_Dice.csv", 'a') as f: 
                     np.savetxt(f, [np.nanmean(DS)], delimiter=',')
                 
-                if cur_step % Param.SegNet.display_step == 0:
+                if cur_step % Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_display_step"] == 0:
                     if epoch == 0 and cur_step <= 250:
     
                         checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-                        out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
+                        out = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "_Checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                         torch.save(checkpoint, out)
     
                         # if enabled this will validate the model during every *DISPLAY STEP* (default 50 batches) during the first epoch
     
-                        if Param.SegNet.checkpoint_eval == True:
+                        if Param.Parameters.PRANO_Net["Hyperparameters"]["Evaluate"] == True:
                             if epoch == 0:
                                 Validate(unet, criterion, Val_data, epoch, step = "_" + str(cur_step))
     
             print("saving epoch: ", epoch)
             checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-            out = "Checkpoints/" + Param.SegNet.c_file + "checkpoint_" + str(epoch) + ".pth"
+            out = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "_Checkpoint_" + str(epoch) + ".pth"
             torch.save(checkpoint, out)
     
             Validate(unet, criterion, Val_data, epoch)

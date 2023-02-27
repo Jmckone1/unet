@@ -45,15 +45,11 @@ class Load_Dataset(Dataset):
                             self.d.append(self.path_ext[input_] + file)
                             counter = len(self.d)
                             
-#             print(self.d)
             print("Starting new index ")
             if New_index == True:
                 print(self.path_ext[input_])
-                # print(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9])
                 if not os.path.exists(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9]):
                     os.makedirs(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9])
-                # print("Creating index_file...")
-                # print(Param.Parameters.PRANO_Net["Train_paths"]["Data_path"])
                 for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
                         if input_ == 0:
@@ -66,7 +62,6 @@ class Load_Dataset(Dataset):
                     img_data = img_a.get_fdata()
                     
                     self.index_max.extend([img_data.shape[2] + self.index_max[-1]])
-                    # print(img_data.shape[3] + self.index_max[-1])
                 
                 if input_ == (len(self.path_ext)-1):
                     print("Saving index file . . . ")
@@ -75,12 +70,9 @@ class Load_Dataset(Dataset):
             else:
                 self.index_max = np.load(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"]) 
             
-        # inputs to global
-        self.count = self.index_max[-1] # anything with 155 in it needs to be redone to not rely on the hard coded value
+        self.count = self.index_max[-1]
         self.path = path
         self.size = size
-        
-        print("File_paths from dataloader", self.d)
 
     def __getitem__(self,index):
 
@@ -91,13 +83,14 @@ class Load_Dataset(Dataset):
                 self.current_dir = i-1
                 break
 
-        file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_whimg_norm.nii.gz"
+        file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_flair_norm.nii.gz"
 
         full_path = self.path + file_t
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
-        img = img_data[:,:,:,int(index - self.index_max[self.current_dir])-1]
+        img = img_data[:,:,int(index - self.index_max[self.current_dir])-1]
+        # np.stack([img,img,img], axis=0).shape
         
         img = torch.from_numpy(img).unsqueeze(0)
         
@@ -109,7 +102,7 @@ class Load_Dataset(Dataset):
         
         label = label_data[:,:,int(index - self.index_max[self.current_dir])-1]
 
-        img = img.squeeze().numpy()
+        #img = img.squeeze().numpy()
 
         return img,label
         

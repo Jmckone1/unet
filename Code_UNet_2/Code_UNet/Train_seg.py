@@ -1,5 +1,6 @@
 from Net_modules.SEG_dataloader import Load_Dataset
-from Net_modules.Penalty import Penalty
+# from Net_modules.Penalty import Penalty
+from Net_modules.Evaluation import DiceLoss
 import Net_modules.Parameters_PRANO as Param
 from torch.utils.data import DataLoader
 import numpy as np
@@ -30,13 +31,12 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=str(Param.Parameters.PRANO_Net["Global"]["GPU"])
 
 print("Loaded cosine penalty")
-loss_f = Penalty(Param.Parameters.PRANO_Net["Hyperparameters"]["Cosine_penalty"])#, Param.rNet.area_penalty)
-criterion = loss_f.MSELossorthog
+loss_f = DiceLoss()#, Param.rNet.area_penalty)
+criterion = loss_f
 
 print("Loaded Dataset")
 Full_Path = os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]
-print(Full_Path)
-("")
+print("")
 dataset = Load_Dataset(Full_Path,
                        path_ext=Param.Parameters.PRANO_Net["Train_paths"]["Extensions"],
                        size=Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],
@@ -48,8 +48,6 @@ index_f = np.load(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index
 patients_number = len(index_f)
 
 train_length = index_f[int(np.floor(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Train_split"]))]
-print(int(np.ceil(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Validation_split"])))
-print(index_f)
 validation_length = index_f[int(np.ceil(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Validation_split"]))]
 test_length = index_f[int(np.ceil(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Test_split"]))]
 all_data_length = index_f[-1]
@@ -61,11 +59,11 @@ test_range = list(range(train_length+validation_length,train_length+validation_l
 all_data_range = list(range(0,all_data_length))
 custom_split_range = list(range(0,custom_split))
 
-print(train_length)
-print(validation_length)
-print(test_length)
-print(all_data_length)
-print(custom_split)
+# print(train_length)
+# print(validation_length)
+# print(test_length)
+# print(all_data_length)
+# print(custom_split)
 
 train_data_m = torch.utils.data.RandomSampler(train_range,False)
 validation_data_m = torch.utils.data.RandomSampler(val_range,False)
@@ -83,14 +81,10 @@ Train_data=DataLoader(
     batch_size=Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"],
     sampler=train_data_m)
 
-print(Train_data)
-
 Val_data=DataLoader(
     dataset=dataset,
     batch_size=Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"],
     sampler=validation_data_m)
-
-print(Val_data)
 
 # =============================================================================
 # train(Train_data, Val_data, load=False)

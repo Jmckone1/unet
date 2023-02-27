@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from Net.pytorch_dcsaunet.encoder import CSA
+import numpy as np
 
 csa_block = CSA()
 
@@ -16,13 +17,11 @@ class Up(nn.Module):
     def forward(self, x1, x2):
         x1 = self.up(x1)
         # input is CHW
-        
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
 
         x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
-
         x = torch.cat([x2, x1], dim=1)
         return x
 
@@ -31,7 +30,7 @@ class PFC(nn.Module):
     def __init__(self,channels, kernel_size=7):
         super(PFC, self).__init__()
         self.input_layer = nn.Sequential(
-                    nn.Conv2d(3, channels, kernel_size, padding=  kernel_size // 2),
+                    nn.Conv2d(1, channels, kernel_size, padding=  kernel_size // 2),
                     #nn.Conv2d(3, channels, kernel_size=3, padding= 1),
                     nn.ReLU(inplace=True),
                     nn.BatchNorm2d(channels))
@@ -44,6 +43,12 @@ class PFC(nn.Module):
                     nn.ReLU(inplace=True),
                     nn.BatchNorm2d(channels))
     def forward(self, x):
+        
+        # this is in the case of a single image being left at the end of the training set so that the single channel is retained.
+        if x.ndim==4:
+            x = torch.squeeze(x)
+            x = x[:,np.newaxis,:,:]
+            
         x = self.input_layer(x)
         residual = x
         x = self.depthwise(x)
@@ -54,7 +59,7 @@ class PFC(nn.Module):
 
 # inherit nn.module
 class Model(nn.Module):
-    def __init__(self,img_channels=3, n_classes=1):
+    def __init__(self,img_channels=4, n_classes=1):
         super(Model, self).__init__()
         self.pfc = PFC(64)
         self.img_channels = img_channels
@@ -74,49 +79,46 @@ class Model(nn.Module):
         self.up3 = csa_block.layer7
         self.up4 = csa_block.layer8
         
-        # make a note somewhere on how exactly this works and what the numbers mean because
-        # i keep forgetting a feel really dumb . . .
-        self.Linear1 = nn.Sequential(nn.Linear(64*64*8, 8))
+#         # make a note somewhere on how exactly this works and what the numbers mean because
+#         # i keep forgetting a feel really dumb . . .
+#         self.Linear1 = nn.Sequential(nn.Linear(64*64*8, 8))
 
        
-    def forward(self, x, Regress = False):
+    def forward(self, x):
         # i could do an if statement here to define whether we regress or segment
   
         x1 = self.pfc(x)
         x2 = self.maxpool(x1)
 
-        x3 = self.down1(x2)    
+        x3 = self.down1(x2)   
         x4 = self.maxpool(x3)
         
-        x5 = self.down2(x4)     
+        x5 = self.down2(x4)
         x6 = self.maxpool(x5)
         
-        x7 = self.down3(x6)    
+        x7 = self.down3(x6)  
         x8 = self.maxpool(x7)
         
         x9 = self.down4(x8)
         
-        if Regress == False:
+        x10 = self.up_conv1(x9,x7)
+        x11 = self.up1(x10)
 
-            x10 = self.up_conv1(x9,x7)
+        x12 = self.up_conv2(x11,x5) 
+        x13 = self.up2(x12)
+        
+        x14 = self.up_conv3(x13,x3)  
+        x15 = self.up3(x14)
 
-            x11 = self.up1(x10)
+        x16 = self.up_conv4(x15,x1)
+        x17 = self.up4(x16)
 
-            x12 = self.up_conv2(x11,x5)    
-            x13 = self.up2(x12)
+        x18 = self.out_conv(x17)
 
-            x14 = self.up_conv3(x13,x3)   
-            x15 = self.up3(x14)
+        #x19 = torch.sigmoid(x18)
+        return x18
+#         else:
+#             x10 = torch.flatten(x9, start_dim=1)
+#             x11 = self.Linear1(x10)
 
-            x16 = self.up_conv4(x15,x1)
-            x17 = self.up4(x16)
-
-            x18 = self.out_conv(x17)
-
-            #x19 = torch.sigmoid(x18)
-            return x18
-        else:
-            x10 = torch.flatten(x9, start_dim=1)
-            x11 = self.Linear1(x10)
-
-        return x11
+#         return x11

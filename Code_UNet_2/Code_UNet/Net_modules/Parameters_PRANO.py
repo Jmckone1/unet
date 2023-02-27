@@ -15,7 +15,7 @@ class Parameters():
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
             "Epochs" : 200,
-            "Batch_size" : 16,
+            "Batch_size" : 32,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
             "Betas" : (0.9,0.999),
@@ -30,10 +30,11 @@ class Parameters():
             "Confirm_display_step" : True,
             "Image_scale" : 1,
             "New_index" : False,
-            "Image_size" : [240,240]
+            "Image_size" : [240,240],
+            "Evaluate" : False
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_H16_M15_C100_LR4",
+            "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_version_1",
             "Data_path" : "/Brats_2018_data/Brats_2018_data/",
             "Extensions" : ["LGG/","HGG/"],
             "Index_file" : "\\experiment_1\\index.npy"
