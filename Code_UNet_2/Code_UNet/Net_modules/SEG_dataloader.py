@@ -1,6 +1,5 @@
 import torchvision.transforms.functional as TF
 from torch.utils.data.dataset import Dataset
-#import torch.nn.functional as F
 import nibabel as nib
 import numpy as np
 import torchvision
@@ -11,7 +10,7 @@ import os
 
 from tqdm import tqdm
 
-import Net_modules.Parameters_PRANO as Param
+import Net_modules.Parameters_SEG as Param
 from os import walk
 
 random.seed(Param.Parameters.PRANO_Net["Global"]["Seed"])
@@ -73,37 +72,42 @@ class Load_Dataset(Dataset):
         self.count = self.index_max[-1]
         self.path = path
         self.size = size
-
+        
     def __getitem__(self,index):
-
+        
         for i in range(len(self.index_max)):
             if index >= self.index_max[i]:
                 continue
             else:
                 self.current_dir = i-1
                 break
-
+                
         file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_flair_norm.nii.gz"
-
+        
         full_path = self.path + file_t
         img_a = nib.load(full_path)
         img_data = img_a.get_fdata()
         
         img = img_data[:,:,int(index - self.index_max[self.current_dir])-1]
-        # np.stack([img,img,img], axis=0).shape
         
         img = torch.from_numpy(img).unsqueeze(0)
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
+            file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_whseg_norm.nii.gz"
+            l_full_path = self.path + file_label
+            
+            label_a = nib.load(l_full_path)
+            label_data = label_a.get_fdata()
+            
+            label = label_data[:,:,int(index - self.index_max[self.current_dir])-1]
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
+            file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_RANO_2.npz"
+            l_full_path = self.path + file_label
+            
+            l_input = np.load(l_full_path)
+            label = l_input["RANO"][int(index - self.index_max[self.current_dir])-1,:]
+            label = label[np.newaxis,:]
         
-        file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_whseg_norm.nii.gz"
-        l_full_path = self.path + file_label
-
-        label_a = nib.load(l_full_path)
-        label_data = label_a.get_fdata()
-        
-        label = label_data[:,:,int(index - self.index_max[self.current_dir])-1]
-
-        #img = img.squeeze().numpy()
-
+        print(np.shape(img),np.shape(label))
         return img,label
         
     def __len__(self):

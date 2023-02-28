@@ -1,7 +1,9 @@
 from Net_modules.SEG_dataloader import Load_Dataset
 # from Net_modules.Penalty import Penalty
 from Net_modules.Evaluation import DiceLoss
-import Net_modules.Parameters_PRANO as Param
+from Net_modules.Penalty import Penalty
+
+import Net_modules.Parameters_SEG as Param
 from torch.utils.data import DataLoader
 import numpy as np
 import torch
@@ -31,8 +33,12 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=str(Param.Parameters.PRANO_Net["Global"]["GPU"])
 
 print("Loaded cosine penalty")
-loss_f = DiceLoss()#, Param.rNet.area_penalty)
-criterion = loss_f
+if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
+    loss_f = DiceLoss()
+    criterion = loss_f
+else:
+    loss_f = Penalty(Param.Parameters.PRANO_Net["Hyperparameters"]["Cosine_penalty"])
+    criterion = loss_f.MSELossorthog
 
 print("Loaded Dataset")
 Full_Path = os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]

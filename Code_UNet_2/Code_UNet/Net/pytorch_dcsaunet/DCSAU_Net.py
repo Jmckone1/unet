@@ -4,6 +4,8 @@ import torch
 from Net.pytorch_dcsaunet.encoder import CSA
 import numpy as np
 
+import Net_modules.Parameters_SEG as Param
+
 csa_block = CSA()
 
 class Up(nn.Module):
@@ -59,7 +61,7 @@ class PFC(nn.Module):
 
 # inherit nn.module
 class Model(nn.Module):
-    def __init__(self,img_channels=4, n_classes=1):
+    def __init__(self,img_channels=4, n_classes=1, Regress = False):
         super(Model, self).__init__()
         self.pfc = PFC(64)
         self.img_channels = img_channels
@@ -79,46 +81,62 @@ class Model(nn.Module):
         self.up3 = csa_block.layer7
         self.up4 = csa_block.layer8
         
+        self.regress = Regress
+        
 #         # make a note somewhere on how exactly this works and what the numbers mean because
 #         # i keep forgetting a feel really dumb . . .
-#         self.Linear1 = nn.Sequential(nn.Linear(64*64*8, 8))
-
+        image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
+        print(image_size)
+        self.Linear1 = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
        
     def forward(self, x):
-        # i could do an if statement here to define whether we regress or segment
   
         x1 = self.pfc(x)
+        print(x1.size())
         x2 = self.maxpool(x1)
-
+        print(x2.size())
+        
         x3 = self.down1(x2)   
+        print(x3.size())
         x4 = self.maxpool(x3)
+        print(x4.size())
         
         x5 = self.down2(x4)
+        print(x5.size())
         x6 = self.maxpool(x5)
+        print(x6.size())
         
-        x7 = self.down3(x6)  
+        x7 = self.down3(x6)
+        print(x6.size())
         x8 = self.maxpool(x7)
+        print(x8.size())
         
         x9 = self.down4(x8)
+        print(x9.size())
         
-        x10 = self.up_conv1(x9,x7)
-        x11 = self.up1(x10)
+        if self.regress == True:
+            
+            x10 = torch.flatten(x9, start_dim=1)
+            print(x10.size())
+            x11 = self.Linear1(x10)
+            print(x11.size())
+            return x11
+            
+        if self.regress == False:
 
-        x12 = self.up_conv2(x11,x5) 
-        x13 = self.up2(x12)
-        
-        x14 = self.up_conv3(x13,x3)  
-        x15 = self.up3(x14)
+            x10 = self.up_conv1(x9,x7)
+            x11 = self.up1(x10)
 
-        x16 = self.up_conv4(x15,x1)
-        x17 = self.up4(x16)
+            x12 = self.up_conv2(x11,x5) 
+            x13 = self.up2(x12)
 
-        x18 = self.out_conv(x17)
+            x14 = self.up_conv3(x13,x3)  
+            x15 = self.up3(x14)
 
-        #x19 = torch.sigmoid(x18)
-        return x18
-#         else:
-#             x10 = torch.flatten(x9, start_dim=1)
-#             x11 = self.Linear1(x10)
+            x16 = self.up_conv4(x15,x1)
+            x17 = self.up4(x16)
 
-#         return x11
+            x18 = self.out_conv(x17)
+
+            #x19 = torch.sigmoid(x18)
+            return x18

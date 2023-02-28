@@ -54,8 +54,11 @@ class Jaccard_Evaluation():
         return 0
 
     def Obb(input_array):
+        
+#         input_array = input_array.squeeze()
 
-        input_array = input_array.detach().cpu().numpy()
+#         input_array = input_array.detach().cpu().numpy()
+#         print("shape", input_array.shape)
 
         input_data = np.array([(input_array[1], input_array[0]),
                                (input_array[5], input_array[4]), 

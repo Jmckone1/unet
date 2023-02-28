@@ -18,14 +18,22 @@ class Penalty():
     
     def MSELossorthog(self, output, target):
         
+        output = torch.squeeze(output)
+        target = torch.squeeze(target)
+        
         loss = 0
         batch = output.shape[0]
+        print("BATCH", batch)
+        print(output.shape)
+        
         mse = torch.ones(batch,device="cuda")
         cosine = torch.ones(batch,device="cuda")
         cosine = self.Cosine_calc(output)
         
-        for i in range(output.shape[0]):
-            mse[i] = self.a(output[i], target[i])
+        
+        for i in range(batch):
+            print(output.shape,target.shape)
+            mse[i] = self.a(output[i,:], target[i,:])
             
             print(cosine[i])
             if torch.isnan(cosine[i]) == True:
