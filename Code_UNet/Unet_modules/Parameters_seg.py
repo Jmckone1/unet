@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "3"
+    GPU = "1"
 
 class sData:
 
@@ -35,7 +35,7 @@ class SegNet:
     
     extensions = ["/HGG","/LGG"]
 
-    useWeights = True # false if with no pre-training, True with Pretraining
+    useWeights = False # false if with no pre-training, True with Pretraining
     allow_update = True # false if Frozen model, True if Unfrozen model
     
     checkpoint_eval = False # If True perform validation on each *display step* number of batches for the first epoch
@@ -49,8 +49,8 @@ class testNet:
     batch_size = 16
     device = 'cuda'
 
-    load_path = "Checkpoints/split_data_experiments/PTE_division_AS_BN_S_1/Full_model_MK6_H16_PTE_CO100_R3_lr_0003_dice_main_50_percent"
-    save_path = "Predictions/MK_7_model_predictions/PTE_division_AS_BN_S_1/PTE_50%"
+    load_path = "Checkpoints/split_data_experiments/RI_division_AS_BN_S_1/Full_model_MK6_H16_RI_CO100_R3_lr_0003_dice_main_100_percent"
+    save_path = "Predictions/MK_7_model_predictions/RI_division_AS_BN_S_1/RI_100%"
     input_dim = 4
     label_dim = 1
     hidden_dim = 16

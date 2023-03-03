@@ -12,7 +12,6 @@ class Global:
 ###########################################################
 class rData:
 
-
     image_in = "whimg_reduced"
     rano_in = "RANO_reduced_2"
     index_file = "/index_max_reduced.npy"
@@ -26,7 +25,7 @@ class rNet:
     dataset_path = "Brats_2018_data/Brats_2018_data"
     Extensions = ["/HGG","/LGG"]
     
-    n_epochs = 50
+    n_epochs = 200
     orth_penalty = 0
     area_penalty = 0 
     
