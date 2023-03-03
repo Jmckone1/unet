@@ -2,13 +2,13 @@ from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Net_modules.Evaluation import Jaccard_Evaluation as Jacc
 import Net.pytorch_dcsaunet.DCSAU_Net as net
 
-#import Net.UNet_components as net
+# import Net.UNet_components as net
 
 import Net_modules.Parameters_SEG as Param
-from Unet_PRANO_Validate import Validate
+from Unet_FULL_Validate import Validate
 from sklearn.metrics import jaccard_score
 import torch.cuda.amp as amp
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from torch import nn
 import numpy as np
 import shutil
@@ -50,7 +50,15 @@ class UNet_train():
         scaler = amp.GradScaler(enabled = True)
         
         # regress swaps the model between regression and the segmentation model
-        unet = net.Model(1,1,Regress = Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"]).to(
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Use_weights"] == True:
+            unet = net.Model.load_weights(1,
+                                          1,
+                                          Regress = Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"],
+                            Allow_update = Param.Parameters.PRANO_Net["Hyperparameters"]["Allow_update"],
+                            Checkpoint_name = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_load"]).to(
+                            Param.Parameters.PRANO_Net["Global"]["device"])
+        else:
+            unet = net.Model(1,1,Regress = Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"]).to(
                             Param.Parameters.PRANO_Net["Global"]["device"])
         
         print(unet)
@@ -115,6 +123,9 @@ class UNet_train():
                 label_input = label_input.float()
                 label_input = label_input.squeeze()
                 
+#                 print(label_input.size())
+#                 print(truth_input.size())
+                
                 if(truth_input.ndim == 3):
                     truth_input = truth_input[:,np.newaxis,:,:]
                     if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
@@ -122,15 +133,17 @@ class UNet_train():
                     if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
                         label_input = label_input[:,np.newaxis,:]
                 
+                
                 # set accumilated gradients to 0 for param update
                 unet_opt.zero_grad(set_to_none=True)
                 with amp.autocast(enabled = True):
                     pred = unet(truth_input)
                     pred = pred.squeeze()
-                
-                    if(pred.ndim == 2):
+                    if pred.ndim == 1:
+                        pred = pred[np.newaxis,:]
+                    if pred.ndim == 2:
                         pred = pred[np.newaxis,:,:]
-                
+
                     # forward
                     unet_loss = self.criterion(pred, label_input)
                     
@@ -186,14 +199,12 @@ class UNet_train():
                                       'optimizer' : unet_opt.state_dict()}
                         out = Total_path + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                         torch.save(checkpoint, out)
-
     
-                        # if enabled this will validate the model during every *DISPLAY STEP* (default 50 batches) during the first epoch
-    
-                        if Param.Parameters.PRANO_Net["Hyperparameters"]["Evaluate"] == True:
-                            if epoch == 0:
-                                Validate(unet, self.criterion, Val_data, epoch, step = "_" + str(cur_step))
-                        # this section would need to include the saving for the intermediate output results
+#                         # if enabled this will validate the model during every *DISPLAY STEP* (default 50 batches) during the first epoch
+#                         if Param.Parameters.PRANO_Net["Hyperparameters"]["Evaluate"] == True:
+#                             if epoch == 0:
+#                                 Validate(unet, self.criterion, Val_data, epoch, step = "_" + str(cur_step))
+#                         # this section would need to include the saving for the intermediate output results
     
             print("Validation...")
             if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:

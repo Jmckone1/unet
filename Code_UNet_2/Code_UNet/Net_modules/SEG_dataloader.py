@@ -55,7 +55,8 @@ class Load_Dataset(Dataset):
                             c_s = counter
                     if input_ == 1:
                         directory = directory + c_s
-                    file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory][4:] + "_whseg_norm.nii.gz"
+#                     file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory][4:] + "_whseg_norm.nii.gz"
+                    file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory] + "_whseg.nii.gz"
                     full_path = os.path.join(file)
                     img_a = nib.load(full_path)
                     img_data = img_a.get_fdata()
@@ -82,7 +83,12 @@ class Load_Dataset(Dataset):
                 self.current_dir = i-1
                 break
                 
-        file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_flair_norm.nii.gz"
+# lung_001_reg_label.npz
+# lung_001_whimg.nii.gz
+# lung_001_whseg.nii.gz
+                
+        #file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_flair_norm.nii.gz"
+        file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir] + "_whimg.nii.gz"
         
         full_path = self.path + file_t
         img_a = nib.load(full_path)
@@ -92,7 +98,8 @@ class Load_Dataset(Dataset):
         
         img = torch.from_numpy(img).unsqueeze(0)
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
-            file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_whseg_norm.nii.gz"
+            #file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_whseg_norm.nii.gz"
+            file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir] + "_whseg.nii.gz"
             l_full_path = self.path + file_label
             
             label_a = nib.load(l_full_path)
@@ -100,7 +107,8 @@ class Load_Dataset(Dataset):
             
             label = label_data[:,:,int(index - self.index_max[self.current_dir])-1]
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
-            file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_RANO_2.npz"
+            #file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_RANO_2.npz"
+            file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir] + "_reg_label.npz"
             l_full_path = self.path + file_label
             
             l_input = np.load(l_full_path)

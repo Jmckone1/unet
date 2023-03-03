@@ -27,7 +27,6 @@ class Up(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         return x
 
-    
 class PFC(nn.Module):
     def __init__(self,channels, kernel_size=7):
         super(PFC, self).__init__()
@@ -87,11 +86,11 @@ class Model(nn.Module):
 #         # i keep forgetting a feel really dumb . . .
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
         # print(image_size)
-        self.Linear1 = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
+        self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
        
     def forward(self, x):
         
-        Debug = False
+        Debug = True
   
         x1 = self.pfc(x)
         if Debug: print(x1.size())
@@ -120,7 +119,7 @@ class Model(nn.Module):
             
             x10 = torch.flatten(x9, start_dim=1)
             if Debug: print(x10.size())
-            x11 = self.Linear1(x10)
+            x11 = self.Linear(x10)
             if Debug: print(x11.size())
             return x11
             
@@ -151,3 +150,41 @@ class Model(nn.Module):
 
             #x19 = torch.sigmoid(x18)
             return x18
+        
+    def load_weights(img_channels=4, n_classes=1, Regress = True, Allow_update = False, Checkpoint_name = ""):
+        # load the model and the checkpoint
+        model = Model(img_channels, n_classes, Regress)
+        checkpoint = torch.load(Checkpoint_name)
+        
+#         print(checkpoint['state_dict'])
+        input("Press to continue . . . ")
+        # remove the final linear layer of the regression model weights and bias
+        del checkpoint['state_dict']["Linear.0.weight"]
+        del checkpoint['state_dict']["Linear.0.bias"]
+
+        # load the existing model weights from the checkpoint
+        model.load_state_dict(checkpoint['state_dict'], strict=False)
+        if Regress == False:
+            # freeze the weights if allow_update is false - leave unfrozen if allow_update is true
+            for param in model.pfc.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down1.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down2.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down3.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down4.parameters():
+                param.requires_grad = Allow_update
+
+    #         x1 = self.pfc(x)
+    #         x2 = self.maxpool(x1)
+    #         x3 = self.down1(x2)   
+    #         x4 = self.maxpool(x3)
+    #         x5 = self.down2(x4)
+    #         x6 = self.maxpool(x5)
+    #         x7 = self.down3(x6)
+    #         x8 = self.maxpool(x7)
+    #         x9 = self.down4(x8)
+                      
+        return model

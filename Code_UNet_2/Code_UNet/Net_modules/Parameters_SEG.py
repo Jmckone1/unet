@@ -16,7 +16,7 @@ class Parameters():
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 2,
+            "Epochs" : 1,
             "Batch_size" : 16,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
@@ -31,16 +31,19 @@ class Parameters():
             "Batch_display_step" : 100,
             "Confirm_display_step" : True,
             "Image_scale" : 1,
-            "New_index" : True,
+            "New_index" : False,
             "Image_size" : [240,240],
             "Evaluate" : False,
-            "Regress" : True
+            "Regress" : True,
+            "Allow_update" : True,
+            "Use_weights" : False
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_version_small_test",
-            "Data_path" : "/Data/",
-            "Extensions" : ["LGG/","HGG/"],
-            "Index_file" : "\\experiment_1\\index_small.npy"
+            "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_version_small_CT",
+            "Checkpoint_load" : "Checkpoints/UNet_DCSAU_Net_version_small_CT/Regression/checkpoint_0.pth",
+            "Data_path" : "/CT_Data/Task06_Lung/",
+            "Extensions" : [""],
+            "Index_file" : "\\experiment_1\\index_CT.npy"
             },
         "Test_paths" : {
             "Checkpoint_load" : "Checkpoints/UNet_H16_M15_C100_LR4/checkpoint_199",
