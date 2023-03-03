@@ -107,7 +107,7 @@ class Load_Dataset(Dataset):
             label = l_input["RANO"][int(index - self.index_max[self.current_dir])-1,:]
             label = label[np.newaxis,:]
         
-        print(np.shape(img),np.shape(label))
+        # print(np.shape(img),np.shape(label))
         return img,label
         
     def __len__(self):

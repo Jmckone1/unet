@@ -140,29 +140,3 @@ class UNet(nn.Module):
             param.requires_grad = allow_update
                       
         return model
-                       
-# # output testing for the model and saving of the model diagram usign graphiz
-# # 4 input MRI sequences, 1 segmentation output
-# # 16 hidden layers for this model
-# input_dim = 4
-# label_dim = 1
-# hidden_dim = 16
-
-# device = 'cuda'
-                      
-# # to use the model with weights, frozen or unfrozen utilise UNet.load_weights
-# # to use the model without having any weights use UNet without allow_update and path
-# model = UNet.load_weights(input_dim, label_dim, hidden_dim,"Checkpoints_RANO/Unet_H16_M8/checkpoint_49.pth", allow_update=False)
-# print(model)
-# #print(model.contract1.parameters())
-
-# from torchviz import make_dot
-# import matplotlib.pyplot as plt
-# import graphviz
-
-# # dummy image input for plotting model
-# x = torch.zeros(1, 4, 240, 240, dtype=torch.float, requires_grad=False)
-# out = model(x)
-# y = make_dot(out)
-# # indicates the file name that will be written to
-# y.render("frozen_2.gv") 

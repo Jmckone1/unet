@@ -5,6 +5,8 @@ Created on Tue Dec 13 11:31:02 2022
 @author: Computing
 """
 
+# consider changing the outline of the parameters and therefore the other code composites to split the hyperparameters file
+
 class Parameters():
     PRANO_Net = {
         "Global" : {
@@ -14,8 +16,8 @@ class Parameters():
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 200,
-            "Batch_size" : 32,
+            "Epochs" : 2,
+            "Batch_size" : 16,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
             "Betas" : (0.9,0.999),
@@ -32,7 +34,7 @@ class Parameters():
             "New_index" : True,
             "Image_size" : [240,240],
             "Evaluate" : False,
-            "Regress" : False
+            "Regress" : True
             },
         "Train_paths" : {
             "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_version_small_test",

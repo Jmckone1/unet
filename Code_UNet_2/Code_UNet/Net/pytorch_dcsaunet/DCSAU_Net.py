@@ -86,57 +86,68 @@ class Model(nn.Module):
 #         # make a note somewhere on how exactly this works and what the numbers mean because
 #         # i keep forgetting a feel really dumb . . .
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
-        print(image_size)
+        # print(image_size)
         self.Linear1 = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
        
     def forward(self, x):
+        
+        Debug = False
   
         x1 = self.pfc(x)
-        print(x1.size())
+        if Debug: print(x1.size())
         x2 = self.maxpool(x1)
-        print(x2.size())
+        if Debug: print(x2.size())
         
         x3 = self.down1(x2)   
-        print(x3.size())
+        if Debug: print(x3.size())
         x4 = self.maxpool(x3)
-        print(x4.size())
+        if Debug: print(x4.size())
         
         x5 = self.down2(x4)
-        print(x5.size())
+        if Debug: print(x5.size())
         x6 = self.maxpool(x5)
-        print(x6.size())
+        if Debug: print(x6.size())
         
         x7 = self.down3(x6)
-        print(x6.size())
+        if Debug: print(x6.size())
         x8 = self.maxpool(x7)
-        print(x8.size())
+        if Debug: print(x8.size())
         
         x9 = self.down4(x8)
-        print(x9.size())
+        if Debug: print(x9.size())
         
         if self.regress == True:
             
             x10 = torch.flatten(x9, start_dim=1)
-            print(x10.size())
+            if Debug: print(x10.size())
             x11 = self.Linear1(x10)
-            print(x11.size())
+            if Debug: print(x11.size())
             return x11
             
         if self.regress == False:
 
             x10 = self.up_conv1(x9,x7)
+            if Debug: print(x10.size())
             x11 = self.up1(x10)
+            if Debug: print(x11.size())
 
             x12 = self.up_conv2(x11,x5) 
+            if Debug: print(x12.size())
             x13 = self.up2(x12)
+            if Debug: print(x13.size())
 
             x14 = self.up_conv3(x13,x3)  
+            if Debug: print(x14.size())
             x15 = self.up3(x14)
+            if Debug: print(x15.size())
 
             x16 = self.up_conv4(x15,x1)
+            if Debug: print(x16.size())
             x17 = self.up4(x16)
+            if Debug: print(x17.size())
 
             x18 = self.out_conv(x17)
+            if Debug: print(x18.size())
 
             #x19 = torch.sigmoid(x18)
             return x18
