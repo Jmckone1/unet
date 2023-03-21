@@ -1,8 +1,8 @@
 from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Net_modules.Evaluation import Jaccard_Evaluation as Jacc
-import Net.pytorch_dcsaunet.DCSAU_Net as net
 
-# import Net.UNet_components as net
+import Net.pytorch_dcsaunet.DCSAU_Net as net
+#import Net.UNet_components as net
 
 import Net_modules.Parameters_SEG as Param
 from Unet_FULL_Validate import Validate
@@ -16,33 +16,47 @@ import torch
 import csv
 import os
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
+
 class UNet_train(): 
     def __init__(self, criterion):
         print("Initilising Network . . .")
+        torch.cuda.empty_cache()
+        
+        self.Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
+        
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"]: self.model_type = "Regression"
+        else: self.model_type = "Segmentation"
         
         self.criterion = criterion
         
         output_types = ["","Training_loss","Training_loss_mse","Training_loss_cosine",
                         "Validation_loss","Validation_loss_mse","Validation_loss_cosine",
                         "Training_Jaccard","Validation_Jaccard"]
-        if not os.path.exists("Checkpoints_RANO/" + Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"]):
-            for name in output_types:
-                os.makedirs("Checkpoints_RANO/" + Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + name)
+        
+        if Param.Parameters.PRANO_Net["Global"]["Debug"] == True: print("Checking if following path exists: ",
+                                                                        Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"])
             
-            original = r'Code_UNet/Net_modules/Parameters_PRANO.py'
-            target = r'Checkpoints_RANO/' + Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + 'Parameters.py'
-            shutil.copyfile(original, target)
-            
-        if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"]: self.model_type = "Regression"
-        else: self.model_type = "Segmentation"
+        self.Total_path = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "/" + self.model_type + "/"
+        if os.path.exists(self.Total_path) == False:
+            os.makedirs(self.Total_path)
+            os.makedirs(self.Total_path + "Checkpoints/")
+        
+        print("Starting Param file copy . . .")
+        original = Param.Parameters.PRANO_Net["Global"]["Param_location"]
+        target = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "/" + self.model_type + "/Parameters.py"
+        shutil.copyfile(original, target)
+        print("Param file copy complete . . .")
+        if Param.Parameters.PRANO_Net["Global"]["Debug"] == True: print("Copied file saved at location: ",
+                                                                        Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] 
+                                                                        + "/Parameters.py")
 
-        print("############")
-        print(self.model_type)
-        print("############")
+        print("################")
+        print("#", self.model_type, "#")
+        print("################")
 
-        Total_path = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "/" + self.model_type + "/"
-        if os.path.exists(Total_path) == False:
-            os.makedirs(Total_path)
+        
             
     def train(self,Train_datas, Val_data,load=False):
         
@@ -60,11 +74,11 @@ class UNet_train():
         else:
             unet = net.Model(1,1,Regress = Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"]).to(
                             Param.Parameters.PRANO_Net["Global"]["device"])
+            
+        if self.Debug: print("Created model", torch.cuda.memory_allocated()/1024**2)
         
         print(unet)
-        with open("Checkpoints_RANO/" + 
-                  Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + 
-                  "Model_architecture", 'w') as write: 
+        with open( self.Total_path + "/" + "Model_architecture", "w") as write: 
             write.write(str(unet))
             
         unet_opt = torch.optim.Adam(unet.parameters(), 
@@ -77,15 +91,15 @@ class UNet_train():
                                     Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + 
                                     "checkpoint_0_step_1900.pth")
     
-            unet.load_state_dict(checkpoint['state_dict'])
-            unet_opt.load_state_dict(checkpoint['optimizer'])
+            unet.load_state_dict(checkpoint["state_dict"])
+            unet_opt.load_state_dict(checkpoint["optimizer"])
 
         for epoch in range(Param.Parameters.PRANO_Net["Hyperparameters"]["Epochs"]):
             cur_step = 0
             
             print("Training...")
             if epoch == 0 and load == True:
-                epoch = checkpoint['epoch'] + 1
+                epoch = checkpoint["epoch"] + 1
                 
             unet.train()
             
@@ -119,12 +133,11 @@ class UNet_train():
                 truth_input = truth_input.to(Param.Parameters.PRANO_Net["Global"]["device"])
                 truth_input = truth_input.float() 
                 truth_input = truth_input.squeeze()
+                if self.Debug: print("Input image data", torch.cuda.memory_allocated()/1024**2)
                 label_input = label_input.to(Param.Parameters.PRANO_Net["Global"]["device"])
                 label_input = label_input.float()
                 label_input = label_input.squeeze()
-                
-#                 print(label_input.size())
-#                 print(truth_input.size())
+                if self.Debug: print("Input label data", torch.cuda.memory_allocated()/1024**2)
                 
                 if(truth_input.ndim == 3):
                     truth_input = truth_input[:,np.newaxis,:,:]
@@ -136,9 +149,11 @@ class UNet_train():
                 
                 # set accumilated gradients to 0 for param update
                 unet_opt.zero_grad(set_to_none=True)
+                if self.Debug: print("zero grad", torch.cuda.memory_allocated()/1024**2)
                 with amp.autocast(enabled = True):
                     pred = unet(truth_input)
                     pred = pred.squeeze()
+                    if self.Debug: print("autocast pred and prediction", torch.cuda.memory_allocated()/1024**2)
                     if pred.ndim == 1:
                         pred = pred[np.newaxis,:]
                     if pred.ndim == 2:
@@ -170,10 +185,29 @@ class UNet_train():
                     unet_loss = unet_loss[0]
                 else:
                     #calculate dice score
+                    
                     pred_output = sigmoid_act(pred).cpu().detach().numpy()
                     for Batch in range(cur_batch_size):
-                        train_results[1] = Dice_Eval.dice_score(pred_output[Batch,:,:],truth_output[Batch,:,:])
+                        if self.Debug: print("DICE SCORE: ", Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int),truth_output[Batch,:,:]))
+                        train_results[1].append(Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int),truth_output[Batch,:,:]))
+                    if self.Debug:
+                        fig = plt.figure()
+                        grid = ImageGrid(fig, 111,nrows_ncols=(2, 4),axes_pad=0.1)
+
+                        for ax, im in zip(grid, truth_output):
+                            ax.imshow(im)
+                        print("Truth_output")
+                        plt.show()   
+
+                        fig2 = plt.figure()
+                        grid2 = ImageGrid(fig2,111,nrows_ncols=(2, 4),axes_pad=0.1)
+
+                        for ax2, im2 in zip(grid2, (pred_output < 0.5).astype(int)):
+                            ax2.imshow(im2)
+                        print("Pred_output")
+                        plt.show()    
                         
+                if self.Debug: print("Just before backwards", torch.cuda.memory_allocated()/1024**2)
                 scaler.scale(unet_loss).backward()
                 scaler.step(unet_opt)
                 scaler.update()
@@ -194,10 +228,10 @@ class UNet_train():
                 if cur_step % Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_display_step"] == 0:
                     if epoch == 0 and cur_step <= 250:
     
-                        checkpoint = {'epoch': epoch,
-                                      'state_dict': unet.state_dict(), 
-                                      'optimizer' : unet_opt.state_dict()}
-                        out = Total_path + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
+                        checkpoint = {"epoch": epoch,
+                                      "state_dict": unet.state_dict(), 
+                                      "optimizer" : unet_opt.state_dict()}
+                        out = self.Total_path + "Checkpoints/" + "checkpoint_" + str(epoch) + "_" + str(cur_step) + ".pth"
                         torch.save(checkpoint, out)
     
 #                         # if enabled this will validate the model during every *DISPLAY STEP* (default 50 batches) during the first epoch
@@ -221,20 +255,18 @@ class UNet_train():
                 # add the regression validation loss output here
                 
             print("saving epoch: ", epoch)
-            Total_path = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_save"] + "/" + self.model_type + "/"
-            if os.path.exists(Total_path) == False:
-                os.makedirs(Total_path)
                         
-            checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-            out = Total_path + "checkpoint_" + str(epoch) + ".pth"
+            checkpoint = {"epoch": epoch, "state_dict": unet.state_dict(), "optimizer" : unet_opt.state_dict()}
+            out = self.Total_path + "Checkpoints/" + "checkpoint_" + str(epoch) + ".pth"
             torch.save(checkpoint, out)
             
             for result_type in ["Training", "Validation"]:
                 for save_location in range(len(list_of_names)):
-                    if not os.path.exists(Total_path + result_type + list_of_names[save_location][0]) == True:
-                        os.makedirs(Total_path + result_type + list_of_names[save_location][0])
+                    
+                    if not os.path.exists(self.Total_path + result_type + list_of_names[save_location][0]) == True:
+                        os.makedirs(self.Total_path + result_type + list_of_names[save_location][0])
                         
-                    with open(Total_path + result_type + list_of_names[save_location][0] + list_of_names[save_location][1], 'w') as f: 
+                    with open(self.Total_path + result_type + list_of_names[save_location][0] + list_of_names[save_location][1], "w") as f: 
                         write = csv.writer(f) 
                         if result_type == "Training":
                             write.writerow([train_results[save_location]])
@@ -250,4 +282,4 @@ class UNet_train():
                 train_results = [[],[]]
                 val_results = [[],[]]
                 
-        print('Finished Training Dataset')
+        print("Finished Training Dataset")

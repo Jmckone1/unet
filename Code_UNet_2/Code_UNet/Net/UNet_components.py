@@ -101,60 +101,87 @@ class Model(nn.Module):
         
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
 
-        # this is broken at the moment so we shall have to see how we get on.
         self.Linear = nn.Linear(((hidden_channels * 32) * 7 * 7), 8) 
 
     def forward(self, x):
         
-        Debug = True
+        Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
         
         x1 = self.upfeature(x)
-        if Debug: print("1", x1.size())
+        if Debug: 
+            print("1", x1.size())
+            print("x1 - upfeature", torch.cuda.memory_allocated()/1024**2)
         
         x2 = self.contract1(x1)
-        if Debug: print("2", x2.size())
+        if Debug: 
+            print("2", x2.size())
+            print("x2 - contract1", torch.cuda.memory_allocated()/1024**2)
             
         x3 = self.contract2(x2)
-        if Debug: print("3", x3.size())
+        if Debug: 
+            print("3", x3.size())
+            print("x3 - contract2", torch.cuda.memory_allocated()/1024**2)
             
         x4 = self.contract3(x3)
-        if Debug: print("4", x4.size())
+        if Debug: 
+            print("4", x4.size())
+            print("x4 - contract3", torch.cuda.memory_allocated()/1024**2)
             
         x5 = self.contract4(x4)
-        if Debug: print("5", x5.size())
+        if Debug: 
+            print("5", x5.size())
+            print("x5 - contract4", torch.cuda.memory_allocated()/1024**2)
             
         x6 = self.contract5(x5)
-        if Debug: print("6", x6.size())
+        if Debug: 
+            print("6", x6.size())
+            print("x6 - contract5", torch.cuda.memory_allocated()/1024**2)
             
         if self.regress == True:
             
             x7 = torch.flatten(x6, start_dim=1)
-            print("7", x7.size())
+            if Debug: 
+                print("7", x7.size())
+                print("x7 - Flatten", torch.cuda.memory_allocated()/1024**2)
             
             x8 = self.Linear(x7)
-            print("8", x8.size())
+            if Debug:
+                print("8", x8.size())
+                print("x8 - Linear", torch.cuda.memory_allocated()/1024**2)
             
             return x8
             
         if self.regress == False:
             
             x7 = self.expand1(x6, x5)
-            if Debug: print("7", x7.size())
+            if Debug: 
+                print("7", x7.size())
+                print("x7 - expand1", torch.cuda.memory_allocated()/1024**2)
 
             x8 = self.expand2(x7, x4)
-            if Debug: print("8", x8.size())
+            if Debug: 
+                print("8", x8.size())
+                print("x8 - expand2", torch.cuda.memory_allocated()/1024**2)
             
             x9 = self.expand3(x8, x3)
-            if Debug: print("9", x9.size())
+            if Debug: 
+                print("9", x9.size())
+                print("x9 - expand3", torch.cuda.memory_allocated()/1024**2)
             
             x10 = self.expand4(x9, x2)
-            if Debug: print("10", x10.size())
+            if Debug: 
+                print("10", x10.size())
+                print("x10 - expand4", torch.cuda.memory_allocated()/1024**2)
             
             x11 = self.expand5(x10, x1)
-            if Debug: print("11", x11.size())
+            if Debug: 
+                print("11", x11.size())
+                print("x11 - expand5", torch.cuda.memory_allocated()/1024**2)
 
             x12 = self.downfeature(x11)
-            if Debug: print("12", x12.size())
+            if Debug: 
+                print("12", x12.size())
+                print("x12 - downfeature", torch.cuda.memory_allocated()/1024**2)
                       
             return x12
                               

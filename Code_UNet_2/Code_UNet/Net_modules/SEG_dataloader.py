@@ -7,6 +7,7 @@ import random
 import torch
 import sys
 import os
+import time
 
 from tqdm import tqdm
 
@@ -34,26 +35,26 @@ class Load_Dataset(Dataset):
         
         c_s = 0
         # each extension - HGG or LGG
-        for input_ in range(len(self.path_ext)):
+        for path_extension in range(len(self.path_ext)):
             counter = 0
             # each folder in extension
-            for (dir_path, dir_names, file_names) in walk(path + self.path_ext[input_]):
+            for (dir_path, dir_names, file_names) in walk(path + self.path_ext[path_extension]):
                 if not dir_names == []:
                     for file in dir_names[-cap_size:]:
                         if not file[0].startswith("."):
-                            self.d.append(self.path_ext[input_] + file)
+                            self.d.append(self.path_ext[path_extension] + file)
                             counter = len(self.d)
                             
             print("Starting new index ")
             if New_index == True:
-                print(self.path_ext[input_])
-                if not os.path.exists(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9]):
-                    os.makedirs(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9])
+                head, tail = os.path.split(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"])
+                if not os.path.exists(head):
+                    os.makedirs(head)
                 for directory in tqdm(range(counter-c_s)):
                     if directory == 0:
-                        if input_ == 0:
+                        if path_extension == 0:
                             c_s = counter
-                    if input_ == 1:
+                    if path_extension == 1:
                         directory = directory + c_s
 #                     file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory][4:] + "_whseg_norm.nii.gz"
                     file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory] + "_whseg.nii.gz"
@@ -63,9 +64,9 @@ class Load_Dataset(Dataset):
                     
                     self.index_max.extend([img_data.shape[2] + self.index_max[-1]])
                 
-                if input_ == (len(self.path_ext)-1):
+                if path_extension == (len(self.path_ext)-1):
                     print("Saving index file . . . ")
-                    np.save(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"],self.index_max)
+                    np.save(head + "/" + tail,self.index_max)
                     print("Index file complete")
             else:
                 self.index_max = np.load(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"]) 
@@ -75,6 +76,9 @@ class Load_Dataset(Dataset):
         self.size = size
         
     def __getitem__(self,index):
+        
+        elapsed_time_fl = 0
+        start = time.time()
         
         for i in range(len(self.index_max)):
             if index >= self.index_max[i]:
@@ -115,6 +119,8 @@ class Load_Dataset(Dataset):
             label = l_input["RANO"][int(index - self.index_max[self.current_dir])-1,:]
             label = label[np.newaxis,:]
         
+        elapsed_time_fl = (time.time() - start) 
+        print(elapsed_time_fl)
         # print(np.shape(img),np.shape(label))
         return img,label
         

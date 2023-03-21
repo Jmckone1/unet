@@ -11,11 +11,13 @@ import torch
 
 class UNet_validate():
     def __init__(self):
+        torch.cuda.empty_cache()
         print("Init")
         print(" ")
         print("Validation...")
 
 def Validate(unet, criterion, Val_data, epoch, step = ""):
+    
     sigmoid_act = nn.Sigmoid()
 #     print(" ")
 #     print("Validation...")
@@ -89,7 +91,16 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
             #calculate dice score
             pred_output = sigmoid_act(pred).cpu().detach().numpy()
             for Batch in range(cur_batch_size):
-                Dice.append(Dice_Eval.dice_score(pred_output[Batch,:,:],truth_output[Batch,:,:]))
+                if self.Debug: 
+                    print("DICE SCORE: ", 
+                          Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int), 
+                                                          truth_output[Batch,:,:]), 
+                          "PRIOR SCORE" ,
+                          Dice_Eval.dice_score(pred_output[Batch,:,:],
+                                               truth_output[Batch,:,:]))
+                    
+                Dice.append(Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int),
+                                                  truth_output[Batch,:,:]))
             
         unet_loss.backward()
         
