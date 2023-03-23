@@ -17,14 +17,14 @@ class Parameters():
         "Global" : {
             "Seed" : 0,
             "device" :"cuda",
-            "GPU" : 2,
+            "GPU" : 3,
             "Param_location" : "Code_UNet_2/Code_UNet/Net_modules/Parameters_SEG.py",
             "Debug" : False
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 50,
-            "Batch_size" : 16,
+            "Epochs" : 100,
+            "Batch_size" : 8,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
             "Betas" : (0.9,0.999),
@@ -35,19 +35,19 @@ class Parameters():
             "Validation_split" : 0.1,
             "Test_split" : 0.2,
             "Custom_split" : 0.5,
-            "Batch_display_step" : 100,
-            "Confirm_display_step" : True, # not sure if this is used - will need to check
+            "Batch_display_step" : 100, # used in line 228 of Unet_full_train file
+            # "Confirm_display_step" : True, # not sure if this is used - will need to check
             "Image_scale" : 1,
             "Image_size" : [256,256],
             "Evaluate" : False,
-            "Regress" : True,
+            "Regress" : False,
             "Allow_update" : True,
             "Use_weights" : False,
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_CT_16batch",
-            "Checkpoint_load" : "Checkpoints/UNet_DCSAU_Net_CT_16batch/Regression/checkpoint_0.pth",
+            "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_CT_8",
+            "Checkpoint_load" : "Checkpoints/UNet_DCSAU_Net_CT_8/Regression/checkpoint_0.pth",
             "Data_path" : "CT_Dataset/Task06_Lung", # "/Brats_2018/",
             "Extensions" : [""]
             },

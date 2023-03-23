@@ -36,17 +36,16 @@ class Load_Dataset(Dataset):
             numpy_mask = np.load(mask_path)
             label = numpy_mask["RANO"][np.newaxis,:]  
             
-            
         else:
             mask_path = os.path.join(self.path,'labelsTr/',self.masks_folders[idx] + ".nii.gz")
             label = nib.load(mask_path).get_fdata() 
             
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Apply_Augmentation"] == True:
-            img, label = augmentation(img,label)
+            img, label = self.augmentation(img,label)
             
         return (img,label)
     
-    def augmentation(self,img,label):
+    def augmentation(self, img, label):
         
         h_flip = 0.5
         v_flip = 0.5
@@ -64,10 +63,10 @@ class Load_Dataset(Dataset):
         # Regression ######################################################################################### #
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
             keypoint_format = [
-                (label[1],label[0]),
-                (label[3],label[2]),
-                (label[5],label[4]),
-                (label[7],label[6])
+                (label[0,1],label[0,0]),
+                (label[0,3],label[0,2]),
+                (label[0,5],label[0,4]),
+                (label[0,7],label[0,6])
             ]
             
             transform1 = A.Compose([
@@ -90,6 +89,8 @@ class Load_Dataset(Dataset):
                                  transformed_label[1][1], transformed_label[1][0],
                                  transformed_label[2][1], transformed_label[2][0],
                                  transformed_label[3][1], transformed_label[3][0]]
+
+            transformed_label = np.expand_dims(transformed_label, axis=0)
             
         # Segmentation ##################################################################################### #
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:

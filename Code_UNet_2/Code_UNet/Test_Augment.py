@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
+# ideally run this with augment param set to false so that the original images are only transformed once but works either way.
+
 KEYPOINT_COLOR = (0, 255, 0) # Green
 
 def vis_keypoints(image, keypoints, color=KEYPOINT_COLOR, diameter=2):
@@ -35,31 +37,36 @@ dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in)
 x_in, y_in = dataset.__getitem__(533)
 
 if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:    
-    y_in = y_in.squeeze()
-    y_in = y_in*0.5
+    y_plt = y_in.squeeze()
+#     print(np.shape(y_in))
+    
+#     y_in = y_in*0.5
 
     print("Truth before Augmentation")
-    vis_keypoints(x_in, y_in, KEYPOINT_COLOR)
+    vis_keypoints(x_in, y_plt, KEYPOINT_COLOR)
 
-    D1 = np.asarray([[y_in[1],y_in[3]],
-                     [y_in[0],y_in[2]]]) 
-    D2 = np.asarray([[y_in[5],y_in[7]],
-                     [y_in[4],y_in[6]]]) 
+    D1 = np.asarray([[y_plt[1],y_plt[3]],
+                     [y_plt[0],y_plt[2]]]) 
+    D2 = np.asarray([[y_plt[5],y_plt[7]],
+                     [y_plt[4],y_plt[6]]]) 
 
     plt.plot(D1[0, :], D1[1, :], lw=2, c='y',label='_nolegend_')
     plt.plot(D2[0, :], D2[1, :], lw=2, c='y',label='Prediction')
     plt.show()
 
+    print("YIN", y_in)
     ### Augmentation
     x_out, y_out = dataset.augmentation(x_in, y_in)
 
+    y_plt = y_out.squeeze()
+    
     print("Output after Augmentation")
-    vis_keypoints(x_out, y_out, KEYPOINT_COLOR)
+    vis_keypoints(x_out, y_plt, KEYPOINT_COLOR)
 
-    D1 = np.asarray([[y_out[1],y_out[3]],
-                     [y_out[0],y_out[2]]]) 
-    D2 = np.asarray([[y_out[5],y_out[7]],
-                     [y_out[4],y_out[6]]]) 
+    D1 = np.asarray([[y_plt[1],y_plt[3]],
+                     [y_plt[0],y_plt[2]]]) 
+    D2 = np.asarray([[y_plt[5],y_plt[7]],
+                     [y_plt[4],y_plt[6]]]) 
 
     plt.plot(D1[0, :], D1[1, :], lw=2, c='y',label='_nolegend_')
     plt.plot(D2[0, :], D2[1, :], lw=2, c='y',label='Prediction')
