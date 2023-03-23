@@ -36,27 +36,26 @@ class Parameters():
             "Test_split" : 0.2,
             "Custom_split" : 0.5,
             "Batch_display_step" : 100,
-            "Confirm_display_step" : True,
+            "Confirm_display_step" : True, # not sure if this is used - will need to check
             "Image_scale" : 1,
-            "New_index" : False, # this will not be needed any more
             "Image_size" : [256,256],
             "Evaluate" : False,
-            "Regress" : False,
+            "Regress" : True,
             "Allow_update" : True,
-            "Use_weights" : False
+            "Use_weights" : False,
+            "Apply_Augmentation" : True
             },
         "Train_paths" : {
             "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_CT_16batch",
             "Checkpoint_load" : "Checkpoints/UNet_DCSAU_Net_CT_16batch/Regression/checkpoint_0.pth",
             "Data_path" : "CT_Dataset/Task06_Lung", # "/Brats_2018/",
-            "Extensions" : [""],
-            "Index_file" : "/experiment_1/index_CT.npy"
+            "Extensions" : [""]
             },
-        "Test_paths" : {
-            "Checkpoint_load" : "Checkpoints/UNet_H16_M15_C100_LR4/checkpoint_199",
-            "Data_path" : "Task06_Lung",
-            "Predictions_output" : "Predictions/UNet_H16_M15_C100_LR4",
-            "PRANO_save" : "/PRANO",
-            "Image_save" : "/IMAGE"
+        "Test_paths" : { # test isnt yet implemented so none of these are used
+#             "Checkpoint_load" : "Checkpoints/UNet_H16_M15_C100_LR4/checkpoint_199",
+#             "Data_path" : "Task06_Lung",
+#             "Predictions_output" : "Predictions/UNet_H16_M15_C100_LR4",
+#             "PRANO_save" : "/PRANO",
+#             "Image_save" : "/IMAGE"
             }
         }

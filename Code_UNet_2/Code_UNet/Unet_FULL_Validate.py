@@ -17,7 +17,7 @@ class UNet_validate():
         print("Validation...")
 
 def Validate(unet, criterion, Val_data, epoch, step = ""):
-    
+    Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
     sigmoid_act = nn.Sigmoid()
 #     print(" ")
 #     print("Validation...")
@@ -91,7 +91,7 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
             #calculate dice score
             pred_output = sigmoid_act(pred).cpu().detach().numpy()
             for Batch in range(cur_batch_size):
-                if self.Debug: 
+                if Debug: 
                     print("DICE SCORE: ", 
                           Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int), 
                                                           truth_output[Batch,:,:]), 

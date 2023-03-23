@@ -285,7 +285,7 @@ class Pre_process():
                     if debug == True: print("Image shape: ", np.shape(image_to_save))
                     label_to_save = Pre_process.resize(label_to_save,resize_axis)
                     if debug == True: print("Label shape: ", np.shape(label_to_save))
-                        
+                    
                     # give each newly constructed nifty file a header that will adapt to the data
                     empty_header = nib.Nifti1Header()
                     new_image = nib.Nifti1Image(image_to_save, affine=image.affine, header=empty_header)
@@ -378,8 +378,8 @@ class Pre_process():
                     image_to_save = numpy_image[:,:,image_slice]
                     label_to_save = numpy_label[:,:,image_slice]
                     
-                    image_to_save = Pre_process.resize(image_to_save,0.5)
-                    label_to_save = Pre_process.resize(label_to_save,0.5)
+                    image_to_save = Pre_process.resize(image_to_save,resize_axis)
+                    label_to_save = Pre_process.resize(label_to_save,resize_axis)
 
                     # give each newly constructed nifty file a header that will adapt to the data
                     empty_header = nib.Nifti1Header()
@@ -469,9 +469,9 @@ if __name__ == "__main__":
         Pre_process.reformat_dataset(Old_path,
                                      New_path, 
                                      folds_value = 10, 
-                                     saveFile = False, 
+                                     saveFile = True, 
                                      saveCSV = True, 
-                                     saveBilinear = False,
+                                     saveBilinear = True,
                                      resize_axis = 0.5)
 
 #     Pre_process.calc_Bi_Linear(New_path)

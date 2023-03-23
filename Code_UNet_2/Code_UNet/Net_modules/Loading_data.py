@@ -1,16 +1,14 @@
-import torchvision.transforms.functional as TF
 from torch.utils.data.dataset import Dataset
+import Net_modules.Parameters_SEG as Param
 import nibabel as nib
 import numpy as np
-import torchvision
 import random
 import torch
 import sys
 import os
-from tqdm import tqdm
-import Net_modules.Parameters_SEG as Param
-from os import walk
-import time
+
+import cv2
+import albumentations as A
 
 random.seed(Param.Parameters.PRANO_Net["Global"]["Seed"])
 torch.manual_seed(Param.Parameters.PRANO_Net["Global"]["Seed"])
@@ -29,9 +27,6 @@ class Load_Dataset(Dataset):
 
     def __getitem__(self,idx):
         
-        elapsed_time_fl = 0
-        start = time.time()
-        
         image_path = os.path.join(self.path,'imagesTr/',self.image_folders[idx] + ".nii.gz")
         img = nib.load(image_path).get_fdata()
         
@@ -39,114 +34,78 @@ class Load_Dataset(Dataset):
             mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
                                      
             numpy_mask = np.load(mask_path)
-            label = numpy_mask["RANO"][np.newaxis,:]                         
+            label = numpy_mask["RANO"][np.newaxis,:]  
+            
+            
         else:
             mask_path = os.path.join(self.path,'labelsTr/',self.masks_folders[idx] + ".nii.gz")
-            label = nib.load(mask_path).get_fdata()                         
+            label = nib.load(mask_path).get_fdata() 
+            
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Apply_Augmentation"] == True:
+            img, label = augmentation(img,label)
             
         return (img,label)
+    
+    def augmentation(self,img,label):
+        
+        h_flip = 0.5
+        v_flip = 0.5
+        crop = 0.5
+        rotate = 0.5
+        
+        # 1/6th of the image as maximum reduction from crop around the center
+        min_max = [int(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0] - 
+                       int(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0]/ 6)),
+                   int(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1] - 
+                       int(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1] / 6))]
 
-# class Load_Dataset(Dataset):
-#     def __init__(self, path, path_ext, size, apply_transform, New_index = True, **kwargs):
-#         self.cap_size = 0
-#         print("Init dataloader")
-#         os.chdir(os.getcwd())
-#         self.d = []
-#         self.index_max = []
-#         self.index_max.extend([0])
+        if Param.Parameters.PRANO_Net["Global"]["Debug"] : print("Augmentation")
         
-#         self.path_ext = path_ext
-#         self.apply_transform = apply_transform
-        
-#         c_s = 0
-#         # each extension - HGG or LGG
-#         for input_ in range(len(self.path_ext)):
-#             counter = 0
-#             # each folder in extension
-#             for (dir_path, dir_names, file_names) in walk(path + self.path_ext[input_]):
-#                 if not dir_names == []:
-#                     for file in dir_names[-self.cap_size:]:
-#                         if not file[0].startswith("."):
-#                             self.d.append(self.path_ext[input_] + file)
-#                             counter = len(self.d)
-                            
-#             print("Starting new index ")
-#             if New_index == True:
-#                 print(self.path_ext[input_])
-#                 if not os.path.exists(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9]):
-#                     os.makedirs(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"][:-9])
-#                 for directory in tqdm(range(counter-c_s)):
-#                     if directory == 0:
-#                         if input_ == 0:
-#                             c_s = counter
-#                     if input_ == 1:
-#                         directory = directory + c_s
-# #                     file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory][4:] + "_whseg_norm.nii.gz"
-#                     file = os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + self.d[directory] + "/" + self.d[directory] + "_whseg.nii.gz"
-#                     full_path = os.path.join(file)
-#                     img_a = nib.load(full_path)
-#                     img_data = img_a.get_fdata()
-                    
-#                     self.index_max.extend([img_data.shape[2] + self.index_max[-1]])
-                
-#                 if input_ == (len(self.path_ext)-1):
-#                     print("Saving index file . . . ")
-#                     np.save(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"],
-#                             [self.index_max,
-#                             os.getcwd() +  Param.Parameters.PRANO_Net["Train_paths"]["Data_path"] + 
-#                              self.d[directory] + "/" + self.d[directory]])
-#                     print("Index file complete")
-#             else:
-#                 self.index_max = np.load(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"]) 
+        # Regression ######################################################################################### #
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
+            keypoint_format = [
+                (label[1],label[0]),
+                (label[3],label[2]),
+                (label[5],label[4]),
+                (label[7],label[6])
+            ]
             
-#         self.count = self.index_max[-1]
-#         self.path = path
-#         self.size = size
-        
-#     def __getitem__(self,index):
-        
-#         for i in range(len(self.index_max)):
-#             if index >= self.index_max[i]:
-#                 continue
-#             else:
-#                 self.current_dir = i-1
-#                 break
-                
-# # lung_001_reg_label.npz
-# # lung_001_whimg.nii.gz
-# # lung_001_whseg.nii.gz
-                
-#         #file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_flair_norm.nii.gz"
-#         file_t = self.d[self.current_dir] + "/" + self.d[self.current_dir] + "_whimg.nii.gz"
-        
-#         full_path = self.path + file_t
-#         img_a = nib.load(full_path)
-#         img_data = img_a.get_fdata()
-        
-#         img = img_data[:,:,int(index - self.index_max[self.current_dir])-1]
-        
-#         img = torch.from_numpy(img).unsqueeze(0)
-#         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
-#             #file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_whseg_norm.nii.gz"
-#             file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir] + "_whseg.nii.gz"
-#             l_full_path = self.path + file_label
+            transform1 = A.Compose([
+                A.HorizontalFlip(p=h_flip),
+                A.VerticalFlip(p=v_flip),
+                A.RandomSizedCrop(min_max,
+                                  width = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                  height = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1],
+                                  interpolation = cv2.INTER_CUBIC,
+                                  p = crop),
+                A.RandomRotate90(p=rotate)
+                ],
+                keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
             
-#             label_a = nib.load(l_full_path)
-#             label_data = label_a.get_fdata()
+            transformed = transform1(image=img, keypoints=keypoint_format)
+            transformed_img = transformed['image']
+            transformed_label = transformed['keypoints']
             
-#             label = label_data[:,:,int(index - self.index_max[self.current_dir])-1]
-#         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
-#             #file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir][4:] + "_RANO_2.npz"
-#             file_label = self.d[self.current_dir] + "/" + self.d[self.current_dir] + "_reg_label.npz"
-#             l_full_path = self.path + file_label
+            transformed_label = [transformed_label[0][1], transformed_label[0][0],
+                                 transformed_label[1][1], transformed_label[1][0],
+                                 transformed_label[2][1], transformed_label[2][0],
+                                 transformed_label[3][1], transformed_label[3][0]]
             
-#             l_input = np.load(l_full_path)
-#             label = l_input["RANO"][int(index - self.index_max[self.current_dir])-1,:]
-#             label = label[np.newaxis,:]
-        
-#         # print(np.shape(img),np.shape(label))
-#         return img,label
-        
-#     def __len__(self):
-#         x = self.index_max[-1]
-#         return x
+        # Segmentation ##################################################################################### #
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
+            transform2 = A.Compose([
+                A.HorizontalFlip(p=h_flip),
+                A.VerticalFlip(p=v_flip),
+                A.RandomSizedCrop(min_max,
+                                  width = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                  height = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1],
+                                  interpolation = cv2.INTER_CUBIC,
+                                  p = crop),
+                A.RandomRotate90(p=rotate)
+                ])
+            
+            transformed = transform2(image=img, mask=label)
+            transformed_img = transformed['image']
+            transformed_label = transformed['mask']
+
+        return transformed_img,transformed_label
