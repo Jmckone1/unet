@@ -108,9 +108,9 @@ class Model(nn.Module):
         
         # Due to the differences in architecture (one defining the hidden layers (UNet) and the other not (DGSAU)) 
         # there requires a different shape for the linear layers which is why this section exists.
-        if Param.Parameters.PRANO_Net["Global"]["Net"] == "UNet":
+        if Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"] == [240,240]:
             self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
-        elif Param.Parameters.PRANO_Net["Global"]["Net"] == "DGSAU":
+        elif Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"] == [256,256]:
             self.Linear = nn.Sequential(nn.Linear(int(256*(image_size[0]/16)*(image_size[1]/16)), 8))
         else:
             print("Not sure how you got here without the architecture defined but hey, regression wont work without this")
@@ -196,8 +196,10 @@ class Model(nn.Module):
             if Debug: 
                 print("12", x12.size())
                 print("x12 - downfeature", torch.cuda.memory_allocated()/1024**2)
-                      
-            return x12
+            
+            x13 = torch.sigmoid(x12)
+            
+            return x13
                               
     def load_weights(input_channels, output_channels = 1, hidden_channels = 32, Regress = True, Allow_update = False, Checkpoint_name = ""):
         

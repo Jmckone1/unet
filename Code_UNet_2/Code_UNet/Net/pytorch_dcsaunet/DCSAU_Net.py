@@ -87,6 +87,8 @@ class Model(nn.Module):
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
         # print(image_size)
         self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
+        
+        
        
     def forward(self, x):
         

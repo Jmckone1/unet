@@ -17,10 +17,11 @@ class Parameters():
         "Global" : {
             "Seed" : 0,
             "device" :"cuda",
-            "GPU" : 2,
+            "GPU" : 3,
             "Param_location" : "Code_UNet_2/Code_UNet/Net_modules/Parameters_SEG.py",
-            "Debug" : False,
-            "Net" : "UNet"
+            "Debug" : True,
+            # UNet | DCSAU 
+            "Net" : "DCSAU"
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
@@ -41,15 +42,15 @@ class Parameters():
             "Image_scale" : 1,
             "Image_size" : [240,240],
             "Evaluate" : False,
-            "Regress" : True,
+            "Regress" : False,
             "Allow_update" : True,
             "Use_weights" : False,
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_brats",
+            "Checkpoint_save" : "Checkpoints/UNet_brats_test",
             "Checkpoint_load" : "Checkpoints/UNet_brats/Regression/checkpoint_0.pth",
-            "Data_path" : "/Brats_2018/", # "CT_Dataset/Task06_Lung",
+            "Data_path" : "/Brats_2018/", # ,"CT_Dataset/Task06_Lung"
             "Extensions" : [""]
             },
         "Test_paths" : { # test isnt yet implemented so none of these are used
