@@ -101,83 +101,129 @@ class Model(nn.Module):
         
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
 
-        # this is broken at the moment so we shall have to see how we get on.
-        self.Linear1 = nn.Linear(output_channels, ((hidden_channels * 32) * 7 * 7)) 
+#         #self.Linear = nn.Sequential(nn.Linear(((hidden_channels * 32) * 7 * 7), 8))
+#         print("values", 256*(image_size[0]/16*7)*(image_size[1]/16*7))
+#         print("values2", int(256*(image_size[0]/14)*(image_size[1]/14)))
+#         print("values3", (hidden_channels * 32) * 7 * 7)
+        
+        # Due to the differences in architecture (one defining the hidden layers (UNet) and the other not (DGSAU)) 
+        # there requires a different shape for the linear layers which is why this section exists.
+        if Param.Parameters.PRANO_Net["Global"]["Net"] == "UNet":
+            self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
+        elif Param.Parameters.PRANO_Net["Global"]["Net"] == "DGSAU":
+            self.Linear = nn.Sequential(nn.Linear(int(256*(image_size[0]/16)*(image_size[1]/16)), 8))
+        else:
+            print("Not sure how you got here without the architecture defined but hey, regression wont work without this")
+            import sys
+            sys.exit()
 
     def forward(self, x):
         
-        Debug = False
+        Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
         
         x1 = self.upfeature(x)
-        if Debug: print(x1.size())
+        if Debug: 
+            print("1", x1.size())
+            print("x1 - upfeature", torch.cuda.memory_allocated()/1024**2)
         
         x2 = self.contract1(x1)
-        if Debug: print(x2.size())
+        if Debug: 
+            print("2", x2.size())
+            print("x2 - contract1", torch.cuda.memory_allocated()/1024**2)
             
         x3 = self.contract2(x2)
-        if Debug: print(x3.size())
+        if Debug: 
+            print("3", x3.size())
+            print("x3 - contract2", torch.cuda.memory_allocated()/1024**2)
             
         x4 = self.contract3(x3)
-        if Debug: print(x4.size())
+        if Debug: 
+            print("4", x4.size())
+            print("x4 - contract3", torch.cuda.memory_allocated()/1024**2)
             
         x5 = self.contract4(x4)
-        if Debug: print(x5.size())
+        if Debug: 
+            print("5", x5.size())
+            print("x5 - contract4", torch.cuda.memory_allocated()/1024**2)
             
         x6 = self.contract5(x5)
-        if Debug: print(x6.size())
+        if Debug: 
+            print("6", x6.size())
+            print("x6 - contract5", torch.cuda.memory_allocated()/1024**2)
             
         if self.regress == True:
             
             x7 = torch.flatten(x6, start_dim=1)
-            print(data_flat.size())
+            if Debug: 
+                print("7", x7.size())
+                print("x7 - Flatten", torch.cuda.memory_allocated()/1024**2)
             
-            data_out = self.Linear1(torch.mean(x7,0))
-            print(data_out.size())
+            x8 = self.Linear(x7)
+            if Debug:
+                print("8", x8.size())
+                print("x8 - Linear", torch.cuda.memory_allocated()/1024**2)
+            
+            return x8
             
         if self.regress == False:
             
             x7 = self.expand1(x6, x5)
-            if Debug: print(x7.size())
+            if Debug: 
+                print("7", x7.size())
+                print("x7 - expand1", torch.cuda.memory_allocated()/1024**2)
 
             x8 = self.expand2(x7, x4)
-            if Debug: print(x8.size())
+            if Debug: 
+                print("8", x8.size())
+                print("x8 - expand2", torch.cuda.memory_allocated()/1024**2)
             
             x9 = self.expand3(x8, x3)
-            if Debug: print(x9.size())
+            if Debug: 
+                print("9", x9.size())
+                print("x9 - expand3", torch.cuda.memory_allocated()/1024**2)
             
             x10 = self.expand4(x9, x2)
-            if Debug: print(x10.size())
+            if Debug: 
+                print("10", x10.size())
+                print("x10 - expand4", torch.cuda.memory_allocated()/1024**2)
             
             x11 = self.expand5(x10, x1)
-            if Debug: print(x11.size())
+            if Debug: 
+                print("11", x11.size())
+                print("x11 - expand5", torch.cuda.memory_allocated()/1024**2)
 
-            data_out = self.downfeature(x11)
-            if Debug: print(data_out.size())
+            x12 = self.downfeature(x11)
+            if Debug: 
+                print("12", x12.size())
+                print("x12 - downfeature", torch.cuda.memory_allocated()/1024**2)
                       
-        return data_out
+            return x12
                               
-    def load_weights(input_channels, output_channels, hidden_channels, model_name, allow_update = False):
-        # load the model and the checkpoint
-        model = UNet(input_channels, output_channels, hidden_channels)
-        checkpoint = torch.load(model_name)
-
-        # remove the final linear layer of the regression model weights and bias
-        del checkpoint['state_dict']["Linear1.weight"]
-        del checkpoint['state_dict']["Linear1.bias"]
-
-        # load the existing model weights from the checkpoint
-        model.load_state_dict(checkpoint['state_dict'], strict=False)
+    def load_weights(input_channels, output_channels = 1, hidden_channels = 32, Regress = True, Allow_update = False, Checkpoint_name = ""):
         
-        # freeze the weights if allow_update is false - leave unfrozen if allow_update is true
-        for param in model.contract1.parameters():
-            param.requires_grad = allow_update
-        for param in model.contract2.parameters():
-            param.requires_grad = allow_update
-        for param in model.contract3.parameters():
-            param.requires_grad = allow_update
-        for param in model.contract4.parameters():
-            param.requires_grad = allow_update
-        for param in model.contract5.parameters():
-            param.requires_grad = allow_update
+        # load the model and the checkpoint
+        model = Model(input_channels, output_channels, hidden_channels, Regress)
+        checkpoint = torch.load(Checkpoint_name)
+        
+        # if the regression is true here we will load the checkpoint and move on, no freezing will be done.
+        if Regress == False:
+            # remove the final linear layer of the regression model weights and bias
+            del checkpoint['state_dict']["Linear.0.weight"]
+            del checkpoint['state_dict']["Linear.0.bias"]
+
+            # load the existing model weights from the checkpoint
+            model.load_state_dict(checkpoint['state_dict'], strict=False)
+
+            # freeze the weights if allow_update is false - leave unfrozen if allow_update is true
+            for param in model.contract1.parameters():
+                param.requires_grad = Allow_update
+            for param in model.contract2.parameters():
+                param.requires_grad = Allow_update
+            for param in model.contract3.parameters():
+                param.requires_grad = Allow_update
+            for param in model.contract4.parameters():
+                param.requires_grad = Allow_update
+            for param in model.contract5.parameters():
+                param.requires_grad = Allow_update
                       
         return model
