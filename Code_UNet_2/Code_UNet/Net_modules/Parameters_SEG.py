@@ -17,9 +17,10 @@ class Parameters():
         "Global" : {
             "Seed" : 0,
             "device" :"cuda",
-            "GPU" : 3,
+            "GPU" : 2,
             "Param_location" : "Code_UNet_2/Code_UNet/Net_modules/Parameters_SEG.py",
-            "Debug" : False
+            "Debug" : False,
+            "Net" : "UNet"
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
@@ -38,17 +39,17 @@ class Parameters():
             "Batch_display_step" : 100, # used in line 228 of Unet_full_train file
             # "Confirm_display_step" : True, # not sure if this is used - will need to check
             "Image_scale" : 1,
-            "Image_size" : [256,256],
+            "Image_size" : [240,240],
             "Evaluate" : False,
-            "Regress" : False,
+            "Regress" : True,
             "Allow_update" : True,
             "Use_weights" : False,
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_DCSAU_Net_CT_8",
-            "Checkpoint_load" : "Checkpoints/UNet_DCSAU_Net_CT_8/Regression/checkpoint_0.pth",
-            "Data_path" : "CT_Dataset/Task06_Lung", # "/Brats_2018/",
+            "Checkpoint_save" : "Checkpoints/UNet_brats",
+            "Checkpoint_load" : "Checkpoints/UNet_brats/Regression/checkpoint_0.pth",
+            "Data_path" : "/Brats_2018/", # "CT_Dataset/Task06_Lung",
             "Extensions" : [""]
             },
         "Test_paths" : { # test isnt yet implemented so none of these are used

@@ -362,12 +362,15 @@ class Pre_process():
         for dir_name in tqdm(range(len(image_directory))):
             # load the training label and iamge from original path file structure
             image = nib.load(os.getcwd() + Old_path + image_directory[dir_name][:-len(image_search_string)] + "/" + image_directory[dir_name])
+            
             label = nib.load(os.getcwd() + Old_path + label_directory[dir_name][:-len(label_search_string)] + "/" + label_directory[dir_name])
+            
             
             # extract the nifty data
             numpy_image = image.get_fdata()
             numpy_label = label.get_fdata()
-            
+#             print("Input image shape 1", np.shape(numpy_image))
+#             print("Input label shape 1", np.shape(numpy_label))
             # get the number of channels that the data has
             size = numpy_image.ndim
             
@@ -385,10 +388,13 @@ class Pre_process():
                     empty_header = nib.Nifti1Header()
                     new_image = nib.Nifti1Image(image_to_save, affine=image.affine, header=empty_header)
                     new_label = nib.Nifti1Image(label_to_save, affine=label.affine, header=empty_header)
-                
+               
+                    # param doesnt exist otherwise this would be a good idea . . .
+#                     if Param.Parameters.PRANO_Net["Global"]["Debug"]: 
+#                         print(os.getcwd() + New_path + "imagesTr/" + image_directory[dir_name][:-7] + "_" + str(image_slice) + ".nii.gz")
                     # save each slice as an image to the new folder that is created here.
-                    nib.save(new_image, os.getcwd() + New_path + "imagesTr/" + image_directory[dir_name][:-7] + "_" + str(image_slice))
-                    nib.save(new_label, os.getcwd() + New_path + "labelsTr/" + label_directory[dir_name][:-7] + "_" + str(image_slice))
+                    nib.save(new_image, os.getcwd() + New_path + "imagesTr/" + image_directory[dir_name][:-7] + "_" + str(image_slice) + ".nii.gz")
+                    nib.save(new_label, os.getcwd() + New_path + "labelsTr/" + label_directory[dir_name][:-7] + "_" + str(image_slice) + ".nii.gz")
 
                 image_csv_append.append(image_directory[dir_name][:-7] + "_" + str(image_slice))
                 masks_csv_append.append(label_directory[dir_name][:-7] + "_" + str(image_slice))
@@ -451,8 +457,13 @@ class Pre_process():
         # the MRI data. . .
         
     def resize(image,size_multiplier):
+        
         sizes = np.shape(image)
-        resized_image = cv2.resize(image, dsize=(int(sizes[0]*size_multiplier), 
+#         print("Mult", size_multiplier)
+        if size_multiplier == 1:
+            resized_image = image
+        else:
+            resized_image = cv2.resize(image, dsize=(int(sizes[0]*size_multiplier), 
                                        int(sizes[1]*size_multiplier)), interpolation=cv2.INTER_AREA)
 
         return resized_image
@@ -469,8 +480,8 @@ if __name__ == "__main__":
         Pre_process.reformat_dataset(Old_path,
                                      New_path, 
                                      folds_value = 10, 
-                                     saveFile = True, 
-                                     saveCSV = True, 
+                                     saveFile = False, 
+                                     saveCSV = False, 
                                      saveBilinear = True,
                                      resize_axis = 0.5)
 
@@ -495,7 +506,7 @@ if __name__ == "__main__":
                                                                   folds_value = 10, 
                                                                   saveFile = False, 
                                                                   saveCSV = False, 
-                                                                  saveBilinear = False,
+                                                                  saveBilinear = True,
                                                                   resize_axis = 1, 
                                                                   debug = False)
             image_csv_data.extend(data_out[0])

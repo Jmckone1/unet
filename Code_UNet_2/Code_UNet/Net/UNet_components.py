@@ -101,7 +101,21 @@ class Model(nn.Module):
         
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
 
-        self.Linear = nn.Linear(((hidden_channels * 32) * 7 * 7), 8) 
+#         #self.Linear = nn.Sequential(nn.Linear(((hidden_channels * 32) * 7 * 7), 8))
+#         print("values", 256*(image_size[0]/16*7)*(image_size[1]/16*7))
+#         print("values2", int(256*(image_size[0]/14)*(image_size[1]/14)))
+#         print("values3", (hidden_channels * 32) * 7 * 7)
+        
+        # Due to the differences in architecture (one defining the hidden layers (UNet) and the other not (DGSAU)) 
+        # there requires a different shape for the linear layers which is why this section exists.
+        if Param.Parameters.PRANO_Net["Global"]["Net"] == "UNet":
+            self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
+        elif Param.Parameters.PRANO_Net["Global"]["Net"] == "DGSAU":
+            self.Linear = nn.Sequential(nn.Linear(int(256*(image_size[0]/16)*(image_size[1]/16)), 8))
+        else:
+            print("Not sure how you got here without the architecture defined but hey, regression wont work without this")
+            import sys
+            sys.exit()
 
     def forward(self, x):
         

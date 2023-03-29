@@ -1,10 +1,17 @@
 from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Net_modules.Evaluation import Jaccard_Evaluation as Jacc
-
-import Net.pytorch_dcsaunet.DCSAU_Net as net
-#import Net.UNet_components as net
-
 import Net_modules.Parameters_SEG as Param
+
+if Param.Parameters.PRANO_Net["Global"]["Net"] == "DCSAU":
+    import Net.pytorch_dcsaunet.DCSAU_Net as net
+if Param.Parameters.PRANO_Net["Global"]["Net"] == "UNet":
+    import Net.UNet_components as net
+else:
+    import sys
+    print("Network *" + Param.Parameters.PRANO_Net["Global"]["Net"] + "* not implemented - please try one of the following:")
+    print("* DCSAU *")
+    print("* UNet *")
+    sys.exit()
 from Unet_FULL_Validate import Validate
 from sklearn.metrics import jaccard_score
 import torch.cuda.amp as amp
@@ -14,6 +21,7 @@ import numpy as np
 import shutil
 import torch
 import csv
+
 import os
 
 import matplotlib.pyplot as plt

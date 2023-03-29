@@ -190,8 +190,8 @@ class Model(nn.Module):
                 print(x18.size())
                 print("x18 - out", torch.cuda.memory_allocated()/1024**2)
 
-            #x19 = torch.sigmoid(x18)
-            return x18
+            x19 = torch.sigmoid(x18)
+            return x19
         
     def load_weights(img_channels=4, n_classes=1, Regress = True, Allow_update = False, Checkpoint_name = ""):
         # load the model and the checkpoint

@@ -29,7 +29,8 @@ class Load_Dataset(Dataset):
         
         image_path = os.path.join(self.path,'imagesTr/',self.image_folders[idx] + ".nii.gz")
         img = nib.load(image_path).get_fdata()
-        
+#         print("IMAGE", np.shape(img))
+#         input("")
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
             mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
                                      
@@ -43,6 +44,7 @@ class Load_Dataset(Dataset):
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Apply_Augmentation"] == True:
             img, label = self.augmentation(img,label)
             
+        
         return (img,label)
     
     def augmentation(self, img, label):
