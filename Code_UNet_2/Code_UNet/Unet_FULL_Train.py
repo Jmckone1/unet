@@ -175,6 +175,7 @@ class UNet_train():
                 if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
                     # calculate jaccard score
                     pred_output = pred.cpu().detach().numpy().squeeze()
+                    if self.Debug: print("Pred Magenta, Truth Yellow")
                     
                     for Batch in range(cur_batch_size):
                         corners_truth, center_truth = Jacc.Obb(truth_output[Batch,:])
@@ -185,9 +186,9 @@ class UNet_train():
                         if np.sum(np.sum(mask_pred)) > 2:
                             train_results[3].append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
                         else:
-                            train_results[3].append(float("NaN"))
+                            train_results[3].append(float(0)) # "NaN")) # should this be nan or 0
                             
-                        print("Jaccard score", train_results[3][-1]) 
+                        if self.Debug: print("Jaccard score: ", train_results[3][-1]) 
                         
                     if self.Debug:
                         backdrop = np.zeros((Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
@@ -196,9 +197,6 @@ class UNet_train():
                         grid = ImageGrid(fig, 111,nrows_ncols=(2, 4),axes_pad=0.1)
 
                         for ax, im in zip(grid, truth_output):
-#                             print(np.min(im),np.max(im))
-#                             ax.imshow(im,cmap='gray')#, vmin=0, vmax=1)
-                            print(np.shape(pred_output))
                             ax.imshow(backdrop,cmap='gray')
                             D1 = np.asarray([[im[1],im[3]],
                                              [im[0],im[2]]]) 
@@ -207,20 +205,18 @@ class UNet_train():
 
                             ax.plot(D1[0, :], D1[1, :], lw=2, c='y',label='_nolegend_')
                             ax.plot(D2[0, :], D2[1, :], lw=2, c='y',label='Prediction')
-                    
+
                         for ax, im in zip(grid, pred_output):                    
-                    
-                            print(np.shape(pred_output))
                             D3 = np.asarray([[im[1],im[3]],
                                              [im[0],im[2]]]) 
                             D4 = np.asarray([[im[5],im[7]],
                                              [im[4],im[6]]]) 
 
-                            ax.plot(D3[0, :], D3[1, :], lw=2, c='b',label='_nolegend_')
-                            ax.plot(D4[0, :], D4[1, :], lw=2, c='b',label='Prediction')
-                            
+                            ax.plot(D3[0, :], D3[1, :], lw=2, c='m',label='_nolegend_')
+                            ax.plot(D4[0, :], D4[1, :], lw=2, c='m',label='Prediction')
+
                         plt.show()
-                        print("Truth blue, pred yellow")
+                    
 #                         print("Truth_output")
                             
                     unet_cosine = unet_loss[2]
@@ -235,7 +231,7 @@ class UNet_train():
                         if self.Debug: print("DICE SCORE: ", Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
 
                         train_results[1].append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
-                    if self.Debug:
+#                     if self.Debug:
                         fig = plt.figure(figsize=(10,6))
                         grid = ImageGrid(fig, 111,nrows_ncols=(2, 4),axes_pad=0.1)
 

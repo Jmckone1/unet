@@ -9,8 +9,8 @@ class DiceLoss(nn.Module):
 
     def forward(self, inputs, targets, smooth=0.1):
         
-        #comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = torch.sigmoid(inputs)       
+        ##comment out if your model contains a sigmoid or equivalent activation layer
+        #inputs = torch.sigmoid(inputs)       
         
         #flatten label and prediction tensors
         inputs = inputs.view(-1)
@@ -54,11 +54,6 @@ class Jaccard_Evaluation():
         return 0
 
     def Obb(input_array):
-        
-#         input_array = input_array.squeeze()
-
-#         input_array = input_array.detach().cpu().numpy()
-#         print("shape", input_array.shape)
 
         input_data = np.array([(input_array[1], input_array[0]),
                                (input_array[5], input_array[4]), 
@@ -66,7 +61,11 @@ class Jaccard_Evaluation():
                                (input_array[7], input_array[6])])
 
         input_covariance = np.cov(input_data,y = None, rowvar = 0,bias = 1)
-
+        
+        # when using the old architecture on the new data the code crashed partway through the 6th epoch with a nan or inf error - this code is to discover the cause.
+        # if Param.Parameters.PRANO_Net["Global"]["Debug"]:
+        print("Input covariance linalg file: ", input_covariance)
+        print("inf or Nan")
         v, vect = np.linalg.eig(input_covariance)
         tvect = np.transpose(vect)
         # use the inverse of the eigenvectors as a rotation matrix and
