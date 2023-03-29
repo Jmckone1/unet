@@ -4,7 +4,7 @@ import Net_modules.Parameters_SEG as Param
 
 if Param.Parameters.PRANO_Net["Global"]["Net"] == "DCSAU":
     import Net.pytorch_dcsaunet.DCSAU_Net as net
-if Param.Parameters.PRANO_Net["Global"]["Net"] == "UNet":
+elif Param.Parameters.PRANO_Net["Global"]["Net"] == "UNet":
     import Net.UNet_components as net
 else:
     import sys
@@ -181,11 +181,47 @@ class UNet_train():
                         mask_truth = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],corners_truth)
                         corners_pred, center_pred = Jacc.Obb(pred_output[Batch,:])
                         mask_pred = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],corners_pred)
-
+                    
                         if np.sum(np.sum(mask_pred)) > 2:
                             train_results[3].append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
                         else:
                             train_results[3].append(float("NaN"))
+                            
+                        print("Jaccard score", train_results[3][-1]) 
+                        
+                    if self.Debug:
+                        backdrop = np.zeros((Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                            Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1]))
+                        fig = plt.figure(figsize=(10,6))
+                        grid = ImageGrid(fig, 111,nrows_ncols=(2, 4),axes_pad=0.1)
+
+                        for ax, im in zip(grid, truth_output):
+#                             print(np.min(im),np.max(im))
+#                             ax.imshow(im,cmap='gray')#, vmin=0, vmax=1)
+                            print(np.shape(pred_output))
+                            ax.imshow(backdrop,cmap='gray')
+                            D1 = np.asarray([[im[1],im[3]],
+                                             [im[0],im[2]]]) 
+                            D2 = np.asarray([[im[5],im[7]],
+                                             [im[4],im[6]]]) 
+
+                            ax.plot(D1[0, :], D1[1, :], lw=2, c='y',label='_nolegend_')
+                            ax.plot(D2[0, :], D2[1, :], lw=2, c='y',label='Prediction')
+                    
+                        for ax, im in zip(grid, pred_output):                    
+                    
+                            print(np.shape(pred_output))
+                            D3 = np.asarray([[im[1],im[3]],
+                                             [im[0],im[2]]]) 
+                            D4 = np.asarray([[im[5],im[7]],
+                                             [im[4],im[6]]]) 
+
+                            ax.plot(D3[0, :], D3[1, :], lw=2, c='b',label='_nolegend_')
+                            ax.plot(D4[0, :], D4[1, :], lw=2, c='b',label='Prediction')
+                            
+                        plt.show()
+                        print("Truth blue, pred yellow")
+#                         print("Truth_output")
                             
                     unet_cosine = unet_loss[2]
                     unet_mse = unet_loss[1]
@@ -194,24 +230,27 @@ class UNet_train():
                 else:
                     #calculate dice score
                     
-                    pred_output = sigmoid_act(pred).cpu().detach().numpy()
+                    pred_output = pred.cpu().detach().numpy()
                     for Batch in range(cur_batch_size):
-                        if self.Debug: print("DICE SCORE: ", Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int),truth_output[Batch,:,:]))
-                        train_results[1].append(Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int),truth_output[Batch,:,:]))
+                        if self.Debug: print("DICE SCORE: ", Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
+
+                        train_results[1].append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
                     if self.Debug:
-                        fig = plt.figure()
+                        fig = plt.figure(figsize=(10,6))
                         grid = ImageGrid(fig, 111,nrows_ncols=(2, 4),axes_pad=0.1)
 
                         for ax, im in zip(grid, truth_output):
-                            ax.imshow(im)
+                            print(np.min(im),np.max(im))
+                            ax.imshow(im,cmap='gray')#, vmin=0, vmax=1)
                         print("Truth_output")
                         plt.show()   
 
-                        fig2 = plt.figure()
+                        fig2 = plt.figure(figsize=(10,6))
                         grid2 = ImageGrid(fig2,111,nrows_ncols=(2, 4),axes_pad=0.1)
 
-                        for ax2, im2 in zip(grid2, (pred_output < 0.5).astype(int)):
-                            ax2.imshow(im2)
+                        for ax2, im2 in zip(grid2, (pred_output > 0.5).astype(int)):
+                            print(np.min(im2),np.max(im2))
+                            ax2.imshow(im2,cmap='gray')#, vmin=0, vmax=1)
                         print("Pred_output")
                         plt.show()    
                         
