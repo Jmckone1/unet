@@ -17,9 +17,10 @@ class Parameters():
         "Global" : {
             "Seed" : 0,
             "device" :"cuda",
-            "GPU" : 2,
+            "GPU" : 3,
             "Param_location" : "Code_UNet_2/Code_UNet/Net_modules/Parameters_SEG.py",
             "Debug" : False,
+            # UNet | DCSAU 
             "Net" : "UNet"
             },
         "Hyperparameters" : {
@@ -39,7 +40,7 @@ class Parameters():
             "Batch_display_step" : 100, # used in line 228 of Unet_full_train file
             # "Confirm_display_step" : True, # not sure if this is used - will need to check
             "Image_scale" : 1,
-            "Image_size" : [240,240],
+            "Image_size" : [256,256],
             "Evaluate" : False,
             "Regress" : True,
             "Allow_update" : True,
@@ -47,9 +48,9 @@ class Parameters():
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_brats",
+            "Checkpoint_save" : "Checkpoints/UNet_brats_test",
             "Checkpoint_load" : "Checkpoints/UNet_brats/Regression/checkpoint_0.pth",
-            "Data_path" : "/Brats_2018/", # "CT_Dataset/Task06_Lung",
+            "Data_path" : "CT_Dataset/Task06_Lung",#"/Brats_2018/", 
             "Extensions" : [""]
             },
         "Test_paths" : { # test isnt yet implemented so none of these are used
