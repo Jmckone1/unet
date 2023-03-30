@@ -64,8 +64,9 @@ class Jaccard_Evaluation():
         
         # when using the old architecture on the new data the code crashed partway through the 6th epoch with a nan or inf error - this code is to discover the cause.
         # if Param.Parameters.PRANO_Net["Global"]["Debug"]:
-        print("Input covariance linalg file: ", input_covariance)
-        print("inf or Nan")
+        # it is producing a Nan in all 4 areas here so we need to find out where this is called.
+#         print(input_covariance)
+#         print("inf or Nan")
         v, vect = np.linalg.eig(input_covariance)
         tvect = np.transpose(vect)
         # use the inverse of the eigenvectors as a rotation matrix and

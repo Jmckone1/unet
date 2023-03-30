@@ -26,7 +26,7 @@ def vis_keypoints(image, keypoints, color=KEYPOINT_COLOR, diameter=2):
     plt.axis('off')
     plt.imshow(image)
 
-Full_Path = os.getcwd() + "/" + Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]
+Full_Path = os.getcwd() + "/" + "/Brats_2018/" #Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]
 folder = np.loadtxt(Full_Path + "/Training_dataset.csv", delimiter=",",dtype=str)
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]

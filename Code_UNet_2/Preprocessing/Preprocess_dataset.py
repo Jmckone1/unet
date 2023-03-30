@@ -273,24 +273,24 @@ class Pre_process():
             
             # get the number of channels that the data has
             size = numpy_image.ndim
-
+           
             for image_slice in tqdm(range(np.shape(numpy_image)[size-1])):
                 num_of_slices+=1
                 if saveFile == True:
-                    # convert to numpy array
+                    # convert to numpy array 
                     image_to_save = numpy_image[:,:,image_slice]
                     label_to_save = numpy_label[:,:,image_slice]
-                    
+
                     image_to_save = Pre_process.resize(image_to_save,resize_axis)
                     if debug == True: print("Image shape: ", np.shape(image_to_save))
                     label_to_save = Pre_process.resize(label_to_save,resize_axis)
                     if debug == True: print("Label shape: ", np.shape(label_to_save))
-                    
+
                     # give each newly constructed nifty file a header that will adapt to the data
                     empty_header = nib.Nifti1Header()
                     new_image = nib.Nifti1Image(image_to_save, affine=image.affine, header=empty_header)
                     new_label = nib.Nifti1Image(label_to_save, affine=label.affine, header=empty_header)
-                
+
                     # save each slice as an image to the new folder that is created here.
                     nib.save(new_image, os.getcwd() + New_path + "imagesTr/" + image_directories[dir_name][:-7] + "_" + str(image_slice))
                     nib.save(new_label, os.getcwd() + New_path + "labelsTr/" + image_directories[dir_name][:-7] + "_" + str(image_slice))
@@ -338,7 +338,8 @@ class Pre_process():
         masks_csv_append = []
         old_path_list = []
         
-        image_search_string = "_flair_norm.nii.gz"
+        # image_search_string = "_flair_norm.nii.gz"
+        image_search_string = "_whimg_norm.nii.gz"
         label_search_string = "_whseg_norm.nii.gz"
         
         image_directory = []
@@ -378,7 +379,10 @@ class Pre_process():
                 num_of_slices+=1
                 if saveFile == True:
                     # convert to numpy array
-                    image_to_save = numpy_image[:,:,image_slice]
+                    if numpy_image.ndim == 3:
+                        image_to_save = numpy_image[:,:,image_slice]
+                    if numpy_image.ndim == 4:
+                        image_to_save = numpy_image[:,:,:,image_slice]
                     label_to_save = numpy_label[:,:,image_slice]
                     
                     image_to_save = Pre_process.resize(image_to_save,resize_axis)
@@ -471,8 +475,9 @@ class Pre_process():
 if __name__ == "__main__":
 
     
-    preproc_CT = True
+    preproc_CT = False
     preproc_Brats = False
+    preproc_small = True
     
     if preproc_CT == True:
         Old_path = "/2023_Lung_CT_code/Task06_Lung/"
@@ -516,6 +521,34 @@ if __name__ == "__main__":
             old_dir.extend(data_out[4])
         Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset.csv" , old_dir)
     
+    if preproc_small == True:
+        Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
+        New_path = "/Brats_2018_small/"
+    #     Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
+    #     New_path = "/brats_Dataset/"
+
+        data_out = [[],[],[],[],[]]
+        image_csv_data = []
+        masks_csv_data = []
+        folds = []
+        new_dir = []
+        old_dir = []
+
+        for input_path in Old_paths:
+            data_out = Pre_process.reformat_dataset_brats(input_path,
+                                                                  New_path, 
+                                                                  folds_value = 10, 
+                                                                  saveFile = True, 
+                                                                  saveCSV = False, 
+                                                                  saveBilinear = True,
+                                                                  resize_axis = 1, 
+                                                                  debug = False)
+            image_csv_data.extend(data_out[0])
+            masks_csv_data.extend(data_out[1])
+            folds.extend(data_out[2])
+            new_dir.extend(data_out[3])
+            old_dir.extend(data_out[4])
+        Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset.csv" , old_dir)
 #     Pre_process.calc_Bi_Linear(New_path)
 
 #     image_directories = Pre_process.get_data_list(New_path, "imagesTr/")

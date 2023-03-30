@@ -48,9 +48,9 @@ class Parameters():
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_brats_test",
+            "Checkpoint_save" : "Checkpoints/UNet_brats_test_3",
             "Checkpoint_load" : "Checkpoints/UNet_brats/Regression/checkpoint_0.pth",
-            "Data_path" : "CT_Dataset/Task06_Lung",#"/Brats_2018/", 
+            "Data_path" : "CT_Dataset/Task06_Lung", #"CT_Dataset/Task06_Lung",#"/Brats_2018/","/Brats_2018_small/"
             "Extensions" : [""]
             },
         "Test_paths" : { # test isnt yet implemented so none of these are used

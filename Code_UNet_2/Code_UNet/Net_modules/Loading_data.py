@@ -83,7 +83,19 @@ class Load_Dataset(Dataset):
                 ],
                 keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
             
-            transformed = transform1(image=img, keypoints=keypoint_format)
+            if Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"] > 1:
+                img = np.reshape(img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"]))
+            
+                transformed = transform1(image=img[..., :Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"]], keypoints=keypoint_format)
+                
+                img = np.reshape(img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1]))
+            else:
+                transformed = transform1(image=img, keypoints=keypoint_format)
+                
             transformed_img = transformed['image']
             transformed_label = transformed['keypoints']
             

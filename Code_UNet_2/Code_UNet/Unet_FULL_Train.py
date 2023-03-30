@@ -34,6 +34,8 @@ class UNet_train():
         
         self.Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
         
+        self.model_improvement = 0
+        
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"]: self.model_type = "Regression"
         else: self.model_type = "Segmentation"
         
@@ -120,9 +122,9 @@ class UNet_train():
                 val_results = [[],[],[],[]]
                 
                 list_of_names = [["_loss/","epoch_" + str(epoch) + "_loss.csv"],
-                             ["_loss_mse/","epoch_" + str(epoch) + "_loss_mse.csv"],
-                             ["_loss_cosine/","epoch_" + str(epoch) + "_loss_cosine.csv"],
-                             ["_Jaccard/","epoch_" + str(epoch) + "_jaccard_index.csv"]]
+                                 ["_Jaccard/","epoch_" + str(epoch) + "_jaccard_index.csv"],
+                                 ["_loss_mse/","epoch_" + str(epoch) + "_loss_mse.csv"],
+                                 ["_loss_cosine/","epoch_" + str(epoch) + "_loss_cosine.csv"]]
             else:
                 # loss, dice
                 train_results = [[],[]]
@@ -154,7 +156,6 @@ class UNet_train():
                     if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
                         label_input = label_input[:,np.newaxis,:]
                 
-                
                 # set accumilated gradients to 0 for param update
                 unet_opt.zero_grad(set_to_none=True)
                 if self.Debug: print("zero grad", torch.cuda.memory_allocated()/1024**2)
@@ -180,15 +181,22 @@ class UNet_train():
                     for Batch in range(cur_batch_size):
                         corners_truth, center_truth = Jacc.Obb(truth_output[Batch,:])
                         mask_truth = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],corners_truth)
+                        
+                        if pred_output[Batch,:] == [[np.nan,np.nan],[np.nan,np.nan]]:
+                            print("nan error occured")
+                            print("Before", pred_output[Batch,:])
+                            pred_output[Batch,:] = [[0,0],[0,0]]
+                            print("After", pred_output[Batch,:])
+                            
                         corners_pred, center_pred = Jacc.Obb(pred_output[Batch,:])
                         mask_pred = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],corners_pred)
                     
                         if np.sum(np.sum(mask_pred)) > 2:
-                            train_results[3].append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
+                            train_results[1].append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
                         else:
-                            train_results[3].append(float(0)) # "NaN")) # should this be nan or 0
+                            train_results[1].append(float(0)) # "NaN")) # should this be nan or 0
                             
-                        if self.Debug: print("Jaccard score: ", train_results[3][-1]) 
+                        if self.Debug: print("Jaccard score: ", train_results[1][-1]) 
                         
                     if self.Debug:
                         backdrop = np.zeros((Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
@@ -262,8 +270,8 @@ class UNet_train():
                     running_mse =+ unet_mse.item()
                     running_cosine =+ unet_cosine.item()
                     
-                    train_results[1].append(running_mse)
-                    train_results[2].append(running_cosine)
+                    train_results[2].append(running_mse)
+                    train_results[3].append(running_cosine)
                             
                 cur_step += 1        
                 ###################################################################
@@ -292,16 +300,30 @@ class UNet_train():
             else:
                 val_loss, val_mse, val_cosine, val_jaccard = Validate(unet, self.criterion, Val_data, epoch)
                 val_results[0].append(val_loss)
-                val_results[1].append(val_mse)
+                val_results[1].append(val_jaccard)
                 val_results[2].append(val_cosine)
-                val_results[3].append(val_jaccard)
+                val_results[3].append(val_mse)
                 # add the regression validation loss output here
                 
             print("saving epoch: ", epoch)
-                        
-            checkpoint = {"epoch": epoch, "state_dict": unet.state_dict(), "optimizer" : unet_opt.state_dict()}
-            out = self.Total_path + "Checkpoints/" + "checkpoint_" + str(epoch) + ".pth"
-            torch.save(checkpoint, out)
+            
+            # if the Dice score or Jaccard score for the corresponsding model during training is higher then save checkpoint
+#             print("List of values", train_results[0])
+#             print("first value", train_results[0])
+#             print("Last 8 values", train_results[0][-8], train_results[1][-8])
+            print("Previous score: ", self.model_improvement, "New score: " , train_results[0][-1])
+            if epoch == 0:
+                self.model_improvement = train_results[0][-1]
+            if train_results[0][-1] <= self.model_improvement:
+                print("Updating improvement value")
+
+                checkpoint = {"epoch": epoch, "state_dict": unet.state_dict(), "optimizer" : unet_opt.state_dict()}
+                out = self.Total_path + "Checkpoints/" + "checkpoint_" + str(epoch) + ".pth"
+                torch.save(checkpoint, out)
+
+                self.model_improvement = train_results[0][-1]
+            else:
+                print("Not updating improvement value")
             
             for result_type in ["Training", "Validation"]:
                 for save_location in range(len(list_of_names)):
