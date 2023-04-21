@@ -23,16 +23,10 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
 #     print("Validation...")
     unet.eval()
     
-    mse = []
-    cosine = []
-    loss = []
+    mse, cosine, loss = [],[],[]
     
-    running_loss = 0.0
-    running_mse = 0.0
-    running_cosine = 0.0
+    running_loss, running_mse, running_cosine = 0.0, 0.0, 0.0
     improvement = 0
-    
-    cur_step = 0
     
     Dice, Jaccard = [], []
     
@@ -48,6 +42,9 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         label_input = label_input.float()
         label_input = label_input.squeeze()
         
+#         truth_input = truth_input.to(dtype=torch.half)
+#         label_input = label_input.to(dtype=torch.half)
+        
         if(truth_input.ndim == 3):
             truth_input = truth_input[:,np.newaxis,:,:]
             if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
@@ -59,7 +56,7 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
 #         with amp.autocast(enabled = True):
         pred = unet(truth_input)
         pred = pred.squeeze()
-            
+
         if(pred.ndim == 2):
             pred = pred[np.newaxis,:,:]
 
@@ -72,7 +69,12 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
             # calculate jaccard score
             pred_output = pred.cpu().detach().numpy().squeeze()
 
+            
+            if Debug: print("Pred Magenta, Truth Yellow")
             for Batch in range(cur_batch_size):
+                if Debug:
+                    print("input", truth_output[Batch,:])
+                    print("prediction", pred_output[Batch,:])
                 corners_truth, center_truth = Jacc.Obb(truth_output[Batch,:])
                 mask_truth = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"], corners_truth)
                 corners_pred, center_pred = Jacc.Obb(pred_output[Batch,:])
@@ -80,26 +82,62 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
 
                 if np.sum(np.sum(mask_pred)) > 2:
                     Jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
-                else:
-                    Jaccard.append(float("NaN"))
 
+                else:
+                    Jaccard.append(float(0)) #.append(float("NaN"))
+                    
+                if Debug: print("Jaccard score: ", Jaccard[-1]) 
+                    
+            if Debug:
+                backdrop = np.zeros((Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                    Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1]))
+                fig = plt.figure(figsize=(10,6))
+                grid = ImageGrid(fig, 111,nrows_ncols=(2, 4),axes_pad=0.1)
+
+                for ax, im in zip(grid, truth_output):
+                    ax.imshow(backdrop,cmap='gray')
+                    D1 = np.asarray([[im[1],im[3]],
+                                     [im[0],im[2]]]) 
+                    D2 = np.asarray([[im[5],im[7]],
+                                     [im[4],im[6]]]) 
+
+                    ax.plot(D1[0, :], D1[1, :], lw=2, c='y',label='_nolegend_')
+                    ax.plot(D2[0, :], D2[1, :], lw=2, c='y',label='Prediction')
+
+                for ax, im in zip(grid, pred_output):                    
+                    D3 = np.asarray([[im[1],im[3]],
+                                     [im[0],im[2]]]) 
+                    D4 = np.asarray([[im[5],im[7]],
+                                     [im[4],im[6]]]) 
+
+                    ax.plot(D3[0, :], D3[1, :], lw=2, c='m',label='_nolegend_')
+                    ax.plot(D4[0, :], D4[1, :], lw=2, c='m',label='Prediction')
+
+                plt.show()
+                    
             unet_cosine = unet_loss[2]
             unet_mse = unet_loss[1]
             # reset unet loss to a non array structure
             unet_loss = unet_loss[0]
+            if Debug:
+                print("validation loss", unet_loss)
+                print("validation cosine", unet_cosine)
+                print("validation mse", unet_mse)
+                print("validation Jaccard", Jaccard[-1])
         else:
             #calculate dice score
+            
             pred_output = sigmoid_act(pred).cpu().detach().numpy()
             for Batch in range(cur_batch_size):
                 if Debug: 
                     print("DICE SCORE: ", 
-                          Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int), 
+                          Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int), 
                                                           truth_output[Batch,:,:]), 
                           "PRIOR SCORE" ,
                           Dice_Eval.dice_score(pred_output[Batch,:,:],
                                                truth_output[Batch,:,:]))
                     
-                Dice.append(Dice_Eval.dice_score((pred_output[Batch,:,:] < 0.5).astype(int),
+                Dice.append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),
                                                   truth_output[Batch,:,:]))
             
         unet_loss.backward()
@@ -109,11 +147,11 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
             running_mse =+ unet_mse.item()
-            mse.append(running_mse)
             running_cosine =+ unet_cosine.item()
+            
+            mse.append(running_mse)
             cosine.append(running_cosine)
-                
-        cur_step += 1
+
     if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
         return loss, mse, cosine, Jaccard
     else:

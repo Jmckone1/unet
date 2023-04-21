@@ -338,7 +338,7 @@ class Pre_process():
         masks_csv_append = []
         old_path_list = []
         
-        # image_search_string = "_flair_norm.nii.gz"
+#         image_search_string = "_flair_norm.nii.gz"
         image_search_string = "_whimg_norm.nii.gz"
         label_search_string = "_whseg_norm.nii.gz"
         
@@ -523,7 +523,7 @@ if __name__ == "__main__":
     
     if preproc_small == True:
         Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
-        New_path = "/Brats_2018_small/"
+        New_path = "/Brats_2018_small_4/"
     #     Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
     #     New_path = "/brats_Dataset/"
 

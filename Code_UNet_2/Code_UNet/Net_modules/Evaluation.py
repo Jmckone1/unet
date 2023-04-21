@@ -59,7 +59,20 @@ class Jaccard_Evaluation():
                                (input_array[5], input_array[4]), 
                                (input_array[3], input_array[2]), 
                                (input_array[7], input_array[6])])
-
+        
+#         input_data[-1][1] = np.nan
+#         print(input_data)
+#         print(input_data[-1][1])
+#         input("")
+        
+        if np.isnan(input_data[-1][1]):
+            # put this here to check if the issue is reoccuring or not
+            print("Input is Nan - ERROR")
+            input_data = np.array([(0, 0),
+                                   (0, 0), 
+                                   (0, 0), 
+                                   (0, 0)])
+        
         input_covariance = np.cov(input_data,y = None, rowvar = 0,bias = 1)
         
         # when using the old architecture on the new data the code crashed partway through the 6th epoch with a nan or inf error - this code is to discover the cause.
