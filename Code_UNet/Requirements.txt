@@ -1,2 +1,0 @@
-# requirements # 
-nibabel : pip install nibabel

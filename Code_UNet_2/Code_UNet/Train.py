@@ -76,10 +76,11 @@ train_data = torch.utils.data.RandomSampler(training_split,False)
 validation_data = torch.utils.data.RandomSampler(validation_split,False)
 
 print("Full_dataset: ", len(split))
+
 print("Training: ", len(training_split), 
-      "|" + str(len(training_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] + "Batches")
+      "|" + str(len(training_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] ) + "Batches")
 print("validation: ", len(validation_split),
-      "|" + str(len(validation_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] + "Batches")
+      "|" + str(len(validation_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"]) + "Batches")
 
 Train_data=DataLoader(
     dataset=dataset,

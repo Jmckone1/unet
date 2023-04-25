@@ -126,8 +126,22 @@ class Load_Dataset(Dataset):
                 A.RandomRotate90(p=rotate)
                 ])
             
-            transformed = transform2(image=img, mask=label)
-            transformed_img = transformed['image']
+            if Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"] > 1:
+                img = np.reshape(img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"]))
+                
+                transformed = transform2(image=img, mask=label)
+                
+                transformed_img = transformed['image']
+                transformed_img = np.reshape(transformed_img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1]))
+                
+            else:
+                transformed = transform2(image=img, mask=label)
+                
+                transformed_img = transformed['image']
             transformed_label = transformed['mask']
 
         return transformed_img,transformed_label

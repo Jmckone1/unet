@@ -481,7 +481,7 @@ class Pre_process():
         counter = 0
         for dir_name in tqdm(aa[1]):
             
-            mask = nib.load(os.getcwd() + New_path + "labelsTr/" + dir_name + ".nii.gz")
+            mask = nib.load(os.getcwd() + "/" + New_path + "labelsTr/" + dir_name + ".nii.gz")
             numpy_mask = mask.get_fdata()
             
             x[counter] = np.sum(numpy_mask)
@@ -495,6 +495,7 @@ if __name__ == "__main__":
     preproc_CT = False
     preproc_Brats = False
     preproc_small = False
+    Pix_count_update = True
     
     if preproc_CT == True:
         Old_path = "/2023_Lung_CT_code/Task06_Lung/"
@@ -568,11 +569,12 @@ if __name__ == "__main__":
         Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset.csv" , old_dir)
         Pre_process.calc_Bi_Linear(New_path)
         
+    if Pix_count_update == True:
+        input_directory = ["Brats_2018_4/"]
         
-        
-    input_directory = "Brats_2018/Training_dataset.csv" 
-    Pre_process.mask_pix_count("/Brats_2018/", input_directory)
-        
+        for path in input_directory:
+            Pre_process.mask_pix_count(path, path + "Training_dataset.csv")
+
 #     import pandas as pd  
 #     aa = pd.read_csv("Brats_2018/Training_dataset.csv", header=None)  
 #     print(aa.head())  
