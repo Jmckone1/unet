@@ -471,13 +471,30 @@ class Pre_process():
                                        int(sizes[1]*size_multiplier)), interpolation=cv2.INTER_AREA)
 
         return resized_image
+    
+    def mask_pix_count(New_path, save_directory):
+        print("printing the amount of pixels in image for logging")
+
+        aa = pd.read_csv(save_directory, header=None)  
+        x = np.zeros((len(aa),1))
+
+        counter = 0
+        for dir_name in tqdm(aa[1]):
+            
+            mask = nib.load(os.getcwd() + New_path + "labelsTr/" + dir_name + ".nii.gz")
+            numpy_mask = mask.get_fdata()
+            
+            x[counter] = np.sum(numpy_mask)
+            counter = counter + 1
+        aa[len(aa.columns)] = x
+
+        pd.DataFrame(aa).to_csv(save_directory, header=None, index=None)
         
 if __name__ == "__main__":
 
-    
     preproc_CT = False
     preproc_Brats = False
-    preproc_small = True
+    preproc_small = False
     
     if preproc_CT == True:
         Old_path = "/2023_Lung_CT_code/Task06_Lung/"
@@ -522,8 +539,8 @@ if __name__ == "__main__":
         Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset.csv" , old_dir)
     
     if preproc_small == True:
-        Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
-        New_path = "/Brats_2018_small_4/"
+        Old_paths = ["/Brats_2018_data/Brats_2018_data/HGG/", "/Brats_2018_data/Brats_2018_data/LGG/"]
+        New_path = "/Brats_2018_4/"
     #     Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
     #     New_path = "/brats_Dataset/"
 
@@ -540,7 +557,7 @@ if __name__ == "__main__":
                                                                   folds_value = 10, 
                                                                   saveFile = True, 
                                                                   saveCSV = False, 
-                                                                  saveBilinear = True,
+                                                                  saveBilinear = False,
                                                                   resize_axis = 1, 
                                                                   debug = False)
             image_csv_data.extend(data_out[0])
@@ -549,7 +566,20 @@ if __name__ == "__main__":
             new_dir.extend(data_out[3])
             old_dir.extend(data_out[4])
         Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset.csv" , old_dir)
-#     Pre_process.calc_Bi_Linear(New_path)
+        Pre_process.calc_Bi_Linear(New_path)
+        
+        
+        
+    input_directory = "Brats_2018/Training_dataset.csv" 
+    Pre_process.mask_pix_count("/Brats_2018/", input_directory)
+        
+#     import pandas as pd  
+#     aa = pd.read_csv("Brats_2018/Training_dataset.csv", header=None)  
+#     print(aa.head())  
+#     print(len(aa))
+#     x = np.zeros((len(aa),1))
+#     aa[len(aa.columns)] = x
+#     print(aa.head())  
 
 #     image_directories = Pre_process.get_data_list(New_path, "imagesTr/")
 #     num_of_slices = 0

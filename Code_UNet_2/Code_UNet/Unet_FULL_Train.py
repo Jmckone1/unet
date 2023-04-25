@@ -73,7 +73,7 @@ class UNet_train():
         # regress swaps the model between regression and the segmentation model
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Use_weights"] == True:
             unet = net.Model.load_weights(Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"],
-                                          Param.Parameters.PRANO_Net["Hyperparameters"]["Label_dim"]
+                                          Param.Parameters.PRANO_Net["Hyperparameters"]["Label_dim"],
                                           Regress = Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"],
                             Allow_update = Param.Parameters.PRANO_Net["Hyperparameters"]["Allow_update"],
                             Checkpoint_name = Param.Parameters.PRANO_Net["Train_paths"]["Checkpoint_load"]).to(
