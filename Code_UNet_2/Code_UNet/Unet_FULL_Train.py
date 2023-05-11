@@ -167,21 +167,16 @@ class UNet_train():
                     if pred.ndim == 2:
                         pred = pred[np.newaxis,:,:]
 
-                    # forward
-#                     limits = torch.finfo(torch.float16)
-#                     print(limits.min,limits.max)
-#                     unet_loss = torch.clamp(self.criterion(pred, label_input), min=torch.float(limits.min), max=torch.float(limits.max))
                     unet_loss = self.criterion(pred, label_input)
                     
                 truth_output = label_input.cpu().detach().numpy().squeeze()
                 
                 if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
-                    # calculate jaccard score
+                    
                     pred_output = pred.cpu().detach().numpy().squeeze()
-                    
-                    
-                        
+
                     if self.Debug: print("Pred Magenta, Truth Yellow")
+                    # calculate jaccard score
                     for Batch in range(cur_batch_size):
                         if self.Debug:
                             print("input", truth_output[Batch,:])
@@ -190,8 +185,7 @@ class UNet_train():
                         mask_truth = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"], corners_truth)
                         corners_pred, center_pred = Jacc.Obb(pred_output[Batch,:])
                         mask_pred = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],   corners_pred)
-#                         print("Pred then truth",pred_output,truth_output)
-#                         print("")
+
                         if np.sum(np.sum(mask_pred)) > 2:
                             train_results[1].append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
                         else:

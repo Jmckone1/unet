@@ -1,9 +1,10 @@
 from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Net_modules.Evaluation import Jaccard_Evaluation as Jacc
 import Net_modules.Parameters_SEG as Param
+
 from sklearn.metrics import jaccard_score
 import torch.cuda.amp as amp
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from torch import nn
 import numpy as np
 import shutil
@@ -11,25 +12,30 @@ import torch
 
 class UNet_validate():
     def __init__(self):
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         print("Init")
         print(" ")
         print("Validation...")
 
 def Validate(unet, criterion, Val_data, epoch, step = ""):
-    Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
-    sigmoid_act = nn.Sigmoid()
-#     print(" ")
-#     print("Validation...")
-    unet.eval()
     
-    mse, cosine, loss = [],[],[]
+    unet.eval()
+    Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
+    
+    sigmoid_act = nn.Sigmoid()
+    
+    # mse, cosine, loss = [],[],[]
+    # Dice, Jaccard = [], []
     
     running_loss, running_mse, running_cosine = 0.0, 0.0, 0.0
-    improvement = 0
     
-    Dice, Jaccard = [], []
-    
+    if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
+        # loss, mse, cosine, jaccard
+        val_results = [[],[],[],[]]
+    else:
+        # loss, dice
+        val_results = [[],[]]
+
     for truth_input, label_input in tqdm(Val_data):
         
         cur_batch_size = len(truth_input)
@@ -53,24 +59,24 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
                 label_input = label_input[:,np.newaxis,:]
         
         # set accumilated gradients to 0 for param update
-#         with amp.autocast(enabled = True):
         pred = unet(truth_input)
         pred = pred.squeeze()
 
-        if(pred.ndim == 2):
+        if pred.ndim == 1:
+            pred = pred[np.newaxis,:]
+        if pred.ndim == 2:
             pred = pred[np.newaxis,:,:]
-
         # forward
         unet_loss = criterion(pred,label_input)
         
         truth_output = label_input.cpu().detach().numpy().squeeze()
 
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
-            # calculate jaccard score
+            
             pred_output = pred.cpu().detach().numpy().squeeze()
 
-            
             if Debug: print("Pred Magenta, Truth Yellow")
+            # calculate jaccard score
             for Batch in range(cur_batch_size):
                 if Debug:
                     print("input", truth_output[Batch,:])
@@ -81,12 +87,12 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
                 mask_pred = Jacc.mask(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],   corners_pred)
 
                 if np.sum(np.sum(mask_pred)) > 2:
-                    Jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
+                    val_results[1].append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
 
                 else:
-                    Jaccard.append(float(0)) #.append(float("NaN"))
+                    val_results[1].append(float(0)) #.append(float("NaN"))
                     
-                if Debug: print("Jaccard score: ", Jaccard[-1]) 
+                if Debug: print("Jaccard score: ", val_results[1][-1]) 
                     
             if Debug:
                 backdrop = np.zeros((Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
@@ -121,9 +127,9 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
             unet_loss = unet_loss[0]
             if Debug:
                 print("validation loss", unet_loss)
+                print("validation jaccard", val_results[1][-1])
                 print("validation cosine", unet_cosine)
-                print("validation mse", unet_mse)
-                print("validation Jaccard", Jaccard[-1])
+                print("validation mse", unet_mse[-1])
         else:
             #calculate dice score
             
@@ -137,23 +143,22 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
                           Dice_Eval.dice_score(pred_output[Batch,:,:],
                                                truth_output[Batch,:,:]))
                     
-                Dice.append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),
-                                                  truth_output[Batch,:,:]))
+                val_results[1].append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
             
-        unet_loss.backward()
+#         unet_loss.backward()
         
         running_loss =+ unet_loss.item()
-        loss.append(running_loss)
+        val_results[0].append(running_loss)
         
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
             running_mse =+ unet_mse.item()
             running_cosine =+ unet_cosine.item()
             
-            mse.append(running_mse)
-            cosine.append(running_cosine)
+            val_results[2].append(running_mse)
+            val_results[3].append(running_cosine)
 
     if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
-        return loss, mse, cosine, Jaccard
+        return val_results[0], val_results[1], val_results[2], val_results[3]
     else:
-        return loss, Dice
+        return val_results[0], val_results[1]
     

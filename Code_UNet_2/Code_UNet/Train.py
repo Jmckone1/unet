@@ -66,10 +66,10 @@ print("Dataset size: ", Dataset_size)
 split = folder[:,3].astype(int)
 
 # split here is currently 01 validation (20%) and the rest 23456789 at (80%)
-training_split = folder[(np.where(~np.logical_or(split==0, split==1))),2]
+training_split = folder[(np.where(~np.logical_or(split==2, split==3))),2]
 training_split = np.squeeze(training_split).astype(int)
 
-validation_split = folder[(np.where(np.logical_or(split==0, split==1))),2]
+validation_split = folder[(np.where(np.logical_or(split==2, split==3))),2]
 validation_split = np.squeeze(validation_split).astype(int)
 
 train_data = torch.utils.data.RandomSampler(training_split,False)

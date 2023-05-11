@@ -17,7 +17,7 @@ class Parameters():
         "Global" : {
             "Seed" : 0,
             "device" :"cuda",
-            "GPU" : 2,
+            "GPU" : 1,
             "Param_location" : "Code_UNet_2/Code_UNet/Net_modules/Parameters_SEG.py",
             "Debug" : False,
             # UNet | DCSAU 
@@ -25,8 +25,8 @@ class Parameters():
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 100,
-            "Batch_size" : 8,
+            "Epochs" : 3,
+            "Batch_size" : 16,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
             "Betas" : (0.9,0.999),
@@ -48,7 +48,7 @@ class Parameters():
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_reprod",
+            "Checkpoint_save" : "Checkpoints/UNet_reprod4",
             "Checkpoint_load" : "Checkpoints/UNet_reprod/Regression/checkpoint_0.pth",
             "Data_path" : "/Brats_2018_4/",#"CT_Dataset/Task06_Lung",#"/Brats_2018/","/Brats_2018_small/"
             "Extensions" : [""]
