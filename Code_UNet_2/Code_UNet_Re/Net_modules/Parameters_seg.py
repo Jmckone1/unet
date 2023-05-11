@@ -12,7 +12,7 @@ class sData:
 class SegNet:
     
     dataset_path = "Brats_2018_data/Brats_2018_data" 
-    c_file = "Checkpoints/Old_model/"
+    c_file = "Checkpoints/Old_model_dataloader/"
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
 
     n_epochs = 3

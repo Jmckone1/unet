@@ -1,5 +1,5 @@
 from torch.utils.data.dataset import Dataset
-import Net_modules.Parameters_SEG as Param
+# import Net_modules.Parameters_SEG as Param
 import nibabel as nib
 import numpy as np
 import random

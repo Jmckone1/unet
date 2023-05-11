@@ -1,4 +1,6 @@
-from Net_modules.Unet_Main_dataloader import BraTs_Dataset
+# from Net_modules.Unet_Main_dataloader import BraTs_Dataset
+from Net_modules.Loading_data import Load_Dataset
+
 from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
 from Net_modules.Evaluation import DiceLoss
 from torch.utils.data import DataLoader
@@ -255,74 +257,173 @@ def train(Train_data,Val_data,load=False):
 
     print('Finished Training Dataset')
 
-#####################################################################################################
-# dataset length splitting - currently needs testing - the code above is the prior functioning code #
-#####################################################################################################
-print("starting model")
+    ##################################################################################################
 
-# apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring.
-dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
-print("initialised dataset")
+print("Loading Dataset")
+Full_Path = os.getcwd() + "/Brats_2018_4/"
+folder = np.loadtxt(Full_Path + "/Training_dataset.csv", delimiter=",",dtype=str)
 
-index_f = np.load(Param.SegNet.dataset_path + Param.sData.index_file)
-print("loaded index file")
-patients_number = len(index_f)
+# here is where we reduce the dataset size for regression
+# if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
+#     folder = [folder[np.array(folder[:,-1],dtype=float) > 0]]
+#     folder = np.squeeze(folder)
 
-print("length start")
-train_length = index_f[int(np.floor(patients_number*Param.SegNet.train_split))]
-validation_length = index_f[int(np.ceil(patients_number*Param.SegNet.validation_split))]
-test_length = index_f[int(np.ceil(patients_number*Param.SegNet.test_split))-1]
-all_data_length = index_f[-1]
-custom_split = index_f[int(np.ceil(patients_number*Param.SegNet.custom_split_amount))-1]
+image_folder_in = folder[:,0]
+masks_folder_in = folder[:,1]
 
-print("range start")
-train_range = list(range(0,train_length))
-val_range = list(range(train_length,train_length+validation_length))
-test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
-all_data_range = list(range(0,all_data_length))
-custom_split_range = list(range(0,custom_split))
+# folder = read_csv_paths
+dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in)
 
-print(train_length)
-print(validation_length)
-print(all_data_length)
+print("")
 
-print("Custom_split length", len(custom_split_range))
+Dataset_size = len(folder)
+print("Dataset size: ", Dataset_size)
 
-train_data_m = torch.utils.data.RandomSampler(train_range,False)
-validation_data_m = torch.utils.data.RandomSampler(val_range,False)
-test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
-all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
-custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
+split = folder[:,3].astype(int)
 
-print("produced dataset split amounts")
-#################################################################################################
+# split here is currently 01 validation (20%) and the rest 23456789 at (80%)
+training_split = folder[(np.where(~np.logical_or(split==2, split==3))),2]
+training_split = np.squeeze(training_split).astype(int)
 
-# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
-print("Full_dataset: ", len(all_data_m))
-print("Training: ", len(train_data_m))
-print("validation: ", len(validation_data_m))
+validation_split = folder[(np.where(np.logical_or(split==2, split==3))),2]
+validation_split = np.squeeze(validation_split).astype(int)
 
-print("Epochs: ", Param.SegNet.n_epochs)
+train_data = torch.utils.data.RandomSampler(training_split,False)
+validation_data = torch.utils.data.RandomSampler(validation_split,False)
+
+print("Full_dataset: ", len(split))
+
+# print("Training: ", len(training_split), 
+#       "|" + str(len(training_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] ) + "Batches")
+# print("validation: ", len(validation_split),
+#       "|" + str(len(validation_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"]) + "Batches")
+
+Train_data=DataLoader(
+    dataset=dataset,
+    batch_size=16,
+    sampler=train_data)
+
+Val_data=DataLoader(
+    dataset=dataset,
+    batch_size=16,
+    sampler=validation_data)
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# #####################################################################################################
+# # dataset length splitting - currently needs testing - the code above is the prior functioning code #
+# #####################################################################################################
+# print("starting model")
+
+# # apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring.
+# dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
+# print("initialised dataset")
+
+# index_f = np.load(Param.SegNet.dataset_path + Param.sData.index_file)
+# print("loaded index file")
+# patients_number = len(index_f)
+
+# print("length start")
+# train_length = index_f[int(np.floor(patients_number*Param.SegNet.train_split))]
+# validation_length = index_f[int(np.ceil(patients_number*Param.SegNet.validation_split))]
+# test_length = index_f[int(np.ceil(patients_number*Param.SegNet.test_split))-1]
+# all_data_length = index_f[-1]
+# custom_split = index_f[int(np.ceil(patients_number*Param.SegNet.custom_split_amount))-1]
+
+# print("range start")
+# train_range = list(range(0,train_length))
+# val_range = list(range(train_length,train_length+validation_length))
+# test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
+# all_data_range = list(range(0,all_data_length))
+# custom_split_range = list(range(0,custom_split))
+
+# print(train_length)
+# print(validation_length)
+# print(all_data_length)
+
+# print("Custom_split length", len(custom_split_range))
+
+# train_data_m = torch.utils.data.RandomSampler(train_range,False)
+# validation_data_m = torch.utils.data.RandomSampler(val_range,False)
+# test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
+# all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
+# custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
+
+# print("produced dataset split amounts")
+# #################################################################################################
+
+# # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
+# print("Full_dataset: ", len(all_data_m))
+# print("Training: ", len(train_data_m))
+# print("validation: ", len(validation_data_m))
+
+# print("Epochs: ", Param.SegNet.n_epochs)
+
+# # Train_data=DataLoader(
+# #     dataset=dataset,
+# #     batch_size=Param.SegNet.batch_size,
+# #     sampler=train_data_m)
+
+# # Val_data=DataLoader(
+# #     dataset=dataset,
+# #     batch_size=Param.SegNet.batch_size,
+# #     sampler=validation_data_m)
 
 # Train_data=DataLoader(
 #     dataset=dataset,
 #     batch_size=Param.SegNet.batch_size,
-#     sampler=train_data_m)
+#     sampler=custom_split_m)
 
 # Val_data=DataLoader(
 #     dataset=dataset,
 #     batch_size=Param.SegNet.batch_size,
 #     sampler=validation_data_m)
-
-Train_data=DataLoader(
-    dataset=dataset,
-    batch_size=Param.SegNet.batch_size,
-    sampler=custom_split_m)
-
-Val_data=DataLoader(
-    dataset=dataset,
-    batch_size=Param.SegNet.batch_size,
-    sampler=validation_data_m)
 
 print("Actual train length", len(Train_data.sampler))
 print("actual validation length", len(Val_data.sampler))
