@@ -15,19 +15,64 @@ torch.manual_seed(0)
 
 np.set_printoptions(threshold=sys.maxsize)
 
+import matplotlib.pyplot as plt
+
 class Load_Dataset(Dataset):
-    def __init__(self,path,image_data, masks_data, transform=None):
+    def __init__(self,path,image_data, masks_data, transform=True):
         self.path = path
         self.image_folders = image_data
         self.masks_folders = masks_data
         self.transform = transform
+        
+#         for i in range(10):
+#             i = i + 1
+#             x,y = self.__getitem__((i*100) -10)
+#             plt.imshow(x[0,:,:])
+#             plt.show()
+#             plt.imshow(y)
+#             plt.show()
+            
+#             print(np.min(x),np.max(x))
+#             print(np.min(y),np.max(y))
+            
+#             print(x.dtype)
+#             print(y.dtype)
+            
+#             x,y = self.__getitem__((i*100))
+#             plt.imshow(x[0,:,:])
+#             plt.show()
+#             plt.imshow(y)
+#             plt.show()
+            
+#             print(np.min(x),np.max(x))
+#             print(np.min(y),np.max(y))
+            
+#             print(x.dtype)
+#             print(y.dtype)
+            
+#             x,y = self.__getitem__((i*100) +10)
+#             plt.imshow(x[0,:,:])
+#             plt.show()
+#             plt.imshow(y)
+#             plt.show()
+            
+#             print(np.min(x),np.max(x))
+#             print(np.min(y),np.max(y))
+            
+#             print(x.dtype)
+#             print(y.dtype)
 
     def __len__(self):
         return len(self.folders)
 
     def __getitem__(self,idx):
         
-        image_path = os.path.join(self.path,'imagesTr/',self.image_folders[idx] + ".nii.gz")
+        
+        
+        image_path = os.path.join(self.path,'imagesTr/', self.image_folders[idx] + ".nii.gz")
+        
+#         print("Image", image_path)
+        
         img = nib.load(image_path).get_fdata()
 #         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
 #             mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
@@ -37,12 +82,20 @@ class Load_Dataset(Dataset):
 #             label = numpy_mask["RANO"][np.newaxis,:]  
             
 #         else:
-        mask_path = os.path.join(self.path,'labelsTr/',self.masks_folders[idx] + ".nii.gz")
+        mask_path = os.path.join(self.path,'labelsTr/', self.masks_folders[idx] + ".nii.gz")
+    
+#         print("Mask", mask_path)
+        
         label = nib.load(mask_path).get_fdata() 
         
         if self.transform == True:
 #         if Param.Parameters.PRANO_Net["Hyperparameters"]["Apply_Augmentation"] == True:
             img, label = self.augmentation(img,label)
+        
+#         print("")
+#         print("image and label shape")
+#         print(np.shape(img))
+#         print(np.shape(label))
         
         return (img,label)
     

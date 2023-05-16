@@ -14,6 +14,8 @@ from tqdm import tqdm
 
 import Net_modules.Parameters_seg as Param
 
+import matplotlib.pyplot as plt
+
 # have a look at incorporating the scandir variant instead of walk here which would make it both cleaner and more consistant with the current RANO dataloader example. added torch manual seed here - may be worth adding this into the class or function that can be toggled but we shall see whether that is relevant or not - will save time having to delve into the code each time having to turn them on/ off or change them in any case.
 
 random.seed(0)
@@ -39,11 +41,11 @@ class BraTs_Dataset(Dataset):
         for input_ in range(len(self.path_ext)):
             counter = 0
             # each folder in extension
-            print(path)
+#             print(path)
             for files in os.scandir(path + self.path_ext[input_]):
                 if files.is_dir() or files.is_file():
                     if not files.name.startswith("."):
-                        print(self.path_ext[input_] + "/" + files.name)
+#                         print(self.path_ext[input_] + "/" + files.name)
                         self.d.append(self.path_ext[input_] + "/" + files.name)
             counter = len(self.d)
             # if the index file does not exist then create a new one, else load the existing one.
@@ -58,9 +60,11 @@ class BraTs_Dataset(Dataset):
                     if input_ == 1:
                         directory = directory + c_s
 
-                    file = self.d[directory] + '/' + self.d[directory] + "_" + Param.sData.image_in + '.nii.gz'
-                    full_path = os.path.join(path + path_ext[input_], file)
-                    img_a = nib.load(full_path)
+                    file = os.getcwd() + "/" + path + self.d[directory] + '/' + self.d[directory][4:] + "_" + Param.sData.image_in + '.nii.gz'
+                    
+#                     print(file)
+                    #full_path = os.path.join(path + path_ext[input_], file)
+                    img_a = nib.load(file)
                     img_data = img_a.get_fdata()
 
                     self.index_max.extend([img_data.shape[3] + self.index_max[-1]])
@@ -77,7 +81,48 @@ class BraTs_Dataset(Dataset):
         self.path = path
         self.size = size
         
-        print("File_paths from dataloader", self.d)
+        for i in range(10):
+            i = i + 1
+            
+            print(i*100-10)
+            x,y = self.__getitem__((i*100)-10)
+            plt.imshow(x[0,:,:])
+            plt.show()
+            plt.imshow(y)
+            plt.show()
+            
+            print(np.min(x),np.max(x))
+            print(np.min(y),np.max(y))
+            
+            print(x.dtype)
+            print(y.dtype)
+            
+            x,y = self.__getitem__(i*100)
+            plt.imshow(x[0,:,:])
+            plt.show()
+            plt.imshow(y)
+            plt.show()
+            
+            print(np.min(x),np.max(x))
+            print(np.min(y),np.max(y))
+            
+            print(x.dtype)
+            print(y.dtype)
+            
+            x,y = self.__getitem__((i*100)+10)
+            plt.imshow(x[0,:,:])
+            plt.show()
+            plt.imshow(y)
+            plt.show()
+            
+            print(np.min(x),np.max(x))
+            print(np.min(y),np.max(y))
+            
+            print(x.dtype)
+            print(y.dtype)
+        
+        
+#         print("File_paths from dataloader", self.d)
 
     def __getitem__(self,index):
 
@@ -98,6 +143,9 @@ class BraTs_Dataset(Dataset):
         #######################################################################
         #                          image return start                         #
 
+        print(self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz')
+        print(index)
+        
         file_t = self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
         full_path = self.path + file_t
         img_a = nib.load(full_path)
@@ -132,6 +180,11 @@ class BraTs_Dataset(Dataset):
             
         img = img.squeeze().numpy()
         label = label.squeeze().numpy()
+        
+#         print("")
+#         print("image and label shape")
+#         print(np.shape(img))
+#         print(np.shape(label))
         
         return img,label
     

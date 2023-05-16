@@ -6,13 +6,13 @@ class sData:
 
     image_in = "whimg_norm"
     rano_in = "RANO_2"
-    index_file = "/index_max_original_2_small.npy"
+    index_file = "/inedx_max_2.npy"
     refresh_index = False
 
 class SegNet:
     
     dataset_path = "Brats_2018_data/Brats_2018_data" 
-    c_file = "Checkpoints/Old_model_dataloader/"
+    c_file = "Checkpoints/Old_model_dataloaderNew_Augment_False/"
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
 
     n_epochs = 3

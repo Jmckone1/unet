@@ -1,4 +1,4 @@
-# from Net_modules.Unet_Main_dataloader import BraTs_Dataset
+from Net_modules.Unet_Main_dataloader import BraTs_Dataset
 from Net_modules.Loading_data import Load_Dataset
 
 from Net_modules.Evaluation import Dice_Evaluation as Dice_Eval
@@ -179,6 +179,9 @@ def train(Train_data,Val_data,load=False):
             DS = []
             
             cur_batch_size = len(truth_input)
+            
+#             print("Input shape", np.shape(truth_input))
+#             print("Label shape", np.shape(label_input))
 
             # flatten ground truth and label masks
             truth_input = truth_input.to(Param.SegNet.device)
@@ -259,22 +262,37 @@ def train(Train_data,Val_data,load=False):
 
     ##################################################################################################
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+print("")
+print("######################## new dataloader ###############")
+print("")
+    
+    
+    
 print("Loading Dataset")
 Full_Path = os.getcwd() + "/Brats_2018_4/"
 folder = np.loadtxt(Full_Path + "/Training_dataset.csv", delimiter=",",dtype=str)
 
-# here is where we reduce the dataset size for regression
-# if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
-#     folder = [folder[np.array(folder[:,-1],dtype=float) > 0]]
-#     folder = np.squeeze(folder)
-
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]
 
-# folder = read_csv_paths
-dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in)
-
-print("")
+dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in, transform=False)
 
 Dataset_size = len(folder)
 print("Dataset size: ", Dataset_size)
@@ -282,10 +300,10 @@ print("Dataset size: ", Dataset_size)
 split = folder[:,3].astype(int)
 
 # split here is currently 01 validation (20%) and the rest 23456789 at (80%)
-training_split = folder[(np.where(~np.logical_or(split==2, split==3))),2]
+training_split = folder[np.where(split > 3),2]
 training_split = np.squeeze(training_split).astype(int)
 
-validation_split = folder[(np.where(np.logical_or(split==2, split==3))),2]
+validation_split = folder[np.where(split < 2),2]
 validation_split = np.squeeze(validation_split).astype(int)
 
 train_data = torch.utils.data.RandomSampler(training_split,False)
@@ -293,10 +311,8 @@ validation_data = torch.utils.data.RandomSampler(validation_split,False)
 
 print("Full_dataset: ", len(split))
 
-# print("Training: ", len(training_split), 
-#       "|" + str(len(training_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] ) + "Batches")
-# print("validation: ", len(validation_split),
-#       "|" + str(len(validation_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"]) + "Batches")
+print(len(training_split))
+print(len(validation_split))
 
 Train_data=DataLoader(
     dataset=dataset,
@@ -308,10 +324,10 @@ Val_data=DataLoader(
     batch_size=16,
     sampler=validation_data)
 
-
-    
-    
-    
+print("")
+print("########################################################")
+print("second dataloader")
+print("")
     
     
     
@@ -362,7 +378,7 @@ Val_data=DataLoader(
 # print("starting model")
 
 # # apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring.
-# dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=True)
+# dataset = BraTs_Dataset(Param.SegNet.dataset_path, path_ext = Param.SegNet.extensions, size=Param.SegNet.size, apply_transform=False)
 # print("initialised dataset")
 
 # index_f = np.load(Param.SegNet.dataset_path + Param.sData.index_file)
@@ -405,25 +421,25 @@ Val_data=DataLoader(
 
 # print("Epochs: ", Param.SegNet.n_epochs)
 
-# # Train_data=DataLoader(
-# #     dataset=dataset,
-# #     batch_size=Param.SegNet.batch_size,
-# #     sampler=train_data_m)
-
-# # Val_data=DataLoader(
-# #     dataset=dataset,
-# #     batch_size=Param.SegNet.batch_size,
-# #     sampler=validation_data_m)
-
 # Train_data=DataLoader(
 #     dataset=dataset,
 #     batch_size=Param.SegNet.batch_size,
-#     sampler=custom_split_m)
+#     sampler=train_data_m)
 
 # Val_data=DataLoader(
 #     dataset=dataset,
 #     batch_size=Param.SegNet.batch_size,
 #     sampler=validation_data_m)
+# 
+# # Train_data=DataLoader(
+# #     dataset=dataset,
+# #     batch_size=Param.SegNet.batch_size,
+# #     sampler=custom_split_m)
+
+# # Val_data=DataLoader(
+# #     dataset=dataset,
+# #     batch_size=Param.SegNet.batch_size,
+# #     sampler=validation_data_m)
 
 print("Actual train length", len(Train_data.sampler))
 print("actual validation length", len(Val_data.sampler))
