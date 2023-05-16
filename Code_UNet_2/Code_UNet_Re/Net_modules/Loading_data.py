@@ -162,9 +162,36 @@ class Load_Dataset(Dataset):
             
         # Segmentation ##################################################################################### #
 #         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
-        transform2 = A.Compose([
-            A.HorizontalFlip(p=h_flip),
-            A.VerticalFlip(p=v_flip),
+
+# so for some reason the Vflip on its own causes the loss to flatline and the Hflip when combined with anything else (rotate or randomcrop) also causes the loss to flatline, removing the Hflip and Vflip seems to have stabilised it for the time being.
+
+#         transform0 = A.Compose([
+#             A.HorizontalFlip(p=h_flip)
+#             ])
+    
+#         transform1 = A.Compose([
+#             A.VerticalFlip(p=v_flip)
+#             ])
+        
+        
+#         transform2 = A.Compose([
+#             A.RandomSizedCrop(min_max,
+#                               width = 240,
+#                               height = 240,
+#                               interpolation = cv2.INTER_CUBIC,
+#                               p = crop)
+#             ])
+        
+#         transform3 = A.Compose([
+#             A.RandomRotate90(p=rotate)
+#             ])
+        
+#         transformhr = A.Compose([
+#             A.HorizontalFlip(p=h_flip),
+#             A.RandomRotate90(p=rotate)
+#             ])
+        
+        transformcr = A.Compose([
             A.RandomSizedCrop(min_max,
                               width = 240,
                               height = 240,
@@ -173,18 +200,18 @@ class Load_Dataset(Dataset):
             A.RandomRotate90(p=rotate)
             ])
 
-        if 4 > 1:
-            img = np.reshape(img,(240,240,4))
+#         if 4 > 1:
+        img = np.reshape(img,(240,240,4))
 
-            transformed = transform2(image=img, mask=label)
+        transformed = transformcr(image=img, mask=label)
 
-            transformed_img = transformed['image']
-            transformed_img = np.reshape(transformed_img,(4,240,240))
+        transformed_img = transformed['image']
+        transformed_img = np.reshape(transformed_img,(4,240,240))
 
-        else:
-            transformed = transform2(image=img, mask=label)
+#         else:
+#             transformed = transform2(image=img, mask=label)
 
-            transformed_img = transformed['image']
+#             transformed_img = transformed['image']
         transformed_label = transformed['mask']
 
         return transformed_img,transformed_label

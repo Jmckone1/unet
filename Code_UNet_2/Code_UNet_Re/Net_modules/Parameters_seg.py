@@ -1,6 +1,6 @@
 class Global:
     Seed = 0
-    GPU = "2"
+    GPU = "3"
 
 class sData:
 
@@ -12,10 +12,10 @@ class sData:
 class SegNet:
     
     dataset_path = "Brats_2018_data/Brats_2018_data" 
-    c_file = "Checkpoints/Old_model_dataloaderNew_Augment_False/"
+    c_file = "Checkpoints/Old_model_dataloaderNew_Augment_crop_rotate/"
     checkpoint_name = "Checkpoints_RANO/Unet_H16_M14_CO100_R3_main_data_input_4/checkpoint_49.pth"
 
-    n_epochs = 3
+    n_epochs = 1
     input_dim = 4
     label_dim = 1
     hidden_dim = 16
