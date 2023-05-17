@@ -212,6 +212,7 @@ def train(Train_data,Val_data,load=False):
             unet_opt.step()
 
             running_loss =+ unet_loss.item()
+            print("Loss", running_loss)
             # loss_values.append(running_loss)
             cur_step += 1
             
@@ -299,12 +300,25 @@ print("Dataset size: ", Dataset_size)
 
 split = folder[:,3].astype(int)
 
+nonempty = folder[:,-1].astype(float)
+
+# training_split = folder[np.where(nonempty == 0),2]
+
 # split here is currently 01 validation (20%) and the rest 23456789 at (80%)
-training_split = folder[np.where(split > 3),2]
+# values are greater than or equal to 3, i.e 3,4,5,6,7,8,9 (70%)
+# training_split = folder[np.where(split >= 3),2]
+
+training_split = folder[:,2]
 training_split = np.squeeze(training_split).astype(int)
 
+# values are less than 2, i.e 0,1 (20%)
 validation_split = folder[np.where(split < 2),2]
 validation_split = np.squeeze(validation_split).astype(int)
+
+# i should split 20% of the dataset off manually to give myself a test set and make it easier to do a val/train split (is this even the right way to go about it?)
+# values are equal to 2, i.e 2 (10%)
+test_split = folder[np.where(split == 2),2]
+test_split = np.squeeze(test_split).astype(int)
 
 train_data = torch.utils.data.RandomSampler(training_split,False)
 validation_data = torch.utils.data.RandomSampler(validation_split,False)
