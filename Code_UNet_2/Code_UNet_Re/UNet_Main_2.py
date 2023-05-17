@@ -129,6 +129,9 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
 
 def train(Train_data,Val_data,load=False):
     
+    
+    sigmoid_act = nn.Sigmoid()
+    
     # run UNet.load_weights for loading of frozen or unfrozen models, use UNet for no initialisation.
     # if using UNet.load_weights allow_update = False for Frozen weights, allow_update = True for unfrozen weights
     
@@ -224,8 +227,8 @@ def train(Train_data,Val_data,load=False):
                 pred_output = pred_output[np.newaxis,:,:]
                 truth_output = truth_output[np.newaxis,:,:]
                 
-            for i in range(cur_batch_size):
-                DS.append(Dice_Eval.dice_score(pred_output[i,:,:],truth_output[i,:,:]))
+            for Batch in range(cur_batch_size):
+                DS.append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
             
             with open("Checkpoints/" + Param.SegNet.c_file + "epoch_" + str(epoch) + "training_loss.csv", 'a') as f: 
                 np.savetxt(f, [running_loss], delimiter=',')
