@@ -293,7 +293,7 @@ folder = np.loadtxt(Full_Path + "/Training_dataset.csv", delimiter=",",dtype=str
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]
 
-dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in, transform=False)
+dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in, transform=True)
 
 Dataset_size = len(folder)
 print("Dataset size: ", Dataset_size)
@@ -306,9 +306,9 @@ nonempty = folder[:,-1].astype(float)
 
 # split here is currently 01 validation (20%) and the rest 23456789 at (80%)
 # values are greater than or equal to 3, i.e 3,4,5,6,7,8,9 (70%)
-# training_split = folder[np.where(split >= 3),2]
+training_split = folder[np.where(split >= 3),2]
 
-training_split = folder[:,2]
+# training_split = folder[:,2]
 training_split = np.squeeze(training_split).astype(int)
 
 # values are less than 2, i.e 0,1 (20%)
