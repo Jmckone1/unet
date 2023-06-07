@@ -1,7 +1,11 @@
+import Net_modules.Model_hyperparameters as Param
+
 import torch
 from torch import nn
 from tqdm.auto import tqdm
 import torch.nn.functional as F
+
+torch.manual_seed(Param.Parameters.Network["Global"]["Seed"])
 
 class Contract(nn.Module):
     def __init__(self, input_channels):

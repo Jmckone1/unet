@@ -17,11 +17,13 @@ import torch
 import csv
 import os
 
+# import Net_modules.Model_hyperparameters as Param
 import Net_modules.Parameters_seg as Param
 # import Unet_modules.Dice_Loss as Eval
 
-np.random.seed(Param.Global.Seed)
+# random.seed(Param.Global.Seed)
 torch.manual_seed(Param.Global.Seed)
+np.random.seed(Param.Global.Seed)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= Param.Global.GPU

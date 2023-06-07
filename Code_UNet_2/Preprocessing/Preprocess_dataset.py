@@ -4,7 +4,7 @@ from skimage.measure import regionprops, find_contours
 from scipy.spatial.distance import cdist
 from collections import namedtuple
 import matplotlib.pyplot as plt
-from tqdm.auto import tqdm
+from tqdm import tqdm
 import nibabel as nib
 import pandas as pd 
 from os import walk
@@ -483,19 +483,43 @@ class Pre_process():
             
             mask = nib.load(os.getcwd() + "/" + New_path + "labelsTr/" + dir_name + ".nii.gz")
             numpy_mask = mask.get_fdata()
-            
+
             x[counter] = np.sum(numpy_mask)
             counter = counter + 1
         aa[len(aa.columns)] = x
 
         pd.DataFrame(aa).to_csv(save_directory, header=None, index=None)
         
+    def mask_binarize(New_path, save_directory):
+        directories = pd.read_csv(save_directory, header = None)
+        empty_header = nib.Nifti1Header()
+        for dir_name in tqdm(directories[1]):
+#             print(dir_name)
+#             print(os.getcwd() + "/" + New_path + "labelsTr/" + dir_name + ".nii.gz")
+#             input("")
+            mask = nib.load(os.getcwd() + "/" + New_path + "labelsTr/" + dir_name + ".nii.gz")
+            numpy_mask = mask.get_fdata()
+            
+            if np.sum(numpy_mask) > 0:
+
+#                 print(np.min(numpy_mask), np.max(numpy_mask))
+#                 print(np.unique(numpy_mask))
+
+                numpy_mask[numpy_mask != 0] = 1
+
+#                 print(np.min(numpy_mask), np.max(numpy_mask))
+#                 print(np.unique(numpy_mask))
+
+                new_label = nib.Nifti1Image(numpy_mask, affine=mask.affine, header=empty_header)
+                nib.save(new_label, os.getcwd() + "/" + New_path + "labelsTr/" + dir_name + ".nii.gz")
+
 if __name__ == "__main__":
 
-    preproc_CT = False
+    preproc_CT = True
     preproc_Brats = False
     preproc_small = False
     Pix_count_update = True
+    Pix_binarize = False
     
     if preproc_CT == True:
         Old_path = "/2023_Lung_CT_code/Task06_Lung/"
@@ -504,8 +528,8 @@ if __name__ == "__main__":
                                      New_path, 
                                      folds_value = 10, 
                                      saveFile = False, 
-                                     saveCSV = False, 
-                                     saveBilinear = True,
+                                     saveCSV = True, 
+                                     saveBilinear = False,
                                      resize_axis = 0.5)
 
 #     Pre_process.calc_Bi_Linear(New_path)
@@ -570,10 +594,16 @@ if __name__ == "__main__":
         Pre_process.calc_Bi_Linear(New_path)
         
     if Pix_count_update == True:
-        input_directory = ["Brats_2018_4/"]
+        input_directory = ["/CT_Dataset/Task06_Lung/"]
+            
+        for path in input_directory:
+            Pre_process.mask_pix_count(path, os.getcwd() + path + "Training_dataset.csv")
+            
+    if Pix_binarize == True:
+        input_directory = ["/CT_Dataset/Task06_Lung/"]
         
         for path in input_directory:
-            Pre_process.mask_pix_count(path, path + "Training_dataset.csv")
+            Pre_process.mask_binarize(path, os.getcwd() + path + "Training_dataset.csv")
 
 #     import pandas as pd  
 #     aa = pd.read_csv("Brats_2018/Training_dataset.csv", header=None)  

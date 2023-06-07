@@ -18,8 +18,9 @@ import matplotlib.pyplot as plt
 
 # have a look at incorporating the scandir variant instead of walk here which would make it both cleaner and more consistant with the current RANO dataloader example. added torch manual seed here - may be worth adding this into the class or function that can be toggled but we shall see whether that is relevant or not - will save time having to delve into the code each time having to turn them on/ off or change them in any case.
 
-random.seed(0)
-torch.manual_seed(0)
+# random.seed(0)
+# torch.manual_seed(0)
+# np.random.seed(0)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -43,6 +44,7 @@ class BraTs_Dataset(Dataset):
             # each folder in extension
 #             print(path)
             for files in os.scandir(path + self.path_ext[input_]):
+#                 print(path + self.path_ext[input_])
                 if files.is_dir() or files.is_file():
                     if not files.name.startswith("."):
 #                         print(self.path_ext[input_] + "/" + files.name)
@@ -81,45 +83,45 @@ class BraTs_Dataset(Dataset):
         self.path = path
         self.size = size
         
-        for i in range(10):
-            i = i + 1
+#         for i in range(10):
+#             i = i + 1
             
-            print(i*100-10)
-            x,y = self.__getitem__((i*100)-10)
-            plt.imshow(x[0,:,:])
-            plt.show()
-            plt.imshow(y)
-            plt.show()
+#             print(i*100-10)
+#             x,y = self.__getitem__((i*100)-10)
+#             plt.imshow(x[0,:,:])
+#             plt.show()
+#             plt.imshow(y)
+#             plt.show()
             
-            print(np.min(x),np.max(x))
-            print(np.min(y),np.max(y))
+#             print(np.min(x),np.max(x))
+#             print(np.min(y),np.max(y))
             
-            print(x.dtype)
-            print(y.dtype)
+#             print(x.dtype)
+#             print(y.dtype)
             
-            x,y = self.__getitem__(i*100)
-            plt.imshow(x[0,:,:])
-            plt.show()
-            plt.imshow(y)
-            plt.show()
+#             x,y = self.__getitem__(i*100)
+#             plt.imshow(x[0,:,:])
+#             plt.show()
+#             plt.imshow(y)
+#             plt.show()
             
-            print(np.min(x),np.max(x))
-            print(np.min(y),np.max(y))
+#             print(np.min(x),np.max(x))
+#             print(np.min(y),np.max(y))
             
-            print(x.dtype)
-            print(y.dtype)
+#             print(x.dtype)
+#             print(y.dtype)
             
-            x,y = self.__getitem__((i*100)+10)
-            plt.imshow(x[0,:,:])
-            plt.show()
-            plt.imshow(y)
-            plt.show()
+#             x,y = self.__getitem__((i*100)+10)
+#             plt.imshow(x[0,:,:])
+#             plt.show()
+#             plt.imshow(y)
+#             plt.show()
             
-            print(np.min(x),np.max(x))
-            print(np.min(y),np.max(y))
+#             print(np.min(x),np.max(x))
+#             print(np.min(y),np.max(y))
             
-            print(x.dtype)
-            print(y.dtype)
+#             print(x.dtype)
+#             print(y.dtype)
         
         
 #         print("File_paths from dataloader", self.d)
@@ -142,8 +144,11 @@ class BraTs_Dataset(Dataset):
 
         #######################################################################
         #                          image return start                         #
-
-        print(self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz')
+        
+#         print(self.current_dir)
+#         print(self.d)
+#         print(len(self.d))
+#         print(self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz')
         print(index)
         
         file_t = self.d[self.current_dir] + '/' + self.d[self.current_dir][5:] + "_" + "whimg_norm" + '.nii.gz'
@@ -175,8 +180,8 @@ class BraTs_Dataset(Dataset):
         #                          labels return end                          #
         #######################################################################
         
-        if self.apply_transform == True:
-            img,label = self.Transform(img,label)
+#         if self.apply_transform == True:
+#             img,label = self.Transform(img,label)
             
         img = img.squeeze().numpy()
         label = label.squeeze().numpy()
@@ -188,38 +193,38 @@ class BraTs_Dataset(Dataset):
         
         return img,label
     
-    def Transform(self, image, label):
+#     def Transform(self, image, label):
 
-        # 25% horizontal flip 
-        if random.random() > 0.5:
-            image = TF.hflip(image)
-            label = TF.hflip(label)
+#         # 25% horizontal flip 
+#         if random.random() > 0.5:
+#             image = TF.hflip(image)
+#             label = TF.hflip(label)
 
-        # 25% vertical flip 
-        if random.random() > 0.5:
-            image = TF.vflip(image)
-            label = TF.vflip(label)
+#         # 25% vertical flip 
+#         if random.random() > 0.5:
+#             image = TF.vflip(image)
+#             label = TF.vflip(label)
 
-        # rotation up to 30 degrees
-        if random.random() > 0.25:
-            rotation = random.randint(1,30)
-            image = TF.rotate(image,rotation)
-            label = TF.rotate(label,rotation)
+#         # rotation up to 30 degrees
+#         if random.random() > 0.25:
+#             rotation = random.randint(1,30)
+#             image = TF.rotate(image,rotation)
+#             label = TF.rotate(label,rotation)
 
-        # 10% - 20% zoom / scaling around the center
-        if random.random() > 0.25:
-            size = image.shape[3]
-            resize = random.randint(int(size*0.1),int(size*0.2))
-            crop = torchvision.transforms.Compose([torchvision.transforms.CenterCrop(size-resize)])
+#         # 10% - 20% zoom / scaling around the center
+#         if random.random() > 0.25:
+#             size = image.shape[3]
+#             resize = random.randint(int(size*0.1),int(size*0.2))
+#             crop = torchvision.transforms.Compose([torchvision.transforms.CenterCrop(size-resize)])
             
-            image = crop(image)
-            image = TF.resize(image,size)
+#             image = crop(image)
+#             image = TF.resize(image,size)
 
-            label = crop(label)
-            label = TF.resize(label,size)
+#             label = crop(label)
+#             label = TF.resize(label,size)
         
-        return image, label
+#         return image, label
         
-    def __len__(self):
-        x = self.index_max[-1]
-        return x # of how many examples(images?) you have
+#     def __len__(self):
+#         x = self.index_max[-1]
+#         return x # of how many examples(images?) you have
