@@ -15,10 +15,9 @@ class Penalty():
         self.b = torch.nn.CosineSimilarity()
         
     def Cosine_calc(self, target):
-        
-# #         print("COSINE", target.size())
-#         if target.dim() == 1:
-#             target = target[np.newaxis,:]
+
+        if target.dim() == 1:
+            target = target[np.newaxis,:]
 
         x = target[:,0:4]
         y = target[:,4:8]
@@ -29,23 +28,23 @@ class Penalty():
     
     def MSELossorthog(self, output, target):
 
-        output = torch.squeeze(output)
-        target = torch.squeeze(target)
-        
-# #         print("COSINE", target.size())
+#         output = torch.squeeze(output)
+#         target = torch.squeeze(target)
+
 #         if target.dim() == 1:
 #             target = target[np.newaxis,:]
         
         loss = 0
         batch = output.shape[0]
-        # print(output.size(),target.size(),batch)
         
         mse = torch.ones(batch,device="cuda")
         cosine = torch.ones(batch,device="cuda")
         cosine = self.Cosine_calc(output)
         
+#         print(np.shape(output),np.shape(target))
         
         for i in range(batch):
+            
             mse[i] = self.a(output[i,:], target[i,:])
             if torch.isnan(cosine[i]) == True:
                 cosine[i] = 0

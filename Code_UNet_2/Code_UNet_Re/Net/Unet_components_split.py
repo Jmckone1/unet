@@ -4,17 +4,11 @@ from tqdm.auto import tqdm
 import torch.nn.functional as F
 import numpy as np
 import random
+import os
 
 import Net_modules.Model_hyperparameters as Param
 
-# np.random.seed(0)
-# torch.manual_seed(0)
-# random.seed(0)
-# torch.cuda.manual_seed(0)
-
-# torch.backends.cudnn.deterministic=True
-
-seed = 11
+seed = Param.Parameters.Network["Global"]["Seed"]
 
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
@@ -23,7 +17,7 @@ np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 torch.manual_seed(seed)
 torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
 torch.backends.cudnn.enabled = False
 
 class Contract(nn.Module):
@@ -66,6 +60,7 @@ class Expand(nn.Module):
         x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
 
         x = torch.cat([skip_con_x, x], dim=1)
+        
         x = self.conv2(x)
         
         x = self.activation(x)
@@ -77,7 +72,7 @@ class Expand(nn.Module):
 class FeatureMap(nn.Module):
     def __init__(self, input_channels, output_channels):
         super(FeatureMap, self).__init__()
-        
+        torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
         self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=1)
 
     def forward(self, x):
@@ -98,15 +93,15 @@ class UNet(nn.Module):
         self.contract3 = Contract(hidden_channels * 4)
         self.contract4 = Contract(hidden_channels * 8)
         self.contract5 = Contract(hidden_channels * 16)
-                                  
+
         self.expand1 = Expand(hidden_channels * 32)
-                              
+
         self.expand2 = Expand(hidden_channels * 16)
         self.expand3 = Expand(hidden_channels * 8)
         self.expand4 = Expand(hidden_channels * 4)
         self.expand5 = Expand(hidden_channels * 2)
         
-        self.regress = Regress
+        self.regress = Param.Parameters.Network["Hyperparameters"]["Regress"]
         if Regress: output_channels = 8
             
         self.downfeature = FeatureMap(hidden_channels, output_channels)
@@ -116,7 +111,7 @@ class UNet(nn.Module):
         if Param.Parameters.Network["Hyperparameters"]["Image_size"] == [240,240]:
             self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
         elif Param.Parameters.Network["Hyperparameters"]["Image_size"] == [256,256]:
-            self.Linear = nn.Sequential(nn.Linear(int(256*(image_size[0]/16)*(image_size[1]/16)), 8))
+            self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 8))
         else:
             print("Not sure how you got here without the architecture defined but hey, regression wont work without this")
             import sys
@@ -133,12 +128,14 @@ class UNet(nn.Module):
         x6 = self.contract5(x5)
         
         if self.regress == True:
+#             print("Regress")
             
             x7 = torch.flatten(x6, start_dim=1)
             x8 = self.Linear(x7)
             return x8
             
         if self.regress == False:
+#             print("Segmentation")
             
             ex1 = self.expand1(x6, x5)
             
@@ -153,16 +150,23 @@ class UNet(nn.Module):
             return data_out
                               
     def load_weights(input_channels, output_channels = 1, hidden_channels = 32, Regress = True, Allow_update = False, Checkpoint_name = ""):
-        
         # load the model and the checkpoint
-        model = Model(input_channels, output_channels, hidden_channels, Regress)
-        checkpoint = torch.load(Checkpoint_name)
+        model = UNet(input_channels, output_channels, hidden_channels, Regress)
+        checkpoint = torch.load(os.getcwd() + "/" + Checkpoint_name)
+        
+#         print(checkpoint['state_dict'])
         
         # if the regression is true here we will load the checkpoint and move on, no freezing will be done.
         if Regress == False:
             # remove the final linear layer of the regression model weights and bias
-            del checkpoint['state_dict']["Linear.0.weight"]
-            del checkpoint['state_dict']["Linear.0.bias"]
+#             print(checkpoint['state_dict'])
+#             input("")
+            if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
+                del checkpoint['state_dict']["Linear.0.weight"]
+                del checkpoint['state_dict']["Linear.0.bias"]
+            if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 4:
+                del checkpoint['state_dict']["Linear1.weight"]
+                del checkpoint['state_dict']["Linear1.bias"]
 
             # load the existing model weights from the checkpoint
             model.load_state_dict(checkpoint['state_dict'], strict=False)

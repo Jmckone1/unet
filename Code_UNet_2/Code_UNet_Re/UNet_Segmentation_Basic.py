@@ -7,7 +7,6 @@ from Net_modules.Evaluation import DiceLoss
 import Net.Unet_components_split as net
 
 from torch.utils.data import DataLoader
-
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 import nibabel as nib
@@ -19,19 +18,11 @@ import csv
 import os
 
 import sys
-
 import random
 
 print("Loading seed . . .")
 
-# torch.backends.cudnn.deterministic=True
-
-# np.random.seed(0)
-# torch.manual_seed(0)
-# random.seed(0)
-# torch.cuda.manual_seed(0)
-
-seed = 11
+seed = Param.Parameters.Network["Global"]["Seed"]
 
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
@@ -47,7 +38,6 @@ os.environ["CUDA_VISIBLE_DEVICES"]= str(Param.Parameters.Network["Global"]["GPU"
 os.environ["CUBLAS_WORKSPACE_CONFIG"]=":16:8"
 
 torch.cuda.empty_cache()
-
 os.chdir(os.getcwd())
 
 headers = ["Global","Hyperparameters","Train_paths"]
@@ -71,8 +61,6 @@ if os.path.exists("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Chec
     else:
         print("Exiting script")
         sys.exit()
-        
-# input("Checking file removal")
 
 criterion = nn.BCEWithLogitsLoss()
 
@@ -80,7 +68,6 @@ def _init_fn(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
-                   
 
 def Validate(unet, criterion, Val_data, epoch, step = ""):
 
@@ -99,33 +86,34 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         # flatten ground truth and label masks
         truth_input = truth_input.to(Param.Parameters.Network["Global"]["device"])
         truth_input = truth_input.float() 
-        truth_input = truth_input.squeeze()
 
         label_input = label_input.to(Param.Parameters.Network["Global"]["device"])
         label_input = label_input.float()
-        label_input = label_input.squeeze()
 
-        # edgecase handle for only 1 remaining batch
-        if(truth_input.ndim == 3):
-            truth_input = truth_input[np.newaxis,:,:,:]
-            label_input = label_input[np.newaxis,:,:]
+        if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 4:
+            truth_input = truth_input.squeeze()
+            label_input = label_input.squeeze()
+            if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
+                truth_input = truth_input[np.newaxis,:,:,:]
+                label_input = label_input[np.newaxis,:,:]
+            label_input = label_input[:,np.newaxis,:,:]
 
+        
         pred = unet(truth_input)
 
         pred = pred.squeeze()
-        
-        if(pred.ndim == 2):
-            pred = pred[np.newaxis,:,:]
+        label_input = label_input.squeeze()
+        if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
+            pred = pred[:,np.newaxis,:,:]
+            label_input = label_input[:,np.newaxis,:,:]
 
         loss = criterion(pred, label_input)
         running_loss =+ loss.item()
-
         cur_step += 1
         
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
         
-        # edgecase handle for only 1 remaining batch
         if(pred_output.ndim == 2):
             pred_output = pred_output[np.newaxis,:,:]
             truth_output = truth_output[np.newaxis,:,:]
@@ -136,7 +124,6 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + step + "validation_loss.csv", 'a') as f: 
             np.savetxt(f, [running_loss], delimiter=',')
         with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + step + "validation_dice.csv", 'a') as f: 
-#             np.savetxt(f, [np.nanmean(DS)], delimiter=',')
             np.savetxt(f, [DS], delimiter=',')
                 
     print("Validation complete")
@@ -144,16 +131,14 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
 
 def train(Train_data,Val_data,load=False):
     
-#     sigmoid_act = nn.Sigmoid()
-#     relu_act = nn.ReLU()
-#     Lrelu_act = nn.LeakyReLU()
-    
     if Param.Parameters.Network["Hyperparameters"]["Use_weights"] == True:
         unet = net.UNet.load_weights(Param.Parameters.Network["Hyperparameters"]["Input_dim"], 
                                      Param.Parameters.Network["Hyperparameters"]["Label_dim"], 
                                      Param.Parameters.Network["Hyperparameters"]["Hidden_dim"], 
-                                     Param.Parameters.Network["Train_paths"]["Checkpoint_load"], 
-                                     Param.Parameters.Network["Hyperparameters"]["Allow_update"]).to(Param.Parameters.Network["Global"]["device"])
+                                     Param.Parameters.Network["Hyperparameters"]["Regress"],
+                                     Param.Parameters.Network["Hyperparameters"]["Allow_update"],
+                                     Param.Parameters.Network["Train_paths"]["Checkpoint_load"]
+                                     ).to(Param.Parameters.Network["Global"]["device"])
     else:
         unet = net.UNet(Param.Parameters.Network["Hyperparameters"]["Input_dim"], 
                                      Param.Parameters.Network["Hyperparameters"]["Label_dim"], 
@@ -198,26 +183,28 @@ def train(Train_data,Val_data,load=False):
 
             truth_input = truth_input.to(Param.Parameters.Network["Global"]["device"])
             truth_input = truth_input.float() 
-            truth_input = truth_input.squeeze()
+
             label_input = label_input.to(Param.Parameters.Network["Global"]["device"])
             label_input = label_input.float()
-            label_input = label_input.squeeze()
-            
-            if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
-                truth_input = truth_input[np.newaxis,:,:,:]
-                label_input = label_input[np.newaxis,:,:]
+
+            if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 4:
+                truth_input = truth_input.squeeze()
+                label_input = label_input.squeeze()
+                label_input = label_input[:,np.newaxis,:,:]
 
             unet_opt.zero_grad()
-            pred = unet(truth_input)
             
-#             pred = sigmoid_act(pred)
-#             pred = relu_act(pred)
-#             pred = Lrelu_act(pred)
+            pred = unet(truth_input)
+            pred = pred.squeeze()
+            label_input = label_input.squeeze()
+            if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
 
-#             if cur_batch_size != Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
-#                 pred = pred[np.newaxis,:,:]
-
-            label_input = label_input[:,np.newaxis,:,:]
+                if cur_batch_size == 1:
+                    pred = pred[np.newaxis,np.newaxis,:,:]
+                    label_input = label_input[np.newaxis,np.newaxis,:,:]
+                else:
+                    pred = pred[:,np.newaxis,:,:]
+                    label_input = label_input[:,np.newaxis,:,:]
             unet_loss = criterion(pred, label_input)
 
             unet_loss.backward()
@@ -227,7 +214,6 @@ def train(Train_data,Val_data,load=False):
             cur_step += 1
             
             pred_output = pred.cpu().detach().numpy()
-
             truth_output = label_input.cpu().detach().numpy()
             
             if Param.Parameters.Network["Global"]["Debug"] == True:
@@ -267,67 +253,6 @@ def train(Train_data,Val_data,load=False):
 
     print('Finished Training Dataset')
 
-# #####################################################################################################
-# # dataset length splitting - currently needs testing - the code above is the prior functioning code #
-# #####################################################################################################
-# print("starting model")
-
-# # apply_transform adds data augmentation to the model - in this case we apply horizontal flip, vertical flip, rotation up to 30 degrees and between 10% and 20% zoom to the center of the image; with 50%, 50%, 25% and 25% chances of occuring.
-# dataset = BraTs_Dataset(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"],
-#                         path_ext = Param.Parameters.Network["Train_paths"]["Extensions"],
-#                         size= Param.Parameters.Network["Hyperparameters"]["Image_scale"], 
-#                         apply_transform=Param.Parameters.Network["Hyperparameters"]["Apply_Augmentation"])
-# print("initialised dataset")
-
-# index_f = np.load(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + Param.Parameters.Network["Old_Hyperparameters"]["Index_File"])
-# print("loaded index file")
-# patients_number = len(index_f)
-
-# print("length start")
-# train_length = index_f[int(np.floor(patients_number*Param.Parameters.Network["Hyperparameters"]["Train_split"]))-1]
-# validation_length = index_f[int(np.ceil(patients_number*Param.Parameters.Network["Hyperparameters"]["Validation_split"]))-1]
-# test_length = index_f[int(np.ceil(patients_number*Param.Parameters.Network["Hyperparameters"]["Test_split"]))-1]
-# all_data_length = index_f[-1]
-# custom_split = index_f[int(np.ceil(patients_number*Param.Parameters.Network["Hyperparameters"]["Custom_split"]))-1]
-
-# print("range start")
-# train_range = list(range(0,train_length))
-# val_range = list(range(train_length,train_length+validation_length))
-# test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
-# all_data_range = list(range(0,all_data_length))
-# custom_split_range = list(range(0,custom_split))
-
-# print(train_length)
-# print(validation_length)
-# print(all_data_length)
-
-# print("Custom_split length", len(custom_split_range))
-
-# train_data_m = torch.utils.data.RandomSampler(train_range,False)
-# validation_data_m = torch.utils.data.RandomSampler(val_range,False)
-# test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
-# all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
-# custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
-
-# print("produced dataset split amounts")
-# #################################################################################################
-
-# # https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
-# print("Full_dataset: ", len(all_data_m))
-# print("Training: ", len(train_data_m))
-# print("validation: ", len(validation_data_m))
-
-# Train_data=DataLoader(
-#     dataset=dataset,
-#     batch_size=Param.Parameters.Network["Hyperparameters"]["Batch_size"],
-#     sampler=train_data_m)
-
-# Val_data=DataLoader(
-#     dataset=dataset,
-#     batch_size=Param.Parameters.Network["Hyperparameters"]["Batch_size"],
-#     sampler=validation_data_m)
- ##########################################################################################
-
 print("Loading Dataset")
 folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
 
@@ -347,22 +272,21 @@ print("Empty masks: ",len(folder[np.where(folder[:,-1].astype(float) == 0)]))
 
 # training_split = folder[np.where(folder[:,3].astype(int) < 1),2]
 # training_split = folder[np.where(folder[:,3].astype(int) < 2),2]
-training_split = folder[np.where(folder[:,3].astype(int) < 3),2]
+# training_split = folder[np.where(folder[:,3].astype(int) < 3),2]
 # training_split = folder[np.where(folder[:,3].astype(int) < 4),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 5),2]
+training_split = folder[np.where(folder[:,3].astype(int) < 5),2]
+# training_split = folder[np.where(folder[:,3].astype(int) < 9),2]
 training_split = np.squeeze(training_split).astype(int)
 
-validation_split = folder[np.where(folder[:,3].astype(int) == 9),2]
+validation_split = folder[np.where(folder[:,3].astype(int) == 8),2]
 validation_split = np.squeeze(validation_split).astype(int)
 
-test_split = folder[np.where(folder[:,3].astype(int) == 2),2]
+test_split = folder[np.where(folder[:,3].astype(int) == 9),2]
 test_split = np.squeeze(test_split).astype(int)
 
 train_data = torch.utils.data.RandomSampler(training_split,False)
 validation_data = torch.utils.data.RandomSampler(validation_split,False)
 del folder
-
-
 
 Train_data=DataLoader(
     dataset=dataset,

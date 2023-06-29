@@ -15,14 +15,7 @@ import torchvision
 
 print(Param.Parameters)
 
-# random.seed(0)
-# torch.manual_seed(0)
-# np.random.seed(0)
-# torch.cuda.manual_seed(0)
-
-# torch.backends.cudnn.deterministic=True
-
-seed = 11
+seed = Param.Parameters.Network["Global"]["Seed"]
 
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
@@ -31,7 +24,7 @@ np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 torch.manual_seed(seed)
 torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
 torch.backends.cudnn.enabled = False
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -49,12 +42,18 @@ class Load_Dataset(Dataset):
 
     def __getitem__(self,idx):
         
-        image_path = os.path.join(self.path,'imagesTr/', 
-                                  self.image_folders[idx] + ".nii.gz")
+        image_path = os.path.join(self.path,'imagesTr/', self.image_folders[idx] + ".nii.gz")
         img = nib.load(image_path).get_fdata()
-        mask_path = os.path.join(self.path,'labelsTr/', 
-                                 self.masks_folders[idx] + ".nii.gz")
-        mask = nib.load(mask_path).get_fdata()         
+        
+        if Param.Parameters.Network["Hyperparameters"]["Regress"] == True:
+            mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
+            numpy_mask = np.load(mask_path)
+            mask = numpy_mask["RANO"][np.newaxis,:]  
+        
+        if Param.Parameters.Network["Hyperparameters"]["Regress"] == False:
+            mask_path = os.path.join(self.path,'labelsTr/', self.masks_folders[idx] + ".nii.gz")
+            mask = nib.load(mask_path).get_fdata()      
+        
         img = torch.from_numpy(img).unsqueeze(0)
         mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0)   
         
@@ -78,14 +77,7 @@ class Load_Dataset(Dataset):
             print(np.shape(img))
             print(np.shape(mask))
             print("INDEX", idx)
-            
-#             if self.val == 50:
-#                 input("")
-#                 self.val = 0
 
-#             self.val += 1
-        
-        
 #         if self.transform == True:
 #             img, mask = self.Transform(img,mask)
             

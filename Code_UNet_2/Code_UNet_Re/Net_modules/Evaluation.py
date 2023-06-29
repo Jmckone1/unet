@@ -6,14 +6,7 @@ import numpy as np
 import torch
 import random
 
-# random.seed(0)
-# np.random.seed(0)
-# torch.manual_seed(0)
-# torch.cuda.manual_seed(0)
-
-# torch.backends.cudnn.deterministic=True
-
-seed = 11
+seed = Param.Parameters.Network["Global"]["Seed"]
 
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
@@ -22,8 +15,9 @@ np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 torch.manual_seed(seed)
 torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.enabled = False
+
+torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
 
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):

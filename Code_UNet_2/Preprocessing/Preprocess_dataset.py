@@ -515,10 +515,10 @@ class Pre_process():
 
 if __name__ == "__main__":
 
-    preproc_CT = True
+    preproc_CT = False
     preproc_Brats = False
-    preproc_small = False
-    Pix_count_update = True
+    preproc_small = True
+    Pix_count_update = False
     Pix_binarize = False
     
     if preproc_CT == True:
@@ -565,33 +565,33 @@ if __name__ == "__main__":
     
     if preproc_small == True:
         Old_paths = ["/Brats_2018_data/Brats_2018_data/HGG/", "/Brats_2018_data/Brats_2018_data/LGG/"]
-        New_path = "/Brats_2018_4/"
-    #     Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
-    #     New_path = "/brats_Dataset/"
+        New_path = "/Brats_2018_4_2/"
+#     #     Old_paths = ["/Data_1/HGG/", "/Data_1/LGG/"]
+#     #     New_path = "/brats_Dataset/"
 
-        data_out = [[],[],[],[],[]]
-        image_csv_data = []
-        masks_csv_data = []
-        folds = []
-        new_dir = []
-        old_dir = []
+#         data_out = [[],[],[],[],[]]
+#         image_csv_data = []
+#         masks_csv_data = []
+#         folds = []
+#         new_dir = []
+#         old_dir = []
 
-        for input_path in Old_paths:
-            data_out = Pre_process.reformat_dataset_brats(input_path,
-                                                                  New_path, 
-                                                                  folds_value = 10, 
-                                                                  saveFile = True, 
-                                                                  saveCSV = False, 
-                                                                  saveBilinear = False,
-                                                                  resize_axis = 1, 
-                                                                  debug = False)
-            image_csv_data.extend(data_out[0])
-            masks_csv_data.extend(data_out[1])
-            folds.extend(data_out[2])
-            new_dir.extend(data_out[3])
-            old_dir.extend(data_out[4])
-        Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset.csv" , old_dir)
-        Pre_process.calc_Bi_Linear(New_path)
+#         for input_path in Old_paths:
+#             data_out = Pre_process.reformat_dataset_brats(input_path,
+#                                                                   New_path, 
+#                                                                   folds_value = 15, 
+#                                                                   saveFile = False, 
+#                                                                   saveCSV = False, 
+#                                                                   saveBilinear = False,
+#                                                                   resize_axis = 1, 
+#                                                                   debug = False)
+#             image_csv_data.extend(data_out[0])
+#             masks_csv_data.extend(data_out[1])
+#             folds.extend(data_out[2])
+#             new_dir.extend(data_out[3])
+#             old_dir.extend(data_out[4])
+#         Pre_process.create_csv(image_csv_data, masks_csv_data, folds, os.getcwd() + New_path + "Training_dataset_15.csv" , old_dir)
+        Pre_process.mask_pix_count("/Brats_2018_4/", os.getcwd() + "/Brats_2018_4_2/" + "Training_dataset_15.csv")
         
     if Pix_count_update == True:
         input_directory = ["/CT_Dataset/Task06_Lung/"]
