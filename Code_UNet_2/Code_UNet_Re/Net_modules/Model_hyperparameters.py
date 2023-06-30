@@ -36,11 +36,11 @@ class Parameters():
             "Evaluate" : False,
             "Regress" : False,
             "Allow_update" : True,
-            "Use_weights" : True,
+            "Use_weights" : False,
             "Apply_Augmentation" : False
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/CT_pretrained_50_c_100_Prano_5_epochs/",
+            "Checkpoint_save" : "Checkpoints/CT_randomInit_50_c_100_Prano_5_epochs/",
             "Checkpoint_load" : "Checkpoints_RANO/Checkpoints/CT_50_c_100_Prano_50_epochs/checkpoint_33.pth",
             "Data_path" : "/Datasets/CT_Dataset/Task06_Lung", # "/Brats_2018_data/Brats_2018_data",#  "/CT_Dataset/Task06_Lung", #"/Brats_2018_4/", #"/Brats_2018/", #"/Brats_2018_small/"
             "Extensions" : [""] # ["/HGG", "/LGG"]
