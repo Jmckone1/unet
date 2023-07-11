@@ -80,7 +80,7 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
     cur_step = 0
     
     for truth_input, label_input in tqdm(Val_data):
-        DS = []
+        DS, HD, Sp, Se = [],[],[],[]
         cur_batch_size = len(truth_input)
 
         # flatten ground truth and label masks
@@ -98,7 +98,6 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
                 label_input = label_input[np.newaxis,:,:]
             label_input = label_input[:,np.newaxis,:,:]
 
-        
         pred = unet(truth_input)
 
         pred = pred.squeeze()
@@ -120,11 +119,17 @@ def Validate(unet, criterion, Val_data, epoch, step = ""):
         
         for Batch in range(cur_batch_size):
             DS.append(Dice_Eval.dice_score((pred_output[Batch,:,:] > 0.5).astype(int),truth_output[Batch,:,:]))
+            HD.append(100)
+            Sp.append(1000)
+            Se.append(10000)
         
         with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + step + "validation_loss.csv", 'a') as f: 
             np.savetxt(f, [running_loss], delimiter=',')
         with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + step + "validation_dice.csv", 'a') as f: 
             np.savetxt(f, [DS], delimiter=',')
+            
+        with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + step + "validation_metrics.csv", 'a') as f: 
+            np.savetxt(f, [DS,HD,Sp,Se], delimiter=',')
                 
     print("Validation complete")
     print(" ")
@@ -177,7 +182,7 @@ def train(Train_data,Val_data,load=False):
 
         for truth_input, label_input in tqdm(Train_data, desc= running_loss):
             
-            DS = []
+            DS, HD, Sp, Se = [],[],[],[]
             
             cur_batch_size = len(truth_input)
 
@@ -190,13 +195,19 @@ def train(Train_data,Val_data,load=False):
             if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 4:
                 truth_input = truth_input.squeeze()
                 label_input = label_input.squeeze()
-                label_input = label_input[:,np.newaxis,:,:]
+#                 print(np.shape(label_input))
+                if cur_batch_size == 1:
+                    label_input = label_input[np.newaxis,np.newaxis,:,:]
+                    truth_input = truth_input[np.newaxis,:,:,:]
+                else:
+                    label_input = label_input[:,np.newaxis,:,:]
 
-            unet_opt.zero_grad()
+                unet_opt.zero_grad()
             
-            pred = unet(truth_input)
-            pred = pred.squeeze()
-            label_input = label_input.squeeze()
+                pred = unet(truth_input)
+                pred = pred.squeeze()
+                label_input = label_input.squeeze()
+                
             if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
 
                 if cur_batch_size == 1:
@@ -205,6 +216,9 @@ def train(Train_data,Val_data,load=False):
                 else:
                     pred = pred[:,np.newaxis,:,:]
                     label_input = label_input[:,np.newaxis,:,:]
+                    
+                unet_opt.zero_grad()
+                
             unet_loss = criterion(pred, label_input)
 
             unet_loss.backward()
@@ -236,12 +250,20 @@ def train(Train_data,Val_data,load=False):
                     print("Dice score:" , dice_val)
                 
                 DS.append(dice_val)
+                HD.append(100)
+                Sp.append(1000)
+                Se.append(10000)
+                
             with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + "training_loss.csv", 'a') as f: 
                 np.savetxt(f, [running_loss], delimiter=',')
             with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + "training_dice.csv", 'a') as f: 
                 # is there a reason that i am saving the mean instead of the raw values here and not for the loss? 
 #                 np.savetxt(f, [np.nanmean(DS)], delimiter=',')
                 np.savetxt(f, [DS], delimiter=',')
+            with open("Checkpoints/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "epoch_" + str(epoch) + "training_metrics.csv", 'a') as f: 
+                # is there a reason that i am saving the mean instead of the raw values here and not for the loss? 
+#                 np.savetxt(f, [np.nanmean(DS)], delimiter=',')
+                np.savetxt(f, [DS,HD,Sp,Se], delimiter=',')
             DS = []
             
         print("saving epoch: ", epoch)
@@ -254,7 +276,7 @@ def train(Train_data,Val_data,load=False):
     print('Finished Training Dataset')
 
 print("Loading Dataset")
-folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
+folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset_15.csv", delimiter=",",dtype=str)
 
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]
@@ -271,21 +293,48 @@ print("Non empty masks: ",len(folder[np.where(folder[:,-1].astype(float) > 0)]))
 print("Empty masks: ",len(folder[np.where(folder[:,-1].astype(float) == 0)]))
 
 # training_split = folder[np.where(folder[:,3].astype(int) < 1),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 2),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 3),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 4),2]
-training_split = folder[np.where(folder[:,3].astype(int) < 5),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 9),2]
-training_split = np.squeeze(training_split).astype(int)
+# # training_split = folder[np.where(folder[:,3].astype(int) < 2),2]
+# # training_split = folder[np.where(folder[:,3].astype(int) < 3),2]
+# # training_split = folder[np.where(folder[:,3].astype(int) < 4),2]
+# # training_split = folder[np.where(folder[:,3].astype(int) < 5),2]
+# # training_split = folder[np.where(folder[:,3].astype(int) < 9),2]
+# training_split = np.squeeze(training_split).astype(int)
 
-validation_split = folder[np.where(folder[:,3].astype(int) == 8),2]
-validation_split = np.squeeze(validation_split).astype(int)
+# validation_split = folder[np.where(folder[:,3].astype(int) == 8),2]
+# validation_split = np.squeeze(validation_split).astype(int)
 
-test_split = folder[np.where(folder[:,3].astype(int) == 9),2]
-test_split = np.squeeze(test_split).astype(int)
+# test_split = folder[np.where(folder[:,3].astype(int) == 9),2]
+# test_split = np.squeeze(test_split).astype(int)
 
-train_data = torch.utils.data.RandomSampler(training_split,False)
-validation_data = torch.utils.data.RandomSampler(validation_split,False)
+# train_data = torch.utils.data.RandomSampler(training_split,False)
+# validation_data = torch.utils.data.RandomSampler(validation_split,False)
+
+data_splits = [np.array([]), np.array([]), np.array([])]
+data_split_values = [Param.Parameters.Network["Hyperparameters"]["Train_split"],
+                     Param.Parameters.Network["Hyperparameters"]["Validation_split"],
+                     Param.Parameters.Network["Hyperparameters"]["Test_split"]]
+
+for splits in range(len(data_splits)):
+    for val in data_split_values[splits]:
+        if np.size(data_splits[splits]) == 0:
+            data_splits[splits] = folder[np.where(folder[:,3].astype(int) == val),2]
+        else:
+            if np.size(folder[np.where(folder[:,3].astype(int) == val),2]) != 0:
+                data_splits[splits] = np.concatenate((data_splits[splits],
+                                                      folder[np.where(folder[:,3].astype(int) == val),2]), 
+                                                      axis=1)
+
+data_splits[0] = np.squeeze(data_splits[0])
+data_splits[1] = np.squeeze(data_splits[1])
+data_splits[2] = np.squeeze(data_splits[2])
+
+train_data = torch.utils.data.RandomSampler(data_splits[0],False)
+validation_data = torch.utils.data.RandomSampler(data_splits[1],False)
+
+# print(np.shape(data_splits[0]),np.shape(data_splits[1]),np.shape(data_splits[2]))
+
+# input("PAUSED")
+
 del folder
 
 Train_data=DataLoader(

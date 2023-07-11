@@ -8,7 +8,7 @@ class Parameters():
         "Global" : {
             "Seed" : 11,
             "device" :"cuda",
-            "GPU" : 3,
+            "GPU" : 2,
             "Param_location" : "Code_UNet_2/Code_UNet_Re/Net_modules/Model_hyperparameters.py",
             "Debug" : False,
             "Net" : "UNet",
@@ -16,7 +16,7 @@ class Parameters():
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 5,
+            "Epochs" : 10,
             "Batch_size" : 8,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
@@ -40,7 +40,7 @@ class Parameters():
             "Apply_Augmentation" : False
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/CT_randomInit_50_c_100_Prano_5_epochs/",
+            "Checkpoint_save" : "Checkpoints/CT_pretrain_100_c_100_Prano_10_epochs/",
             "Checkpoint_load" : "Checkpoints_RANO/Checkpoints/CT_50_c_100_Prano_50_epochs/checkpoint_33.pth",
             "Data_path" : "/Datasets/CT_Dataset/Task06_Lung", # "/Brats_2018_data/Brats_2018_data",#  "/CT_Dataset/Task06_Lung", #"/Brats_2018_4/", #"/Brats_2018/", #"/Brats_2018_small/"
             "Extensions" : [""] # ["/HGG", "/LGG"]
@@ -48,11 +48,11 @@ class Parameters():
         "Test_paths" : {
             "Intermediate_checkpoints" : False,
             "End_epoch_checkpoints" : True,
-            "Data_path" : "/Brats_2018_4/",
-            "Extensions" : ["/HGG","/LGG"],
+            "Data_path" :  "/Datasets/CT_Dataset/Task06_Lung",#"/Brats_2018_4/",
+            "Extensions" : [""], #["/HGG","/LGG"],
             "Epochs" : 5,
-            "Load_path" : "Checkpoints/Checkpoints/Brats_10_c_100_pretrained_5_epochs/",
-            "Save_path" : "Test_outputs/Prano_pretrained_10_C100_Output_test_5/"
+            "Load_path" : "Checkpoints/Checkpoints/CT_randomInit_10_c_100_Prano_10_epochs/",
+            "Save_path" : "Test_outputs/CT_RI_D10_C100_E10/" # ct data, random init, 10% data, cosine 100, 10 epochs
             },
         "Old_Hyperparameters" : {
             "Index_File" : "/inedx_max_2.npy"
