@@ -70,8 +70,8 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
 #     volume_shape_list = np.loadtxt(os.getcwd() + "/Datasets/volume_counter_ct_0.csv", delimiter=",",dtype=str)
 #     volume_shape_list = [int(i) for i in volume_shape_list]
 
-    print(volume_shape_list)
-    input("")
+#     print(volume_shape_list)
+#     input("")
     
     Dice_output = Define_dictionary()
     Dice_output_sigmoid = Define_dictionary()
@@ -139,7 +139,7 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
 #                 print(dataloader_path[i])
                 if img_num == 0:
 #                     input("")
-                    print(dataloader_path[i])
+#                     print(dataloader_path[i])
 #                     input("")
 # #                 print(dataloader_path[i])
 #                 print(dataloader_path[i][27:])
@@ -157,7 +157,7 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
                 img_num += 1
                 data_val += 1 
                 
-                print(img_num, "/", volume_shape_list[current_volume])
+#                 print(img_num, "/", volume_shape_list[current_volume])
                 
                 if img_num == volume_shape_list[current_volume]:
                 
@@ -171,8 +171,8 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
 #                         mask_all[:,:,i] = mask
 
                     # calculate dice and define file path for saving
-                    print("Full: ", dataloader_path[i])
-                    print("Concat: ", dataloader_path[i][46:])
+#                     print("Full: ", dataloader_path[i])
+#                     print("Concat: ", dataloader_path[i][46:])
 #                     print(dataloader_path[i][1:4])
 #                     print(dataloader_path[i][1:4])
                     volume_dice_output = calculate_dice(volume_predi,volume_truth)
@@ -189,7 +189,7 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
 #                         input("Waiting for input")
                         if not os.path.exists(os.path.join(save_path)):
                             os.makedirs(os.path.join(save_path))
-                        print("Path to save to", save_path + dataloader_path[i][46:])
+#                         print("Path to save to", save_path + dataloader_path[i][46:])
 #                         input("checking")
                         
                         nib.save(pred_img_save, os.path.join(save_path + dataloader_path[i][46:])) 
