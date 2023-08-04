@@ -109,9 +109,11 @@ class UNet(nn.Module):
         image_size = Param.Parameters.Network["Hyperparameters"]["Image_size"]
 
         if Param.Parameters.Network["Hyperparameters"]["Image_size"] == [240,240]:
-            self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
+            self.Linear_RANO = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
+            self.Linear_BBox = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,4))
         elif Param.Parameters.Network["Hyperparameters"]["Image_size"] == [256,256]:
-            self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 8))
+            self.Linear_RANO = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 8))
+            self.Linear_BBox = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 4))
         else:
             print("Not sure how you got here without the architecture defined but hey, regression wont work without this")
             import sys
@@ -129,9 +131,12 @@ class UNet(nn.Module):
         
         if self.regress == True:
 #             print("Regress")
-            
-            x7 = torch.flatten(x6, start_dim=1)
-            x8 = self.Linear(x7)
+            if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                x7 = torch.flatten(x6, start_dim=1)
+                x8 = self.Linear_RANO(x7)
+            elif Param.Parameters.Network["Hyperparameters"]["BBox"] == True:
+                x7 = torch.flatten(x6, start_dim=1)
+                x8 = self.Linear_BBox(x7)
             return x8
             
         if self.regress == False:

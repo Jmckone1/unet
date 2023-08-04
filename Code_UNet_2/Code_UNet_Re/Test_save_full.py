@@ -19,6 +19,12 @@ import os
 
 import sys
 import random
+import seg_metrics.seg_metrics as sg
+import time
+                
+from itertools import chain
+from collections import defaultdict
+                    
 
 print("Loading seed . . .")
 
@@ -39,6 +45,13 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"]=":16:8"
 
 torch.cuda.empty_cache()
 os.chdir(os.getcwd())
+
+headers = ["Global","Hyperparameters","Train_paths"]
+print("Torch version: ",torch.__version__)
+print("")
+for h in headers:
+    for key, value in Param.Parameters.Network[h].items():
+        print(f'{key: <30}{str(value): <35}')
 
 criterion = nn.BCEWithLogitsLoss()
 
@@ -65,13 +78,15 @@ def calculate_dice(pred_seg, gt_lbl):
 # Test save main function for testing the volumes for output and then saving all the values based on the param file.
 
 def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, load_path, volume_shape_list, save=False, save_image = False, save_val =""):
-    
-    current_volume = 0
-#     volume_shape_list = np.loadtxt(os.getcwd() + "/Datasets/volume_counter_ct_0.csv", delimiter=",",dtype=str)
-#     volume_shape_list = [int(i) for i in volume_shape_list]
 
-#     print(volume_shape_list)
-#     input("")
+    current_volume = 0
+    
+    original = Param.Parameters.Network["Global"]["Param_location"]
+    target = "Test_outputs/" + Param.Parameters.Network["Test_paths"]["Save_path"] + "Model_hyperparameters.py"
+    if not os.path.exists("Test_outputs/" + Param.Parameters.Network["Test_paths"]["Save_path"]):
+        os.makedirs("Test_outputs/" + Param.Parameters.Network["Test_paths"]["Save_path"])
+        
+    shutil.copyfile(original, target)
     
     Dice_output = Define_dictionary()
     Dice_output_sigmoid = Define_dictionary()
@@ -82,8 +97,6 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
     volume_truth = np.empty((Param.Parameters.Network["Hyperparameters"]["Image_size"][0],
                              Param.Parameters.Network["Hyperparameters"]["Image_size"][1],
                              volume_shape_list[current_volume]))
-#     volume_predi = np.empty((240,240,155))
-#     volume_truth = np.empty((240,240,155))
     
     # number for file output naming (data_val) and file size output (img_num)
     data_val = 0 
@@ -93,16 +106,11 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
     if not os.path.exists(save_path) and save == True:
         os.makedirs(save_path)
         
-    if not os.path.exists(save_path + "/nb") and save == True:
-        os.makedirs(save_path + "/nb")
-        
     # start test 
     unet.eval()
     for truth_input, label_input, dataloader_path in tqdm(Test_data):
         
         cur_batch_size = len(truth_input)
-
-        # flatten ground truth and label masks
         truth_input = truth_input.to(Param.Parameters.Network["Global"]["device"])
         truth_input = truth_input.float() 
         
@@ -117,13 +125,14 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
             label_input = label_input.squeeze()
             if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
                 truth_input = truth_input[np.newaxis,:,:,:]
+                
                 label_input = label_input[np.newaxis,:,:]
+#             print(np.shape(label_input))
+#             input("")
+#             print(np.shape(label_input))
             label_input = label_input[:,np.newaxis,:,:]
         
-        # set accumilated gradients to 0 for param update
         unet_opt.zero_grad()
-        
-        # produce predictions
         pred = unet(truth_input)
         pred = pred.squeeze()
 
@@ -134,17 +143,7 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
         truth_output = label_input.cpu().detach().numpy()
 
         if save == True:
-            # for each batch tested
             for i in range(cur_batch_size):
-#                 print(dataloader_path[i])
-                if img_num == 0:
-#                     input("")
-#                     print(dataloader_path[i])
-#                     input("")
-# #                 print(dataloader_path[i])
-#                 print(dataloader_path[i][27:])
-#                 input("")
-                #print(np.shape(pred_output))#
                 prediction_sigmoid = (pred_output[i,:,:] > 0.5).astype(int)
                 
                 # convert from batch format to volume format
@@ -154,56 +153,74 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
                 mask = nib.load(mask_path).get_fdata()
                 volume_truth[:,:,img_num] = mask
                 
+                
                 img_num += 1
                 data_val += 1 
-                
 #                 print(img_num, "/", volume_shape_list[current_volume])
-                
+#                 if img_num == volume_shape_list[current_volume] -1:
+#                     input("1 before")
+                    
+#                 print(img_num, "/", volume_shape_list[current_volume])
+                # but a wait in here and maybe below the next line too.
                 if img_num == volume_shape_list[current_volume]:
+                    
+#                     input("end")
+#                     print("pred shape", np.shape(volume_predi))
+#                     print("Truth shape", np.shape(volume_truth))
+                    
+#                     print("Vol sum pred", np.sum(np.sum(volume_predi)))
+#                     print("Vol sum truth", np.sum(np.sum(volume_truth)))
+# #                     input("")
+                    # volume_dice_output = calculate_dice((volume_predi > 0.5).astype(int),volume_truth)
+    
+                    volume_dice_output = Dice_Eval.dice_score((volume_predi > 0.5).astype(int),volume_truth)
+        
+#                     print(np.min(volume_predi),np.max(volume_predi))
+#                     input("checking truth min max")
+                    
+#                     print(np.min(volume_truth),np.max(volume_truth))
+#                     input("checking truth min max")
+
+#                     csv_file = 'metrics_' + str(current_volume) + '.csv'
+                    
+                    if not os.path.exists(save_path + "/Metrics/") and save == True:
+                        os.makedirs(save_path + "/Metrics/")
+                   
+                    metrics = sg.write_metrics(labels=[1],
+                                               gdth_img=volume_truth,
+                                               pred_img=(volume_predi > 0.5).astype(int),
+                                               csv_file = save_path + "/Metrics/" + dataloader_path[i][46:-7] +
+                                                                       "_Metrics.csv", TPTNFPFN=True)
+#                     print(metrics)
+                    
+# #                     print(os.path.join(save_path + dataloader_path[i][46:]))
+# #                     print(os.path.join(save_path + dataloader_path[i][46:-7], str(current_volume) + ".csv"))
+                    
+# #                     input("")
+                    
+#                     print("Dice_outputs", volume_dice_output)
                 
-#                     for i in range(155):
-                        
-#                         print(os.path.split(dataloader_path[i])[1])
-#                         input("")
-#                         mask_path = os.getcwd() + "/Brats_2018_4/labelsTr/"+dataloader_path[28: + str(i) + ".nii.gz"
-
-#                         mask = nib.load(mask_path).get_fdata()
-#                         mask_all[:,:,i] = mask
-
-                    # calculate dice and define file path for saving
-#                     print("Full: ", dataloader_path[i])
-#                     print("Concat: ", dataloader_path[i][46:])
-#                     print(dataloader_path[i][1:4])
-#                     print(dataloader_path[i][1:4])
-                    volume_dice_output = calculate_dice(volume_predi,volume_truth)
-
                     # Add the volume path and the volume dice score to the dictionary
                     Dice_output.add(dataloader_path[i], volume_dice_output)
                     
                     # save image prediction
                     if save == True:
-#                         print("saving: ", save_path + dataloader_path[i][27:])
                         pred_img_save = nib.Nifti1Image(volume_predi, np.eye(4))
-#                         print(save_path)
-#                         print(os.path.join(save_path + dataloader_path[i][27:]))
-#                         input("Waiting for input")
                         if not os.path.exists(os.path.join(save_path)):
                             os.makedirs(os.path.join(save_path))
-#                         print("Path to save to", save_path + dataloader_path[i][46:])
-#                         input("checking")
                         
                         nib.save(pred_img_save, os.path.join(save_path + dataloader_path[i][46:])) 
                                          
             
                     current_volume += 1
-#                     volume_predi = np.empty((240,240,155))
-#                     volume_truth = np.empty((240,240,155))
-                    volume_predi = np.empty((Param.Parameters.Network["Hyperparameters"]["Image_size"][0],
-                             Param.Parameters.Network["Hyperparameters"]["Image_size"][1],
-                             volume_shape_list[current_volume]))
-                    volume_truth = np.empty((Param.Parameters.Network["Hyperparameters"]["Image_size"][0],
-                             Param.Parameters.Network["Hyperparameters"]["Image_size"][1],
-                             volume_shape_list[current_volume]))
+#                     print(current_volume, "/", len(volume_shape_list))
+                    if current_volume < len(volume_shape_list):
+                        volume_predi = np.empty((Param.Parameters.Network["Hyperparameters"]["Image_size"][0],
+                                 Param.Parameters.Network["Hyperparameters"]["Image_size"][1],
+                                 volume_shape_list[current_volume]))
+                        volume_truth = np.empty((Param.Parameters.Network["Hyperparameters"]["Image_size"][0],
+                                 Param.Parameters.Network["Hyperparameters"]["Image_size"][1],
+                                 volume_shape_list[current_volume]))
                     
                     img_num = 0
             
@@ -216,17 +233,18 @@ def Test_save(Test_data, mask_names, unet, unet_opt, path, path_ext, save_path, 
 ################################################################################################################
 
 print("Loading Dataset")
-folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
+folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Test_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
 
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]
 
-dataset = Load_Dataset(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"],
+dataset = Load_Dataset(os.getcwd() + Param.Parameters.Network["Test_paths"]["Data_path"],
                        image_folder_in,
                        masks_folder_in,
                        Param.Parameters.Network["Hyperparameters"]["Apply_Augmentation"])
 
-volume_shape_list = np.loadtxt(os.getcwd() + "/Datasets/volume_counter_ct_0.csv", delimiter=",",dtype=str)
+volume_shape_list = np.loadtxt(os.getcwd() + "/Datasets/volume_counter_brats_0.csv", delimiter=",",dtype=str)
+# volume_shape_list = np.loadtxt(os.getcwd() + "/Datasets/volume_counter_ct_0.csv", delimiter=",",dtype=str)
 volume_shape_list = [int(i) for i in volume_shape_list]
 
 print(len(volume_shape_list))
@@ -234,7 +252,7 @@ print(len(volume_shape_list))
 ("")
 
 test_volume_list = volume_shape_list[-int(np.floor((len(volume_shape_list) / 10)*2)):]
-test_main_size = np.sum(test_volume_list) -1
+test_main_size = np.sum(test_volume_list)
 
 # print(test_volume_list)
 
@@ -248,23 +266,6 @@ testing_split = np.squeeze(testing).astype(int)
 print("Total number: ", Dataset_size)
 print("Non empty masks: ",len(folder[np.where(folder[:,-1].astype(float) > 0)]))
 print("Empty masks: ",len(folder[np.where(folder[:,-1].astype(float) == 0)]))
-
-# training_split = folder[np.where(folder[:,3].astype(int) < 1),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 2),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 3),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 4),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 5),2]
-training_split = folder[np.where(folder[:,3].astype(int) < 9),2]
-training_split = np.squeeze(training_split).astype(int)
-
-validation_split = folder[np.where(folder[:,3].astype(int) == 8),2]
-validation_split = np.squeeze(validation_split).astype(int)
-
-test_split = folder[np.where(folder[:,3].astype(int) == 9),2]
-test_split = np.squeeze(test_split).astype(int)
-
-train_data = torch.utils.data.RandomSampler(training_split,False)
-validation_data = torch.utils.data.RandomSampler(validation_split,False)
 
 mask_names = folder[-test_main_size:,1]
 
@@ -330,7 +331,7 @@ if Param.Parameters.Network["Test_paths"]["End_epoch_checkpoints"] == True:
         print("Starting prediction of qualitative outputs for end of Epoch ", i + 1)
 
         load_path = Param.Parameters.Network["Test_paths"]["Load_path"] + "/checkpoint_" + str(i) + ".pth"
-        save_path = Param.Parameters.Network["Test_paths"]["Save_path"] + "Epoch_" + str(i)
+        save_path = Param.Parameters.Network["Test_paths"]["Save_path"] + "/Epoch_" + str(i) + "/"
         
         if os.path.exists(save_path):
             print("Path already exists")

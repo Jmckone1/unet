@@ -1,5 +1,9 @@
+# import Code_UNet_2.Code_UNet_Re.Net_modules.Model_hyperparameters as Param
 import Net_modules.Model_hyperparameters as Param
 
+import cv2
+
+import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from torch import nn
 import numpy as np
@@ -68,11 +72,24 @@ class Jaccard_Evaluation():
     
     def __init__(self):
         return 0
+    
+    def BBox(input_array):
+        
+        input_array = input_array.detach().cpu().numpy()
+#         print(input_array)
+        mask = np.zeros(Param.Parameters.Network["Hyperparameters"]["Image_size"])
+        cv2.rectangle(mask, (int(input_array[0]), int(input_array[1])), (int(input_array[2]), int(input_array[3])), color=(1,),thickness=-1)
+        
+#         print(np.min(mask),np.max(mask))
+        
+        plt.imshow(mask)
+        plt.show()
+        return mask
 
     def Obb(input_array):
 
         input_array = input_array.detach().cpu().numpy()
-
+#         input_array = np.squeeze(input_array)
         input_data = np.array([(input_array[1], input_array[0]),
                                (input_array[5], input_array[4]), 
                                (input_array[3], input_array[2]), 

@@ -30,6 +30,8 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
 torch.backends.cudnn.enabled = False
 
+torch.set_num_threads(32)
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= str(Param.Parameters.Network["Global"]["GPU"])
 
@@ -96,30 +98,24 @@ def Validate(unet, criterion, Val_data):
         label_input = label_input.float()
         label_input = label_input.squeeze()
         
-        if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
-            # print(np.shape(truth_input), np.shape(label_input))
+        if cur_batch_size == 1:
+            print(np.shape(truth_input), np.shape(label_input))
             truth_input = truth_input[np.newaxis,:,:,:]
             label_input = label_input[np.newaxis,:]
-#                 print(np.shape(truth_input), np.shape(label_input))
 
         if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
-#                 print("Input dim start")
             truth_input = truth_input.squeeze()
             label_input = label_input.squeeze()
-            if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
+            if cur_batch_size == 1:
                 truth_input = truth_input[np.newaxis,:,:,:]
                 label_input = label_input[np.newaxis,:]
-#                 print("Label change")
+
             label_input = label_input[:,np.newaxis,:]
             truth_input = truth_input[:,np.newaxis,:,:]
 
-        label_input = label_input.squeeze()
-            
-        print(np.shape(truth_input))
-        print(np.shape(label_input))
-
         pred = unet(truth_input)
-        pred = pred.squeeze()
+
+        #label_input = np.squeeze(label_input)
 
         # forward
         loss, mse, cosine = criterion(pred, label_input)
@@ -195,6 +191,8 @@ def train(Train_data,Val_data,load=False):
     if not os.path.exists("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"]):
         os.makedirs("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"])
 
+    shutil.copyfile(original, target)
+
     unet_opt = torch.optim.Adam(unet.parameters(), 
                                 Param.Parameters.Network["Hyperparameters"]["Learning_rate"],
                                 betas=Param.Parameters.Network["Hyperparameters"]["Betas"], weight_decay=Param.Parameters.Network["Hyperparameters"]["Weight_decay"])
@@ -237,49 +235,36 @@ def train(Train_data,Val_data,load=False):
             label_input = label_input.float()
             label_input = label_input.squeeze()
             
-#             print(np.shape(truth_input), np.shape(label_input))
-            if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
-                # print(np.shape(truth_input), np.shape(label_input))
+            if cur_batch_size == 1:
                 truth_input = truth_input[np.newaxis,:,:,:]
                 label_input = label_input[np.newaxis,:]
-#                 print(np.shape(truth_input), np.shape(label_input))
 
             if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
-#                 print("Input dim start")
                 truth_input = truth_input.squeeze()
                 label_input = label_input.squeeze()
-                if cur_batch_size == 1: #!= Param.Parameters.Network["Hyperparameters"]["Batch_size"]:
+                if cur_batch_size == 1:
                     truth_input = truth_input[np.newaxis,:,:,:]
                     label_input = label_input[np.newaxis,:]
-#                 print("Label change")
                 label_input = label_input[:,np.newaxis,:]
                 truth_input = truth_input[:,np.newaxis,:,:]
-                
-            label_input = label_input.squeeze()
-            
-#             print(np.shape(truth_input),np.shape(label_input))
 
             # set accumilated gradients to 0 for param update
             unet_opt.zero_grad()
 
             pred = unet(truth_input)
-#             print("1", np.shape(pred))
-#             pred = pred.squeeze()
 
-            # forward
-            
-#             print(np.shape(pred),np.shape(label_input))
-#             input("")
-            
-#             print("2", np.shape(pred), np.shape(label_input))
+            label_input = np.squeeze(label_input)
             unet_loss, mse, cosine = criterion(pred, label_input)
             
             for input_val in range(cur_batch_size):
-                
-                corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
-                mask_truth = Jacc.mask((240,240),corners_truth)*1
-                corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
-                mask_pred = Jacc.mask((240,240),corners_pred)*1
+                if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                    corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+                    mask_truth = Jacc.mask((240,240),corners_truth)*1
+                    corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+                    mask_pred = Jacc.mask((240,240),corners_pred)*1
+                else:
+                    mask_truth = Jacc.BBox(label_input[input_val,:])
+                    mask_pred = Jacc.BBox(pred[input_val,:])
                 
                 if np.sum(np.sum(mask_pred)) > 2:
                     jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
@@ -294,27 +279,12 @@ def train(Train_data,Val_data,load=False):
             
             mse_run =+ mse.item()
             cosine_run =+ cosine.item() 
-            
-            # removed the * truth_input.size(0) from all examples of the .item() 
-            # which would multiply the values by the batch size, not really needed in this case, 
-            # i can do this outside if necessary
-            
-#             print(cosine.item())
-#             print(truth_input.size(0))
-#             print(len(Train_data))
-#             input("")
-            
+
             cur_step += 1
 
 #                     Run model end                      #
 #--------------------------------------------------------#         
 #                  Display stage start                   #
-
-#             loss_values.append(running_loss / len(Train_data))
-#             total_loss.append(loss_values)
-        
-#             mse_values.append(mse_run/len(Train_data))
-#             cosine_values.append(cosine_run/len(Train_data))
 
             loss_values.append(running_loss)
             mse_values.append(mse_run)
@@ -322,9 +292,6 @@ def train(Train_data,Val_data,load=False):
             total_loss.append(loss_values)
         
             if cur_step % Param.Parameters.Network["Hyperparameters"]["Batch_display_step"] == 0:
-
-#                 print("Epoch {epoch}: Step {cur_step}: U-Net loss: {unet_loss.item()}")
-#                 print(label_input[0,:].shape)
 
                 pred_output = pred.cpu().detach().numpy()
                 truth_output = label_input.cpu().detach().numpy()
@@ -362,37 +329,57 @@ def train(Train_data,Val_data,load=False):
             out = "Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "checkpoint_" + str(epoch) + ".pth"
             torch.save(checkpoint, out)
             
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(loss_values)
             
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss_mse/epoch_" + str(epoch) + "training_loss_mse.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(mse_values)
+        model_outputs = [
+            loss_values, mse_values, cosine_values,
+            valid_loss, valid_mse_values, valid_cosine_values,
+            jaccard, valid_jaccard
+        ]
+        model_output_names = [
+            "Training_loss","Training_loss_mse","Training_loss_cosine",
+            "Validation_loss","Validation_loss_mse","Validation_loss_cosine",
+            "Training_Jaccard","Validation_Jaccard"
+        ]
+                
+        for model_output_counter in range(len(model_outputs)):
+            with open("Checkpoints_RANO/" + 
+                      Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + 
+                      model_output_names[model_output_counter] + "/epoch_" + str(epoch) 
+                      + "training_loss.csv", 'w') as f: 
+                write = csv.writer(f) 
+                write.writerow(model_outputs[model_output_counter])
             
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss_cosine/epoch_" + str(epoch) + "training_loss_cosine.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(cosine_values)
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(loss_values)
+            
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss_mse/epoch_" + str(epoch) + "training_loss_mse.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(mse_values)
+            
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss_cosine/epoch_" + str(epoch) + "training_loss_cosine.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(cosine_values)
 
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(valid_loss)
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_loss/epoch_" + str(epoch) + "validation_loss.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(valid_loss)
             
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_loss_mse/epoch_" + str(epoch) + "validation_loss_mse.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(valid_mse_values)
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_loss_mse/epoch_" + str(epoch) + "validation_loss_mse.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(valid_mse_values)
             
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_loss_cosine/epoch_" + str(epoch) + "validation_loss_cosine.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(valid_cosine_values)
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_loss_cosine/epoch_" + str(epoch) + "validation_loss_cosine.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(valid_cosine_values)
 
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(jaccard)
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_Jaccard/epoch_" + str(epoch) + "jaccard_index.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(jaccard)
 
-        with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(valid_jaccard)
+#         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Validation_Jaccard/epoch_" + str(epoch) + "validation_jaccard_index.csv", 'w') as f: 
+#             write = csv.writer(f) 
+#             write.writerow(valid_jaccard)
 
     print('Finished Training Dataset')
     return total_loss, valid_loss
@@ -410,26 +397,27 @@ dataset = Load_Dataset(os.getcwd() + Param.Parameters.Network["Train_paths"]["Da
 
 Dataset_size = len(folder)
 
-print("Total number: ", Dataset_size)
-print("Non empty masks: ",len(folder[np.where(folder[:,-1].astype(float) > 0)]))
-print("Empty masks: ",len(folder[np.where(folder[:,-1].astype(float) == 0)]))
+data_splits = [np.array([]), np.array([]), np.array([])]
+data_split_values = [Param.Parameters.Network["Hyperparameters"]["Train_split"],
+                     Param.Parameters.Network["Hyperparameters"]["Validation_split"],
+                     Param.Parameters.Network["Hyperparameters"]["Test_split"]]
 
-training_split = folder[np.where(folder[:,3].astype(int) < 9),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 2),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 3),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 4),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 5),2]
-# training_split = folder[np.where(folder[:,3].astype(int) < 9),2]
-training_split = np.squeeze(training_split).astype(int)
+for splits in range(len(data_splits)):
+    for val in data_split_values[splits]:
+        if np.size(data_splits[splits]) == 0:
+            data_splits[splits] = folder[np.where(folder[:,3].astype(int) == val),2]
+        else:
+            if np.size(folder[np.where(folder[:,3].astype(int) == val),2]) != 0:
+                data_splits[splits] = np.concatenate((data_splits[splits],
+                                                      folder[np.where(folder[:,3].astype(int) == val),2]), 
+                                                      axis=1)
 
-validation_split = folder[np.where(folder[:,3].astype(int) == 9),2]
-validation_split = np.squeeze(validation_split).astype(int)
+data_splits[0] = np.squeeze(data_splits[0])
+data_splits[1] = np.squeeze(data_splits[1])
+data_splits[2] = np.squeeze(data_splits[2])
 
-test_split = folder[np.where(folder[:,3].astype(int) == 2),2]
-test_split = np.squeeze(test_split).astype(int)
-
-train_data = torch.utils.data.RandomSampler(training_split,False)
-validation_data = torch.utils.data.RandomSampler(validation_split,False)
+train_data = torch.utils.data.RandomSampler(data_splits[0],False)
+validation_data = torch.utils.data.RandomSampler(data_splits[1],False)
 del folder
 
 Train_data=DataLoader(

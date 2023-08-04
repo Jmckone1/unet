@@ -44,15 +44,34 @@ class Load_Dataset(Dataset):
         
         image_path = os.path.join(self.path,'imagesTr/', self.image_folders[idx] + ".nii.gz")
         img = nib.load(image_path).get_fdata()
-        
-        if Param.Parameters.Network["Hyperparameters"]["Regress"] == True:
-            mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
-            numpy_mask = np.load(mask_path)
-            mask = numpy_mask["RANO"][np.newaxis,:]  
-        
+
+        if Param.Parameters.Network["Hyperparameters"]["Single_channel"] == True:
+            if Param.Parameters.Network["Hyperparameters"]["Single_channel_type"] == "T1":
+                img = img[0,:,:]
+            if Param.Parameters.Network["Hyperparameters"]["Single_channel_type"] == "Flair":
+                img = img[1,:,:]
+            if Param.Parameters.Network["Hyperparameters"]["Single_channel_type"] == "T1ce":
+                img = img[2,:,:]
+            if Param.Parameters.Network["Hyperparameters"]["Single_channel_type"] == "T2":
+                img = img[3,:,:]
+                
         if Param.Parameters.Network["Hyperparameters"]["Regress"] == False:
             mask_path = os.path.join(self.path,'labelsTr/', self.masks_folders[idx] + ".nii.gz")
-            mask = nib.load(mask_path).get_fdata()      
+            mask = nib.load(mask_path).get_fdata()    
+        if Param.Parameters.Network["Hyperparameters"]["Regress"] == True:
+            if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
+                numpy_mask = np.load(mask_path)
+                mask = numpy_mask["RANO"][np.newaxis,:]  
+
+            if Param.Parameters.Network["Hyperparameters"]["BBox"] == True:
+                value = self.masks_folders[idx].split("_")
+                value_1 = value[-1].split('.')
+                value_2 = value[0] + "_" + value[1] + "_" + value[2] + "_" + value[3] + "_" + value_1[0]
+#                 print(value_2)
+                mask_path = os.path.join(self.path,'BBoxlabelsTr/', value_2 + ".npz")
+                numpy_mask = np.load(mask_path)
+                mask = numpy_mask["BBox"][np.newaxis,:]  
         
         img = torch.from_numpy(img).unsqueeze(0)
         mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0)   

@@ -276,7 +276,7 @@ def train(Train_data,Val_data,load=False):
     print('Finished Training Dataset')
 
 print("Loading Dataset")
-folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset_15.csv", delimiter=",",dtype=str)
+folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
 
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]

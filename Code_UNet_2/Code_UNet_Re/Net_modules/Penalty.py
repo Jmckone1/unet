@@ -39,7 +39,8 @@ class Penalty():
         
         mse = torch.ones(batch,device="cuda")
         cosine = torch.ones(batch,device="cuda")
-        cosine = self.Cosine_calc(output)
+        if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+            cosine = self.Cosine_calc(output)
         
 #         print(np.shape(output),np.shape(target))
         
