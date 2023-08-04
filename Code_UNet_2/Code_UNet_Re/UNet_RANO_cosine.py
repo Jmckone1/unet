@@ -134,13 +134,16 @@ def Validate(unet, criterion, Val_data):
         truth_output = label_input.cpu().detach().numpy()
 
         for input_val in range(cur_batch_size):
-            
-            corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
-            mask_truth = Jacc.mask((240,240),corners_truth)#*1
-            corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
-            mask_pred = Jacc.mask((240,240),corners_pred)#*1
+            if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+                mask_truth = Jacc.mask((240,240),corners_truth)*1
+                corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+                mask_pred = Jacc.mask((240,240),corners_pred)*1
+            else:
+                mask_truth = Jacc.BBox(label_input[input_val,:])
+                mask_pred = Jacc.BBox(pred[input_val,:])
 
-            if np.sum(np.sum(mask_truth)) > 2:
+            if np.sum(np.sum(mask_pred)) > 2:
                 jaccard_val.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
             else:
                 jaccard_val.append(float("NaN"))
