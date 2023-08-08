@@ -16,7 +16,7 @@ class Parameters():
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 100,
+            "Epochs" : 15,
             "Batch_size" : 8,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
@@ -44,7 +44,8 @@ class Parameters():
             "Single_channel_type" : "Flair" # T1, Flair, T1ce, T2
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/BBox_100_epochs_100_brats_4_v0/",
+#             "Checkpoint_save" : "Checkpoints/BBox_100_epochs_100_brats_4_v0/",
+            "Checkpoint_save" : "Checkpoints/cosine_level_checker_cosine_0_BBox/",
             "Checkpoint_load" : "Checkpoints_RANO/Checkpoints/Prano_pretrain_1_C100/checkpoint_40.pth",
             "Data_path" : "/Datasets/Brats_2018_4/",#"/Datasets/CT_Dataset/Task06_Lung", # "/Brats_2018_data/Brats_2018_data",#  "/CT_Dataset/Task06_Lung", #"/Brats_2018_4/", #"/Brats_2018/", #"/Brats_2018_small/"
             "Extensions" : ["/HGG","/LGG"] # ["/HGG", "/LGG"]

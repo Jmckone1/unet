@@ -38,28 +38,33 @@ class Penalty():
         batch = output.shape[0]
         
         mse = torch.ones(batch,device="cuda")
-        cosine = torch.ones(batch,device="cuda")
         if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+            cosine = torch.ones(batch,device="cuda")
             cosine = self.Cosine_calc(output)
-        
-#         print(np.shape(output),np.shape(target))
-        
-        for i in range(batch):
-            
-            mse[i] = self.a(output[i,:], target[i,:])
-            if torch.isnan(cosine[i]) == True:
-                cosine[i] = 0
-            else:
-                stage_1 = cosine.data[i] # cosine output
-                stage_2 = torch.sub(torch.abs(stage_1.data),0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
-                stage_3 = torch.mul(stage_2.data,2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
-                stage_4 = torch.abs(stage_3.data) # set bounds to between 0 and 1
-                cosine.data[i] = torch.mul(stage_4.data, self.orth_weight) # apply orthogonality weight
-                
-        cosine_mult = cosine.data.to(device='cuda') # torch.abs(torch.mul(cosine, self.orth_weight)).to(device='cuda')
-        loss = torch.add(mse, cosine_mult)
 
-        return torch.mean(loss), torch.mean(mse), torch.mean(cosine_mult)
+        if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+            for i in range(batch):
+
+                mse[i] = self.a(output[i,:], target[i,:])
+                if torch.isnan(cosine[i]) == True:
+                    cosine[i] = 0
+                else:
+                    stage_1 = cosine.data[i] # cosine output
+                    stage_2 = torch.sub(torch.abs(stage_1.data), 0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
+                    stage_3 = torch.mul(stage_2.data, 2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
+                    stage_4 = torch.abs(stage_3.data) # set bounds to between 0 and 1
+                    cosine.data[i] = torch.mul(stage_4.data, self.orth_weight) # apply orthogonality weight
+
+            cosine_mult = cosine.data.to(device='cuda') # torch.abs(torch.mul(cosine, self.orth_weight)).to(device='cuda')
+            loss = torch.add(mse, cosine_mult)
+            
+            return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine_mult).detach()
+        else:
+            for i in range(batch):
+                mse[i] = self.a(output[i,:], target[i,:])
+            loss = mse
+            
+            return torch.mean(loss), torch.mean(mse).detach(), torch.mean(mse).detach()
     
     def MSELossorthogtest1(self, output, target):
 
@@ -67,29 +72,28 @@ class Penalty():
         batch = output.shape[0]
         
         mse = torch.ones(batch,device="cuda")
-        cosine = torch.ones(batch,device="cuda")
+        if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+            cosine = torch.ones(batch,device="cuda")
+            cosine = self.Cosine_calc(output)
 
-        for i in range(batch):
-            mse[i] = self.a(output[i,:], target[i,:])
-            if torch.isnan(cosine[i]) == True:
-                cosine[i] = 0
-            else:
-                cosine[i] = self.Cosine_calc(output[i,:])
-                
-#             if torch.isnan(cosine[i]) == True:
-#                 cosine[i] = 0
-#             else:
-#                 stage_1 = cosine.data[i] # cosine output
-#                 stage_2 = torch.sub(torch.abs(stage_1.data),0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
-#                 stage_3 = torch.mul(stage_2.data,2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
-#                 stage_4 = torch.abs(stage_3.data) # set bounds to between 0 and 1
-#                 cosine.data[i] = torch.mul(stage_4.data, self.orth_weight) # apply orthogonality weight
-                
-        cosine_mult = cosine.data.to(device='cuda') # torch.abs(torch.mul(cosine, self.orth_weight)).to(device='cuda')
-        loss = torch.add(mse, cosine_mult)
+        if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+            for i in range(batch):
 
-        return torch.mean(loss), torch.mean(mse), torch.mean(cosine_mult)
+                mse[i] = self.a(output[i,:], target[i,:])
+                if torch.isnan(cosine[i]) == True:
+                    cosine.data[i] = 0
 
+            cosine_mult = cosine.data.to(device='cuda')
+            loss = torch.add(mse, cosine_mult)
+            
+            return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine_mult).detach()
+        else:
+            for i in range(batch):
+                mse[i] = self.a(output[i,:], target[i,:])
+            loss = mse
+            
+            return torch.mean(loss), torch.mean(mse).detach(), torch.mean(mse).detach()
+        
     def MSELossorthogtest2(self, output, target):
 
         loss = 0
@@ -118,4 +122,4 @@ class Penalty():
         cosine_mult = cosine.data.to(device='cuda') # torch.abs(torch.mul(cosine, self.orth_weight)).to(device='cuda')
         loss = torch.add(mse, cosine_mult)
 
-        return torch.mean(loss), torch.mean(mse), torch.mean(cosine_mult)
+        return torch.mean(loss.detach()), torch.mean(mse.detach()), torch.mean(cosine_mult.detach())

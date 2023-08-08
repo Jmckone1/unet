@@ -30,7 +30,7 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
 torch.backends.cudnn.enabled = False
 
-torch.set_num_threads(32)
+# torch.set_num_threads(32)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= str(Param.Parameters.Network["Global"]["GPU"])
@@ -63,7 +63,7 @@ if os.path.exists("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"][
 np.set_printoptions(precision=4)
 
 loss_f = Penalty(Param.Parameters.Network["Hyperparameters"]["Cosine_penalty"])
-criterion = loss_f.MSELossorthog
+criterion = loss_f.MSELossorthogtest1
 
 def _init_fn(worker_id):
     worker_seed = torch.initial_seed() % 2**32
@@ -135,13 +135,13 @@ def Validate(unet, criterion, Val_data):
 
         for input_val in range(cur_batch_size):
             if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
-                corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+                corners_truth, center_truth = Jacc.Obb(truth_output[input_val,:])
                 mask_truth = Jacc.mask((240,240),corners_truth)*1
-                corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+                corners_pred, center_pred = Jacc.Obb(pred_output[input_val,:])
                 mask_pred = Jacc.mask((240,240),corners_pred)*1
             else:
-                mask_truth = Jacc.BBox(label_input[input_val,:])
-                mask_pred = Jacc.BBox(pred[input_val,:])
+                mask_truth = Jacc.BBox(truth_output[input_val,:])
+                mask_pred = Jacc.BBox(pred_output[input_val,:])
 
             if np.sum(np.sum(mask_pred)) > 2:
                 jaccard_val.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
@@ -209,7 +209,7 @@ def train(Train_data,Val_data,load=False):
 #                   Define model end                     #
 #--------------------------------------------------------#
 #                   Run model start                      #
-    t, v, total_loss = [],[],[]
+    
     scaler = amp.GradScaler(enabled = True)
 
     for epoch in range(Param.Parameters.Network["Hyperparameters"]["Epochs"]):
@@ -220,6 +220,8 @@ def train(Train_data,Val_data,load=False):
             epoch = checkpoint['epoch'] + 1
             
         unet.train()
+        
+        t, v, total_loss = [],[],[]
         
         running_loss, mse_run, cosine_run= 0.0, 0.0, 0.0
         loss_values,mse_values,cosine_values = [],[],[]
@@ -259,15 +261,18 @@ def train(Train_data,Val_data,load=False):
             label_input = np.squeeze(label_input)
             unet_loss, mse, cosine = criterion(pred, label_input)
             
+            pred_output = pred.cpu().detach().numpy()
+            truth_output = label_input.cpu().detach().numpy()
+            
             for input_val in range(cur_batch_size):
                 if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
-                    corners_truth, center_truth = Jacc.Obb(label_input[input_val,:])
+                    corners_truth, center_truth = Jacc.Obb(truth_output[input_val,:])
                     mask_truth = Jacc.mask((240,240),corners_truth)*1
-                    corners_pred, center_pred = Jacc.Obb(pred[input_val,:])
+                    corners_pred, center_pred = Jacc.Obb(pred_output[input_val,:])
                     mask_pred = Jacc.mask((240,240),corners_pred)*1
                 else:
-                    mask_truth = Jacc.BBox(label_input[input_val,:])
-                    mask_pred = Jacc.BBox(pred[input_val,:])
+                    mask_truth = Jacc.BBox(truth_output[input_val,:])
+                    mask_pred = Jacc.BBox(pred_output[input_val,:])
                 
                 if np.sum(np.sum(mask_pred)) > 2:
                     jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
@@ -351,7 +356,8 @@ def train(Train_data,Val_data,load=False):
                       + "training_loss.csv", 'w') as f: 
                 write = csv.writer(f) 
                 write.writerow(model_outputs[model_output_counter])
-            
+    
+        
 #         with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Training_loss/epoch_" + str(epoch) + "training_loss.csv", 'w') as f: 
 #             write = csv.writer(f) 
 #             write.writerow(loss_values)

@@ -75,21 +75,21 @@ class Jaccard_Evaluation():
     
     def BBox(input_array):
         
-        input_array = input_array.detach().cpu().numpy()
+#         input_array = input_array.detach().cpu().numpy()
 #         print(input_array)
         mask = np.zeros(Param.Parameters.Network["Hyperparameters"]["Image_size"])
         cv2.rectangle(mask, (int(input_array[0]), int(input_array[1])), (int(input_array[2]), int(input_array[3])), color=(1,),thickness=-1)
         
-#         print(np.min(mask),np.max(mask))
+# #         print(np.min(mask),np.max(mask))
         
-        plt.imshow(mask)
-        plt.show()
+#         plt.imshow(mask)
+#         plt.show()
         return mask
 
     def Obb(input_array):
 
-        input_array = input_array.detach().cpu().numpy()
-#         input_array = np.squeeze(input_array)
+#         input_array = input_array.detach().cpu().numpy()
+# #         input_array = np.squeeze(input_array)
         input_data = np.array([(input_array[1], input_array[0]),
                                (input_array[5], input_array[4]), 
                                (input_array[3], input_array[2]), 
