@@ -107,13 +107,18 @@ class UNet(nn.Module):
         self.downfeature = FeatureMap(hidden_channels, output_channels)
         
         image_size = Param.Parameters.Network["Hyperparameters"]["Image_size"]
-
+        
+        # what i should do soon is to change this so it works with the output dim pararmeter instead of the bbox or rano parameters, i could get rid of half these lines and theoretically 2 params entirely!!
         if Param.Parameters.Network["Hyperparameters"]["Image_size"] == [240,240]:
-            self.Linear_RANO = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
-            self.Linear_BBox = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,4))
+            if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,8))
+            elif Param.Parameters.Network["Hyperparameters"]["BBox"] == True:
+                self.Linear = nn.Sequential(nn.Linear((hidden_channels*32)*7*7,4))
         elif Param.Parameters.Network["Hyperparameters"]["Image_size"] == [256,256]:
-            self.Linear_RANO = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 8))
-            self.Linear_BBox = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 4))
+            if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 8))
+            elif Param.Parameters.Network["Hyperparameters"]["BBox"] == True:
+                self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/32)*(image_size[1]/32)), 4))
         else:
             print("Not sure how you got here without the architecture defined but hey, regression wont work without this")
             import sys
@@ -130,15 +135,10 @@ class UNet(nn.Module):
         x6 = self.contract5(x5)
         
         if self.regress == True:
-#             print("Regress")
-            if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
-                x7 = torch.flatten(x6, start_dim=1)
-                x8 = self.Linear_RANO(x7)
-            elif Param.Parameters.Network["Hyperparameters"]["BBox"] == True:
-                x7 = torch.flatten(x6, start_dim=1)
-                x8 = self.Linear_BBox(x7)
+            x7 = torch.flatten(x6, start_dim=1)
+            x8 = self.Linear(x7)
             return x8
-            
+
         if self.regress == False:
 #             print("Segmentation")
             

@@ -20,6 +20,8 @@ import random
 
 seed = Param.Parameters.Network["Global"]["Seed"]
 
+torch.autograd.set_detect_anomaly(True)
+
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
@@ -30,7 +32,7 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
 torch.backends.cudnn.enabled = False
 
-# torch.set_num_threads(32)
+torch.set_num_threads(32)
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= str(Param.Parameters.Network["Global"]["GPU"])
@@ -63,7 +65,7 @@ if os.path.exists("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"][
 np.set_printoptions(precision=4)
 
 loss_f = Penalty(Param.Parameters.Network["Hyperparameters"]["Cosine_penalty"])
-criterion = loss_f.MSELossorthogtest1
+criterion = loss_f.MSELossorthogtest2_4
 
 def _init_fn(worker_id):
     worker_seed = torch.initial_seed() % 2**32
@@ -201,6 +203,7 @@ def train(Train_data,Val_data,load=False):
                                 betas=Param.Parameters.Network["Hyperparameters"]["Betas"], weight_decay=Param.Parameters.Network["Hyperparameters"]["Weight_decay"])
 
     if load == True:
+        print("Loading checkpoint")
         checkpoint = torch.load("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_load"])
 
         unet.load_state_dict(checkpoint['state_dict'])
@@ -449,4 +452,4 @@ print("")
 print("Actual train length", len(Train_data.sampler))
 print("actual validation length", len(Val_data.sampler))
 
-train(Train_data, Val_data, load=False)
+train(Train_data, Val_data, load=Param.Parameters.Network["Hyperparameters"]["Load_Checkpoint"])

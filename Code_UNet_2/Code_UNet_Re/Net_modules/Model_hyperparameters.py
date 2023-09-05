@@ -8,15 +8,15 @@ class Parameters():
         "Global" : {
             "Seed" : 11,
             "device" :"cuda",
-            "GPU" : 2,
+            "GPU" : 3,
             "Param_location" : "Code_UNet_2/Code_UNet_Re/Net_modules/Model_hyperparameters.py",
             "Debug" : False,
             "Net" : "UNet",
             "Enable_Determinism" : True
             },
         "Hyperparameters" : {
-            "Cosine_penalty" : 100,
-            "Epochs" : 15,
+            "Cosine_penalty" : 2,
+            "Epochs" : 10,
             "Batch_size" : 8,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
@@ -41,12 +41,14 @@ class Parameters():
             "Use_weights" : False,
             "Apply_Augmentation" : False,
             "Single_channel" : False,
-            "Single_channel_type" : "Flair" # T1, Flair, T1ce, T2
+            "Single_channel_type" : "Flair", # T1, Flair, T1ce, T2
+            "Load_Checkpoint" : False
             },
         "Train_paths" : {
 #             "Checkpoint_save" : "Checkpoints/BBox_100_epochs_100_brats_4_v0/",
-            "Checkpoint_save" : "Checkpoints/cosine_level_checker_cosine_0_BBox/",
-            "Checkpoint_load" : "Checkpoints_RANO/Checkpoints/Prano_pretrain_1_C100/checkpoint_40.pth",
+            "Checkpoint_save" : "Checkpoints/BBOX_training_sample_1/",
+            "Checkpoint_load" : "Checkpoints_RANO/Checkpoints/BBOX_training_sample_1/checkpoint_43.pth", 
+            # Checkpoints/cosine_absolute_values_c0_e100/checkpoint_41.pth",
             "Data_path" : "/Datasets/Brats_2018_4/",#"/Datasets/CT_Dataset/Task06_Lung", # "/Brats_2018_data/Brats_2018_data",#  "/CT_Dataset/Task06_Lung", #"/Brats_2018_4/", #"/Brats_2018/", #"/Brats_2018_small/"
             "Extensions" : ["/HGG","/LGG"] # ["/HGG", "/LGG"]
             },
@@ -56,9 +58,9 @@ class Parameters():
             "Data_path" : "/Datasets/Brats_2018_4/", # "/Datasets/CT_Dataset/Task06_Lung",#
             "Extensions" : ["/HGG","/LGG"], #["/HGG","/LGG"],
             "Epochs" : 10,
-            "Load_path" : "Checkpoints/Checkpoints/Brats_100_c_100_pretrained_10_epochs/",
+            "Load_path" : "Checkpoints/Checkpoints/Brats_5_c_100_pretrained_10_epochs/",
             #CT_randomInit_10_c_100_Prano_10_epochs CT_pretrain_10_c_100_Prano_10_epochs
-            "Save_path" : "Test_outputs/Brats_PTE_D100_C100_E10_02/" # ct data, random init, 10% data, cosine 100, 10 epochs
+            "Save_path" : "Test_outputs/Brats_PTE_D10_C100_E10_02/" # ct data, random init, 10% data, cosine 100, 10 epochs
             },
         "Old_Hyperparameters" : {
             "Index_File" : "/inedx_max_2.npy"

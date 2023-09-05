@@ -72,29 +72,220 @@ class Penalty():
         batch = output.shape[0]
         
         mse = torch.ones(batch,device="cuda")
+
+        for i in range(batch):
+            mse[i] = self.a(output[i,:], target[i,:])
+            loss = mse
+            
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(mse).detach()
+    
+    def MSELossorthogtest2(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            if torch.isnan(cosine[i]) == True:
+                cosine.data[i] = 0
+
+        cosine_mult = cosine.data.to(device='cuda')
+        loss = torch.add(mse, cosine)
+
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine).detach()
+    
+    def MSELossorthogtest2_1(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            if torch.isnan(cosine[i]) == True:
+                cosine[i] = 0
+            else:
+                cosine[i] = torch.mul(cosine[i], self.orth_weight)
+
+#         cosine_mult = cosine.data.to(device='cuda')
+        loss = torch.add(mse, cosine)
+
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine).detach()
+    
+    def MSELossorthogtest2_2(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            if torch.isnan(cosine[i]) == True:
+                cosine[i] = 0
+            else:
+#                 print("Orth abs")
+                cosine[i] = torch.abs(cosine[i].clone())
+#                 print("Orth sub")
+                cosine[i] = torch.sub(cosine[i].clone(), 0.5)
+#                 print("Orth weight")
+                cosine[i] = torch.mul(cosine[i].clone(), self.orth_weight)
+                
+#         cosine_mult = cosine.data.to(device='cuda')
+        loss = torch.add(mse, cosine)
+        
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine).detach()
+    
+    def MSELossorthogtest2_3(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            if torch.isnan(cosine[i]) == True:
+                cosine[i] = 0
+            else:
+                cosine[i] = torch.abs(cosine[i].clone())
+                cosine[i] = torch.sub(cosine[i].clone(), 0.5)
+                cosine[i] = torch.mul(cosine[i].clone(), 2)
+                cosine[i] = torch.abs(cosine[i].clone())
+                cosine[i] = torch.mul(cosine[i].clone(), self.orth_weight)
+
+        loss = torch.add(mse, cosine)
+
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine).detach()
+    
+    def MSELossorthogtest2_4(self,output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
         if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+
             cosine = torch.ones(batch,device="cuda")
             cosine = self.Cosine_calc(output)
 
-        if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
             for i in range(batch):
 
                 mse[i] = self.a(output[i,:], target[i,:])
                 if torch.isnan(cosine[i]) == True:
-                    cosine.data[i] = 0
+                    cosine[i] = 0
+                else:
+                    cosine[i] = torch.abs(cosine[i].clone())
+                    cosine[i] = torch.mul(cosine[i].clone(), self.orth_weight)
 
-            cosine_mult = cosine.data.to(device='cuda')
-            loss = torch.add(mse, cosine_mult)
-            
-            return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine_mult).detach()
+            loss = torch.add(mse, cosine)
+            return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine).detach()
         else:
             for i in range(batch):
                 mse[i] = self.a(output[i,:], target[i,:])
+
             loss = mse
-            
             return torch.mean(loss), torch.mean(mse).detach(), torch.mean(mse).detach()
+                
+    def MSELossorthogtest3(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
         
-    def MSELossorthogtest2(self, output, target):
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            
+            if torch.isnan(cosine[i]) == True:
+                cosine[i] = 0
+            else:
+                cosine[i] = torch.mul(cosine[i], self.orth_weight)
+                 # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
+                
+        cosine_mult = cosine.data.to(device='cuda')
+        loss = torch.add(mse, cosine_mult)
+
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine_mult).detach()
+    
+    def MSELossorthogtest4(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            
+            if torch.isnan(cosine[i]) == True:
+                cosine[i] = 0
+            else:
+                cosine[i] = torch.sub(torch.abs(cosine[i]), 0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
+                cosine[i] = torch.mul(cosine[i], 2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
+                cosine[i] = torch.abs(cosine[i]) # set bounds to between 0 and 1
+                cosine[i] = torch.mul(cosine[i], self.orth_weight)
+                
+#         cosine_mult = cosine.data.to(device='cuda')
+        loss = torch.add(mse, cosine)
+
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine).detach()
+        
+    def MSELossorthogtest5(self, output, target):
+
+        loss = 0
+        batch = output.shape[0]
+        
+        mse = torch.ones(batch,device="cuda")
+
+        cosine = torch.ones(batch,device="cuda")
+        cosine = self.Cosine_calc(output)
+
+        for i in range(batch):
+
+            mse[i] = self.a(output[i,:], target[i,:])
+            
+            if torch.isnan(cosine.data[i]) == True:
+                cosine.data[i] = 0
+            else:
+                cosine.data[i] = torch.sub(torch.abs(cosine.data[i]), 0.5) # subtract 0.5 to set orthog from 0.5 to 0 and parallel from 0 and 1 to 0.5 and -0.5
+                cosine.data[i] = torch.mul(cosine.data[i], 2) # set bounds to between -1 and 1 - this step isnt necessarily needed but looks nicer
+                cosine.data[i] = torch.abs(cosine.data[i]) # set bounds to between 0 and 1
+                cosine.data[i] = torch.mul(cosine.data[i], self.orth_weight)
+                
+        cosine_mult = cosine.data.to(device='cuda')
+        loss = torch.add(mse, cosine_mult)
+
+        return torch.mean(loss), torch.mean(mse).detach(), torch.mean(cosine_mult).detach()
+    
+    def MSELossorthogtest6(self, output, target):
 
         loss = 0
         batch = output.shape[0]
