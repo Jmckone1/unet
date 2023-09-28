@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+      # -*- coding: utf-8 -*-
 """
 @author: Joshua Mckone
 """
@@ -17,7 +17,7 @@ class Parameters():
         "Global" : {
             "Seed" : 0,
             "device" :"cuda",
-            "GPU" : 3,
+            "GPU" : 1,
             "Param_location" : "Code_UNet_2/Code_UNet/Net_modules/Parameters_SEG.py",
             "Debug" : False,
             # UNet | DCSAU 
@@ -25,12 +25,12 @@ class Parameters():
             },
         "Hyperparameters" : {
             "Cosine_penalty" : 100,
-            "Epochs" : 100,
-            "Batch_size" : 8,
+            "Epochs" : 3,
+            "Batch_size" : 16,
             "Learning_rate" : 3e-4,
             "Weight_decay" : 1e-8,
             "Betas" : (0.9,0.999),
-            "Input_dim" : 1,
+            "Input_dim" : 4,
             "Label_dim" : 1,
             "Hidden_dim" : 16,
             "Train_split" : 0.7,
@@ -40,17 +40,17 @@ class Parameters():
             "Batch_display_step" : 100, # used in line 228 of Unet_full_train file
             # "Confirm_display_step" : True, # not sure if this is used - will need to check
             "Image_scale" : 1,
-            "Image_size" : [256,256],
+            "Image_size" : [240,240],
             "Evaluate" : False,
-            "Regress" : True,
+            "Regress" : False,
             "Allow_update" : True,
             "Use_weights" : False,
             "Apply_Augmentation" : True
             },
         "Train_paths" : {
-            "Checkpoint_save" : "Checkpoints/UNet_brats_test",
-            "Checkpoint_load" : "Checkpoints/UNet_brats/Regression/checkpoint_0.pth",
-            "Data_path" : "CT_Dataset/Task06_Lung",#"/Brats_2018/", 
+            "Checkpoint_save" : "Checkpoints/UNet_reprod4",
+            "Checkpoint_load" : "Checkpoints/UNet_reprod/Regression/checkpoint_0.pth",
+            "Data_path" : "/Brats_2018_4/",#"CT_Dataset/Task06_Lung",#"/Brats_2018/","/Brats_2018_small/"
             "Extensions" : [""]
             },
         "Test_paths" : { # test isnt yet implemented so none of these are used

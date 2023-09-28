@@ -33,7 +33,8 @@ class Load_Dataset(Dataset):
 #         input("")
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
             mask_path = os.path.join(self.path,'BiLabelsTr/', self.masks_folders[idx] + ".npz")
-                                     
+                              
+            # print(mask_path)
             numpy_mask = np.load(mask_path)
             label = numpy_mask["RANO"][np.newaxis,:]  
             
@@ -42,8 +43,10 @@ class Load_Dataset(Dataset):
             label = nib.load(mask_path).get_fdata() 
             
         if Param.Parameters.PRANO_Net["Hyperparameters"]["Apply_Augmentation"] == True:
-            img, label = self.augmentation(img,label)
             
+#             print(np.shape(label))
+#             print(np.shape(img))
+            img, label = self.augmentation(img,label)
         
         return (img,label)
     
@@ -83,8 +86,24 @@ class Load_Dataset(Dataset):
                 ],
                 keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
             
-            transformed = transform1(image=img, keypoints=keypoint_format)
+            if Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"] > 1:
+                img = np.reshape(img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"]))
+            
+                transformed = transform1(image=img[..., :Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"]], keypoints=keypoint_format)
+                
+                img = np.reshape(img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1]))
+            else:
+                if img.ndim == 3:
+                    img = np.reshape(img, (240, 240, 4))
+                transformed = transform1(image=img, keypoints=keypoint_format)
+                
             transformed_img = transformed['image']
+            if img.ndim == 3:
+                transformed_img = np.reshape(transformed_img, (4, 240, 240))
             transformed_label = transformed['keypoints']
             
             transformed_label = [transformed_label[0][1], transformed_label[0][0],
@@ -107,8 +126,22 @@ class Load_Dataset(Dataset):
                 A.RandomRotate90(p=rotate)
                 ])
             
-            transformed = transform2(image=img, mask=label)
-            transformed_img = transformed['image']
+            if Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"] > 1:
+                img = np.reshape(img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"]))
+                
+                transformed = transform2(image=img, mask=label)
+                
+                transformed_img = transformed['image']
+                transformed_img = np.reshape(transformed_img,(Param.Parameters.PRANO_Net["Hyperparameters"]["Input_dim"],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][0],
+                                      Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"][1]))
+                
+            else:
+                transformed = transform2(image=img, mask=label)
+                
+                transformed_img = transformed['image']
             transformed_label = transformed['mask']
 
         return transformed_img,transformed_label

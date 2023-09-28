@@ -46,11 +46,18 @@ else:
 print("Loading Dataset")
 Full_Path = os.getcwd() + "/" + Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]
 folder = np.loadtxt(Full_Path + "/Training_dataset.csv", delimiter=",",dtype=str)
+
+# here is where we reduce the dataset size for regression
+if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
+    folder = [folder[np.array(folder[:,-1],dtype=float) > 0]]
+    folder = np.squeeze(folder)
+
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]
 
 # folder = read_csv_paths
 dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in)
+
 print("")
 
 Dataset_size = len(folder)
@@ -59,18 +66,21 @@ print("Dataset size: ", Dataset_size)
 split = folder[:,3].astype(int)
 
 # split here is currently 01 validation (20%) and the rest 23456789 at (80%)
-training_split = folder[(np.where(~np.logical_or(split==0, split==1))),2]
+training_split = folder[(np.where(~np.logical_or(split==2, split==3))),2]
 training_split = np.squeeze(training_split).astype(int)
 
-validation_split = folder[(np.where(np.logical_or(split==0, split==1))),2]
+validation_split = folder[(np.where(np.logical_or(split==2, split==3))),2]
 validation_split = np.squeeze(validation_split).astype(int)
 
 train_data = torch.utils.data.RandomSampler(training_split,False)
 validation_data = torch.utils.data.RandomSampler(validation_split,False)
 
 print("Full_dataset: ", len(split))
-print("Training: ", len(training_split))
-print("validation: ", len(validation_split))
+
+print("Training: ", len(training_split), 
+      "|" + str(len(training_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] ) + "Batches")
+print("validation: ", len(validation_split),
+      "|" + str(len(validation_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"]) + "Batches")
 
 Train_data=DataLoader(
     dataset=dataset,
