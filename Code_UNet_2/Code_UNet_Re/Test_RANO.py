@@ -24,9 +24,9 @@ torch.autograd.set_detect_anomaly(True)
 
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
-np.random.seed(seed)  # Numpy module.
-random.seed(seed)  # Python random module.
+torch.cuda.manual_seed_all(seed)
+np.random.seed(seed)
+random.seed(seed)
 torch.manual_seed(seed)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = Param.Parameters.Network["Global"]["Enable_Determinism"]
@@ -51,12 +51,12 @@ for h in headers:
 np.set_printoptions(precision=4)
 input("Press Enter to continue . . . ")
 
-if os.path.exists("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"]):
+if os.path.exists("Test_outputs/RANO/" + Param.Parameters.Network["Test_paths"]["Save_path"]):
     print("Path already exists")
     print("Please enter Y to delete file contents or anything else to exit: ")
     replace = input("")
     if replace == "Y":
-        shutil.rmtree("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"])
+        shutil.rmtree("Test_outputs/RANO/" + Param.Parameters.Network["Test_paths"]["Save_path"])
         print("File deleted . . . continuing script")
     else:
         print("Exiting script")
@@ -72,8 +72,11 @@ def _init_fn(worker_id):
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def test(Train_data,Val_data,load=False):
+def test(Test_data,mask_names):
     
+    output_integer_for_printing = 0
+    output_integer_for_printing_2 = 0
+
     np.random.seed(Param.Parameters.Network["Global"]["Seed"])
     torch.manual_seed(Param.Parameters.Network["Global"]["Seed"])
     Improvement = 0
@@ -83,72 +86,49 @@ def test(Train_data,Val_data,load=False):
                     Param.Parameters.Network["Hyperparameters"]["Hidden_dim"]).to(
         Param.Parameters.Network["Global"]["device"])
     print(unet)
-    
-    Files = ["","Training_loss","Training_loss_mse",
-            "Training_loss_cosine","Validation_loss",
-            "Validation_loss_mse","Validation_loss_cosine",
-            "Training_Jaccard","Validation_Jaccard"]
-    
-    if not os.path.exists("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"]):
-        for file in Files: 
-            os.makedirs("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + file)
-    
-    ## may get rid of this section in the future as we now save the parameter file, though the architecture is potentially useful.
-    with open("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Model_architecture", 'w') as write: 
-        write.write("epochs: " + str(Param.Parameters.Network["Hyperparameters"]["Epochs"]) + "\n")
-        write.write("batch size: " + str(Param.Parameters.Network["Hyperparameters"]["Batch_size"]) + "\n")
-        write.write("learning rate: " + str(Param.Parameters.Network["Hyperparameters"]["Learning_rate"]) + "\n")
-        write.write("orthogonality weight: " + str(Param.Parameters.Network["Hyperparameters"]["Cosine_penalty"]) + "\n")
-        write.write(str(unet))
+
+    if not os.path.exists("Test_outputs/RANO/" + Param.Parameters.Network["Test_paths"]["Save_path"] + "/Images"):
+        os.makedirs("Test_outputs/RANO/" + Param.Parameters.Network["Test_paths"]["Save_path"] + "/Images")
 
     original = Param.Parameters.Network["Global"]["Param_location"]
-    target = "Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "Model_hyperparameters.py"
-    if not os.path.exists("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"]):
-        os.makedirs("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"])
+    target = "Test_outputs/RANO/" + Param.Parameters.Network["Test_paths"]["Save_path"] + "Model_hyperparameters.py"
 
     shutil.copyfile(original, target)
 
     unet_opt = torch.optim.Adam(unet.parameters(), 
                                 Param.Parameters.Network["Hyperparameters"]["Learning_rate"],
-                                betas=Param.Parameters.Network["Hyperparameters"]["Betas"], weight_decay=Param.Parameters.Network["Hyperparameters"]["Weight_decay"])
-
-    if load == True:
-        print("Loading checkpoint")
-        checkpoint = torch.load("Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_load"])
-
-        unet.load_state_dict(checkpoint['state_dict'])
-        unet_opt.load_state_dict(checkpoint['optimizer'])
-
-#                   Define model end                     #
-#--------------------------------------------------------#
-#                   Run model start                      #
+                                betas=Param.Parameters.Network["Hyperparameters"]["Betas"], 
+                                weight_decay=Param.Parameters.Network["Hyperparameters"]["Weight_decay"])
     
     scaler = amp.GradScaler(enabled = True)
 
-#     for epoch in range(Param.Parameters.Network["Hyperparameters"]["Epochs"]):
     cur_step = 0
+    
+    checkpoint = torch.load(Param.Parameters.Network["Test_paths"]["Load_path"])
+    print(unet)
+    unet.load_state_dict(checkpoint['state_dict'])
+    epoch = checkpoint['epoch']
 
-    print("Training...")
-    if epoch == 0 and load == True:
-        epoch = checkpoint['epoch'] + 1
-
-    unet.train()
+    unet.eval()
 
     t, v, total_loss = [],[],[]
 
     running_loss, mse_run, cosine_run= 0.0, 0.0, 0.0
     loss_values,mse_values,cosine_values = [],[],[]
-    valid_loss,valid_mse_values,valid_cosine_values = [],[],[]
     jaccard,valid_jaccard = [],[]
-
-    for truth_input, label_input in tqdm(Train_data):
+    
+    for truth_input, label_input in tqdm(Test_data):
 
         cur_batch_size = len(truth_input)
 
-        # flatten ground truth and label masks
+#         print("Truth", np.shape(truth_input), torch.sum(truth_input))#, np.sum(truth_input))
         truth_input = truth_input.to(Param.Parameters.Network["Global"]["device"])
         truth_input = truth_input.float() 
         truth_input = truth_input.squeeze()
+#         for x_f in range(8):
+#             print(torch.sum(truth_input[x_f]))
+        
+#         print("Truth", np.shape(label_input))#, np.sum(label_input))
         label_input = label_input.to(Param.Parameters.Network["Global"]["device"])
         label_input = label_input.float()
         label_input = label_input.squeeze()
@@ -157,16 +137,6 @@ def test(Train_data,Val_data,load=False):
             truth_input = truth_input[np.newaxis,:,:,:]
             label_input = label_input[np.newaxis,:]
 
-        if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 1:
-            truth_input = truth_input.squeeze()
-            label_input = label_input.squeeze()
-            if cur_batch_size == 1:
-                truth_input = truth_input[np.newaxis,:,:,:]
-                label_input = label_input[np.newaxis,:]
-            label_input = label_input[:,np.newaxis,:]
-            truth_input = truth_input[:,np.newaxis,:,:]
-
-        # set accumilated gradients to 0 for param update
         unet_opt.zero_grad()
 
         pred = unet(truth_input)
@@ -176,8 +146,14 @@ def test(Train_data,Val_data,load=False):
 
         pred_output = pred.cpu().detach().numpy()
         truth_output = label_input.cpu().detach().numpy()
+        
+        pred_output = np.squeeze(pred_output)
 
-        for input_val in range(cur_batch_size):
+#         print("truth", truth_output)
+#         print("Pred", pred_output)
+
+        for input_val in tqdm(range(cur_batch_size)):
+
             if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
                 corners_truth, center_truth = Jacc.Obb(truth_output[input_val,:])
                 mask_truth = Jacc.mask((240,240),corners_truth)*1
@@ -188,69 +164,69 @@ def test(Train_data,Val_data,load=False):
                 mask_pred = Jacc.BBox(pred_output[input_val,:])
 
             if np.sum(np.sum(mask_pred)) > 2:
-                jaccard.append(jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary'))
+                jac = jaccard_score(mask_truth.flatten(), mask_pred.flatten(), average='binary')
+                jaccard.append(jac)
             else:
-                jaccard.append(float("NaN"))
+                jac = 0 #float("NaN")
+                jaccard.append(0) #float("NaN"))
+                
+            # save here - jaccard and images
+            
+#             print("jac: ", jac)
+
+            plt.imshow(np.zeros((240,240)))
+            
+            pred_output_show = pred_output[input_val,:]
+            truth_output_show = truth_output[input_val,:]
+            
+            D1 = np.asarray([[pred_output_show[1],pred_output_show[3]],[pred_output_show[0],pred_output_show[2]]]) 
+            D2 = np.asarray([[pred_output_show[5],pred_output_show[7]],[pred_output_show[4],pred_output_show[6]]]) 
+
+            E1 = np.asarray([[truth_output_show[1],truth_output_show[3]],[truth_output_show[0],truth_output_show[2]]]) 
+            E2 = np.asarray([[truth_output_show[5],truth_output_show[7]],[truth_output_show[4],truth_output_show[6]]]) 
+            
+#             print("image number = ", output_integer_for_printing)
+
+            plt.plot(D1[0, :], D1[1, :], lw=2, c='y',label='_nolegend_')
+            plt.plot(D2[0, :], D2[1, :], lw=2, c='y',label='Prediction')
+
+            plt.plot(E1[0, :], E1[1, :], lw=2, c='b',label='_nolegend_')
+            plt.plot(E2[0, :], E2[1, :], lw=2, c='b',label='Prediction')
+            
+            plt.axis('off')
+            
+#             plt.show()
+            
+            path_to_save_to = "Test_outputs/RANO/" + Param.Parameters.Network["Test_paths"]["Save_path"] + "/Images/" + mask_names[output_integer_for_printing]
+            
+            red = len(str(path_to_save_to.split("_")[-1]))
+#             input("")
+            
+            if not os.path.exists(path_to_save_to[:-(red + 1)]):
+                os.makedirs(path_to_save_to[:-(red + 1)])
+                
+                output_integer_for_printing_2 = 0
+#                 print(path_to_save_to[:-(red + 1)] + "/image_output_" + str(output_integer_for_printing_2) + "_" + str(jac) + ".png")
+#                 input("")
+            
+            plt.savefig(path_to_save_to[:-(red + 1)] + "/image_output_" + str(output_integer_for_printing_2) + "_" + str(jac) + ".png")
         
-
-#                    Display stage end                   #           
-#--------------------------------------------------------#
-#               step and loss output start   #
-    epoch_val_loss, epoch_valid_mse, epoch_valid_cosine, epoch_jaccard_valid = Validate(unet, criterion, Val_data)
-
-    valid_loss.append(epoch_val_loss)
-    valid_mse_values.append(epoch_valid_mse)
-    valid_cosine_values.append(epoch_valid_cosine)
-
-    valid_jaccard.append(epoch_jaccard_valid)
-
-    print("Improvement", Improvement)
-    print("nan mean jaccard validation over the epoch", np.nanmean(epoch_jaccard_valid))
-    print("mean jaccard over epoch with nan", epoch_jaccard_valid)
-    print("")
-
-    # save a checkpoint only if there has been an improvement in the total jaccard score for the model.
-    if np.nanmean(epoch_jaccard_valid) > Improvement:
-        if np.nanmean(epoch_jaccard_valid) == np.isnan:
-            Improvement = 0
-        else:
-            Improvement = np.nanmean(epoch_jaccard_valid)
-
-        print("saving epoch: ", epoch)
-        checkpoint = {'epoch': epoch, 'state_dict': unet.state_dict(), 'optimizer' : unet_opt.state_dict()}
-        out = "Checkpoints_RANO/" + Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + "checkpoint_" + str(epoch) + ".pth"
-        torch.save(checkpoint, out)
-
-
-    model_outputs = [
-        loss_values, mse_values, cosine_values,
-        valid_loss, valid_mse_values, valid_cosine_values,
-        jaccard, valid_jaccard
-    ]
-    model_output_names = [
-        "Training_loss","Training_loss_mse","Training_loss_cosine",
-        "Validation_loss","Validation_loss_mse","Validation_loss_cosine",
-        "Training_Jaccard","Validation_Jaccard"
-    ]
-
-    for model_output_counter in range(len(model_outputs)):
-        with open("Checkpoints_RANO/" + 
-                  Param.Parameters.Network["Train_paths"]["Checkpoint_save"] + 
-                  model_output_names[model_output_counter] + "/epoch_" + str(epoch) 
-                  + "training_loss.csv", 'w') as f: 
-            write = csv.writer(f) 
-            write.writerow(model_outputs[model_output_counter])
-
-    print('Finished Training Dataset')
-    return total_loss, valid_loss
+            plt.close() 
+            
+            output_integer_for_printing = output_integer_for_printing + 1
+            output_integer_for_printing_2 = output_integer_for_printing_2 + 1
+#             plt.show()
+            
+    print('Finished Testing Dataset')
+    return 0
 
 print("Loading Dataset")
-folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
+folder = np.loadtxt(os.getcwd() + Param.Parameters.Network["Test_paths"]["Data_path"] + "/Training_dataset.csv", delimiter=",",dtype=str)
 
 image_folder_in = folder[:,0]
 masks_folder_in = folder[:,1]
 
-dataset = Load_Dataset(os.getcwd() + Param.Parameters.Network["Train_paths"]["Data_path"],
+dataset = Load_Dataset(os.getcwd() + Param.Parameters.Network["Test_paths"]["Data_path"],
                        image_folder_in,
                        masks_folder_in,
                        Param.Parameters.Network["Hyperparameters"]["Apply_Augmentation"])
@@ -276,6 +252,13 @@ data_splits[0] = np.squeeze(data_splits[0])
 data_splits[1] = np.squeeze(data_splits[1])
 data_splits[2] = np.squeeze(data_splits[2])
 
+test_data = data_splits[2].astype(int)
+
+mask_names = folder[:,1]
+print(data_splits[2][0])
+print(data_splits[2][-1])
+mask_names = mask_names[int(data_splits[2][0]):int(data_splits[2][-1])]
+
 train_data = torch.utils.data.RandomSampler(data_splits[0],False)
 validation_data = torch.utils.data.RandomSampler(data_splits[1],False)
 del folder
@@ -289,7 +272,6 @@ Test_data=DataLoader(
     worker_init_fn=_init_fn)
 
 print("")
-print("Actual train length", len(Train_data.sampler))
-print("actual validation length", len(Val_data.sampler))
+print("Actual test length", len(Test_data.sampler))
 
-train(Train_data, Val_data, load=Param.Parameters.Network["Hyperparameters"]["Load_Checkpoint"])
+test(Test_data,mask_names)

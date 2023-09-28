@@ -33,6 +33,8 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.enabled = False
 
+torch.set_num_threads(32)
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= str(Param.Parameters.Network["Global"]["GPU"])
 os.environ["CUBLAS_WORKSPACE_CONFIG"]=":16:8"

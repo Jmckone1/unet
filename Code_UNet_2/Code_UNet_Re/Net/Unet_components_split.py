@@ -158,7 +158,7 @@ class UNet(nn.Module):
         # load the model and the checkpoint
         model = UNet(input_channels, output_channels, hidden_channels, Regress)
         checkpoint = torch.load(os.getcwd() + "/" + Checkpoint_name)
-        
+        print("LOADING WEIGHTS: ", os.getcwd() + "/" + Checkpoint_name)
 #         print(checkpoint['state_dict'])
         
         # if the regression is true here we will load the checkpoint and move on, no freezing will be done.
@@ -170,8 +170,12 @@ class UNet(nn.Module):
                 del checkpoint['state_dict']["Linear.0.weight"]
                 del checkpoint['state_dict']["Linear.0.bias"]
             if Param.Parameters.Network["Hyperparameters"]["Input_dim"] == 4:
-                del checkpoint['state_dict']["Linear1.weight"]
-                del checkpoint['state_dict']["Linear1.bias"]
+                if Param.Parameters.Network["Hyperparameters"]["RANO"] == True:
+                    del checkpoint['state_dict']["Linear.0.weight"]
+                    del checkpoint['state_dict']["Linear.0.bias"]
+                elif Param.Parameters.Network["Hyperparameters"]["BBox"] == True:
+                    del checkpoint['state_dict']["Linear.0.weight"]
+                    del checkpoint['state_dict']["Linear.0.bias"]
 
             # load the existing model weights from the checkpoint
             model.load_state_dict(checkpoint['state_dict'], strict=False)
