@@ -115,7 +115,7 @@ def calc_2D_RANO_measure(input_data, pixdim=None, affine=None, mask_value=0, axi
     max_2d_images = []
     major_diameter = None
 
-    for z_slice in range(input_data.shape[2]): # here it wants to be not all the objects but the largest of the objects
+    for z_slice in tqdm(range(input_data.shape[2])): # here it wants to be not all the objects but the largest of the objects
 
         connected_components= label(input_data[:,:,z_slice], connectivity=1)
 

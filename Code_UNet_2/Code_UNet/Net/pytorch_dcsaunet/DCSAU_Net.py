@@ -27,7 +27,6 @@ class Up(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         return x
 
-    
 class PFC(nn.Module):
     def __init__(self,channels, kernel_size=7):
         super(PFC, self).__init__()
@@ -87,67 +86,149 @@ class Model(nn.Module):
 #         # i keep forgetting a feel really dumb . . .
         image_size = Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"]
         # print(image_size)
-        self.Linear1 = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
+        self.Linear = nn.Sequential(nn.Linear(int(512*(image_size[0]/16)*(image_size[1]/16)), 8))
+        
+        
        
     def forward(self, x):
         
-        Debug = False
+        Debug = Param.Parameters.PRANO_Net["Global"]["Debug"]
   
         x1 = self.pfc(x)
-        if Debug: print(x1.size())
+        
+        if Debug: 
+            print(x1.size())
+            print("x1 - pfc", torch.cuda.memory_allocated()/1024**2)
         x2 = self.maxpool(x1)
-        if Debug: print(x2.size())
+        
+        if Debug: 
+            print(x2.size())
+            print("x2 - maxpool", torch.cuda.memory_allocated()/1024**2)
         
         x3 = self.down1(x2)   
-        if Debug: print(x3.size())
+        if Debug: 
+            print(x3.size())
+            print("x3 - down", torch.cuda.memory_allocated()/1024**2)
         x4 = self.maxpool(x3)
-        if Debug: print(x4.size())
+        if Debug: 
+            print(x4.size())
+            print("x4 - maxpool", torch.cuda.memory_allocated()/1024**2)
         
         x5 = self.down2(x4)
-        if Debug: print(x5.size())
+        if Debug: 
+            print(x5.size())
+            print("x5 - down", torch.cuda.memory_allocated()/1024**2)
         x6 = self.maxpool(x5)
-        if Debug: print(x6.size())
+        if Debug: 
+            print(x6.size())
+            print("x6 - maxpool", torch.cuda.memory_allocated()/1024**2)
         
         x7 = self.down3(x6)
-        if Debug: print(x6.size())
+        if Debug: 
+            print(x6.size())
+            print("x7 - down", torch.cuda.memory_allocated()/1024**2)
         x8 = self.maxpool(x7)
-        if Debug: print(x8.size())
+        if Debug: 
+            print(x8.size())
+            print("x8 - maxpool", torch.cuda.memory_allocated()/1024**2)
         
         x9 = self.down4(x8)
-        if Debug: print(x9.size())
+        if Debug: 
+            print(x9.size())
+            print("x9 - down", torch.cuda.memory_allocated()/1024**2)
         
         if self.regress == True:
             
             x10 = torch.flatten(x9, start_dim=1)
-            if Debug: print(x10.size())
-            x11 = self.Linear1(x10)
-            if Debug: print(x11.size())
+            if Debug: 
+                print(x10.size())
+                print("x10 - flatten", torch.cuda.memory_allocated()/1024**2)
+            x11 = self.Linear(x10)
+            if Debug: 
+                print(x11.size())
+                print("x11 - linear", torch.cuda.memory_allocated()/1024**2)
             return x11
             
         if self.regress == False:
 
             x10 = self.up_conv1(x9,x7)
-            if Debug: print(x10.size())
+            if Debug: 
+                print(x10.size())
+                print("x10 - upconv", torch.cuda.memory_allocated()/1024**2)
             x11 = self.up1(x10)
-            if Debug: print(x11.size())
+            if Debug: 
+                print(x11.size())
+                print("x11 - up", torch.cuda.memory_allocated()/1024**2)
 
             x12 = self.up_conv2(x11,x5) 
-            if Debug: print(x12.size())
+            if Debug: 
+                print(x12.size())
+                print("x12 - upconv", torch.cuda.memory_allocated()/1024**2)
             x13 = self.up2(x12)
-            if Debug: print(x13.size())
+            if Debug: 
+                print(x13.size())
+                print("x13 - up", torch.cuda.memory_allocated()/1024**2)
 
             x14 = self.up_conv3(x13,x3)  
-            if Debug: print(x14.size())
+            if Debug: 
+                print(x14.size())
+                print("x14 - upconv", torch.cuda.memory_allocated()/1024**2)
             x15 = self.up3(x14)
-            if Debug: print(x15.size())
+            if Debug: 
+                print(x15.size())
+                print("x15 - up", torch.cuda.memory_allocated()/1024**2)
 
             x16 = self.up_conv4(x15,x1)
-            if Debug: print(x16.size())
+            if Debug: 
+                print(x16.size())
+                print("x16 - upconv", torch.cuda.memory_allocated()/1024**2)
             x17 = self.up4(x16)
-            if Debug: print(x17.size())
+            if Debug: 
+                print(x17.size())
+                print("x17 - up", torch.cuda.memory_allocated()/1024**2)
 
             x18 = self.out_conv(x17)
-            if Debug: print(x18.size())
+            if Debug: 
+                print(x18.size())
+                print("x18 - out", torch.cuda.memory_allocated()/1024**2)
 
-            #x19 = torch.sigmoid(x18)
-            return x18
+            x19 = torch.sigmoid(x18)
+            return x19
+        
+    def load_weights(img_channels=4, n_classes=1, Regress = True, Allow_update = False, Checkpoint_name = ""):
+        # load the model and the checkpoint
+        model = Model(img_channels, n_classes, Regress)
+        checkpoint = torch.load(Checkpoint_name)
+        
+#         print(checkpoint['state_dict'])
+        input("Press to continue . . . ")
+        # remove the final linear layer of the regression model weights and bias
+        del checkpoint['state_dict']["Linear.0.weight"]
+        del checkpoint['state_dict']["Linear.0.bias"]
+
+        # load the existing model weights from the checkpoint
+        model.load_state_dict(checkpoint['state_dict'], strict=False)
+        if Regress == False:
+            # freeze the weights if allow_update is false - leave unfrozen if allow_update is true
+            for param in model.pfc.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down1.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down2.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down3.parameters():
+                param.requires_grad = Allow_update
+            for param in model.down4.parameters():
+                param.requires_grad = Allow_update
+
+    #         x1 = self.pfc(x)
+    #         x2 = self.maxpool(x1)
+    #         x3 = self.down1(x2)   
+    #         x4 = self.maxpool(x3)
+    #         x5 = self.down2(x4)
+    #         x6 = self.maxpool(x5)
+    #         x7 = self.down3(x6)
+    #         x8 = self.maxpool(x7)
+    #         x9 = self.down4(x8)
+                      
+        return model

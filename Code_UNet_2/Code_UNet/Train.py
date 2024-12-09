@@ -1,11 +1,16 @@
-from Net_modules.RANO_dataloader import Load_Dataset
-import Net_modules.Parameters_PRANO as Param
+from Net_modules.Loading_data import Load_Dataset
+
+from Net_modules.Evaluation import DiceLoss
 from Net_modules.Penalty import Penalty
+
+import Net_modules.Parameters_SEG as Param
 from torch.utils.data import DataLoader
 import numpy as np
 import torch
 import os
-import Unet_PRANO_Train
+import Unet_FULL_Train
+
+if Param.Parameters.PRANO_Net["Global"]["Debug"] == True: print("Train_seg.py start")
 
 torch.cuda.empty_cache()
 
@@ -21,79 +26,75 @@ for h in headers:
 ("Press Enter to load Global Parameters . . . ")    
     
 np.set_printoptions(precision=4)
-print("Loaded seed")
+print("Loading seed . . .")
 np.random.seed(Param.Parameters.PRANO_Net["Global"]["Seed"])
 torch.manual_seed(Param.Parameters.PRANO_Net["Global"]["Seed"])
+if Param.Parameters.PRANO_Net["Global"]["Debug"] == True: print("Loaded Seed")
 
 print("Loaded GPU allocation")
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=str(Param.Parameters.PRANO_Net["Global"]["GPU"])
 
-print("Loaded cosine penalty")
-loss_f = Penalty(Param.Parameters.PRANO_Net["Hyperparameters"]["Cosine_penalty"])#, Param.rNet.area_penalty)
-criterion = loss_f.MSELossorthog
+print("Loading loss . . .")
+if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == False:
+    loss_f = DiceLoss()
+    criterion = loss_f
+else:
+    loss_f = Penalty(Param.Parameters.PRANO_Net["Hyperparameters"]["Cosine_penalty"])
+    criterion = loss_f.MSELossorthog
 
-print("Loaded Dataset")
-Full_Path = os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]
-print(Full_Path)
-("")
-dataset = Load_Dataset(Full_Path,
-                       path_ext=Param.Parameters.PRANO_Net["Train_paths"]["Extensions"],
-                       size=Param.Parameters.PRANO_Net["Hyperparameters"]["Image_size"],
-                       apply_transform=False,
-                       New_index=Param.Parameters.PRANO_Net["Hyperparameters"]["New_index"])
+print("Loading Dataset")
+Full_Path = os.getcwd() + "/" + Param.Parameters.PRANO_Net["Train_paths"]["Data_path"]
+folder = np.loadtxt(Full_Path + "/Training_dataset.csv", delimiter=",",dtype=str)
 
-print("Loading index file")
-index_f = np.load(os.getcwd() + Param.Parameters.PRANO_Net["Train_paths"]["Index_file"])
-    
-patients_number = len(index_f)
- 
-train_length = index_f[int(np.floor(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Train_split"]))]
-validation_length = index_f[int(np.ceil(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Validation_split"]))]
-test_length = index_f[int(np.ceil(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Test_split"]))]
-all_data_length = index_f[-1]
-custom_split = index_f[int(np.ceil(patients_number*Param.Parameters.PRANO_Net["Hyperparameters"]["Custom_split"]))]
+# here is where we reduce the dataset size for regression
+if Param.Parameters.PRANO_Net["Hyperparameters"]["Regress"] == True:
+    folder = [folder[np.array(folder[:,-1],dtype=float) > 0]]
+    folder = np.squeeze(folder)
 
-train_range = list(range(0,train_length))
-val_range = list(range(train_length,train_length+validation_length))
-test_range = list(range(train_length+validation_length,train_length+validation_length+test_length))
-all_data_range = list(range(0,all_data_length))
-custom_split_range = list(range(0,custom_split))
+image_folder_in = folder[:,0]
+masks_folder_in = folder[:,1]
 
-print(train_length)
-print(validation_length)
-print(test_length)
-print(all_data_length)
-print(custom_split)
+# folder = read_csv_paths
+dataset = Load_Dataset(Full_Path,image_folder_in,masks_folder_in)
 
-train_data_m = torch.utils.data.RandomSampler(train_range,False)
-validation_data_m = torch.utils.data.RandomSampler(val_range,False)
-test_data_m = torch.utils.data.SubsetRandomSampler(test_range,False)
-all_data_m = torch.utils.data.RandomSampler(all_data_range,False)
-custom_split_m = torch.utils.data.RandomSampler(custom_split_range,False)
+print("")
 
-# https://medium.com/jun-devpblog/pytorch-5-pytorch-visualization-splitting-dataset-save-and-load-a-model-501e0a664a67
-print("Full_dataset: ", len(all_data_m))
-print("Training: ", len(train_data_m))
-print("validation: ", len(validation_data_m))
+Dataset_size = len(folder)
+print("Dataset size: ", Dataset_size)
+
+split = folder[:,3].astype(int)
+
+# split here is currently 01 validation (20%) and the rest 23456789 at (80%)
+training_split = folder[(np.where(~np.logical_or(split==2, split==3))),2]
+training_split = np.squeeze(training_split).astype(int)
+
+validation_split = folder[(np.where(np.logical_or(split==2, split==3))),2]
+validation_split = np.squeeze(validation_split).astype(int)
+
+train_data = torch.utils.data.RandomSampler(training_split,False)
+validation_data = torch.utils.data.RandomSampler(validation_split,False)
+
+print("Full_dataset: ", len(split))
+
+print("Training: ", len(training_split), 
+      "|" + str(len(training_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"] ) + "Batches")
+print("validation: ", len(validation_split),
+      "|" + str(len(validation_split) / Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"]) + "Batches")
 
 Train_data=DataLoader(
     dataset=dataset,
     batch_size=Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"],
-    sampler=train_data_m)
-
-print(Train_data)
+    sampler=train_data)
 
 Val_data=DataLoader(
     dataset=dataset,
     batch_size=Param.Parameters.PRANO_Net["Hyperparameters"]["Batch_size"],
-    sampler=validation_data_m)
+    sampler=validation_data)
 
-print(Val_data)
-
-# =============================================================================
-# train(Train_data, Val_data, load=False)
-# =============================================================================
-
-train_model = Unet_PRANO_Train.UNet_train(criterion)
+if Param.Parameters.PRANO_Net["Global"]["Debug"] == True: print("Starting training . . .")
+      
+train_model = Unet_FULL_Train.UNet_train(criterion)
 train_model.train(Train_data, Val_data, load=False)
+
+if Param.Parameters.PRANO_Net["Global"]["Debug"] == True: print("Train_seg.py end")
